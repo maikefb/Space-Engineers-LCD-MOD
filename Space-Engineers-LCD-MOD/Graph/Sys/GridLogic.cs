@@ -4,8 +4,10 @@ using System.Linq;
 using Sandbox.ModAPI;
 using VRage.Game;
 using VRage.Game.Components;
-using VRage.Game.ModAPI;
+using VRage.Game.ModAPI.Ingame;
 using VRage.ModAPI;
+using IMyCubeGrid = VRage.Game.ModAPI.IMyCubeGrid;
+using IMySlimBlock = VRage.Game.ModAPI.IMySlimBlock;
 using IngameItem = VRage.Game.ModAPI.Ingame.MyInventoryItem;
 
 namespace Graph.Data.Scripts.Graph.Sys
@@ -21,13 +23,13 @@ namespace Graph.Data.Scripts.Graph.Sys
         public readonly IMyCubeGrid Grid;
         List<IMySlimBlock> _blocks = new List<IMySlimBlock>();
 
-        public Dictionary<string, double> // Dictionary for Specific Category of Items
-            Components = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase),
-            Ingots = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase),
-            Ores = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase),
-            Ammo = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase),
-            Consumables = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase),
-            Seeds = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<MyItemType, double> // Dictionary for Specific Category of Items
+            Components = new Dictionary<MyItemType, double>(),
+            Ingots = new Dictionary<MyItemType, double>(),
+            Ores = new Dictionary<MyItemType, double>(),
+            Ammo = new Dictionary<MyItemType, double>(),
+            Consumables = new Dictionary<MyItemType, double>(),
+            Seeds = new Dictionary<MyItemType, double>();
 
         /// <summary>
         /// Logic attached to <see cref="grid"/>
@@ -67,7 +69,7 @@ namespace Graph.Data.Scripts.Graph.Sys
         /// <param name="blocks">Blocks to collect from</param>
         /// <param name="dictionary">Dictionary to store item Type/Ammount</param>
         /// <param name="suffix">Suffix of the item to be collected</param>
-        void AggregateByType(List<IMyTerminalBlock> blocks, Dictionary<string, double> dictionary, string suffix)
+        void AggregateByType(List<IMyTerminalBlock> blocks, Dictionary<MyItemType, double> dictionary, string suffix)
         {
             dictionary.Clear();
 
@@ -93,15 +95,14 @@ namespace Graph.Data.Scripts.Graph.Sys
                         var typeIdStr = it.Type.TypeId != null ? it.Type.TypeId.ToString() : "";
                         if (!typeIdStr.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) continue;
 
-                        string subtype = it.Type.SubtypeId ?? "";
-                        string display = subtype;
+                        MyItemType type = it.Type;
 
                         double amount = (double)it.Amount;
                         if (amount <= 0) continue;
 
                         double acc;
-                        if (dictionary.TryGetValue(display, out acc)) dictionary[display] = acc + amount;
-                        else dictionary[display] = amount;
+                        if (dictionary.TryGetValue(type, out acc)) dictionary[type] = acc + amount;
+                        else dictionary[type] = amount;
                     }
                 }
             }
