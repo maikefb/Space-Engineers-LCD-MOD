@@ -13,6 +13,8 @@ using IngameItem = VRage.Game.ModAPI.Ingame.MyInventoryItem;
 
 namespace Graph.Data.Scripts.Graph.Sys
 {
+    // Todo: move all logic to Client side
+    
     [MySessionComponentDescriptor(MyUpdateOrder.BeforeSimulation, 100)]
     public class GraphIndexer : MySessionComponentBase
     {
@@ -102,21 +104,6 @@ namespace Graph.Data.Scripts.Graph.Sys
                         string mode, token;
                         ParseFilter(lcd.CustomName ?? "", out mode, out token);
 
-                        // Conjuntos por sufixo de TypeId
-                        var compMap = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase); // Component
-                        var ingotMap = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase); // Ingot
-                        var oreMap   = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase); // Ore
-                        var ammoMap  = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase); // AmmoMagazine
-                        var consMap  = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase); // ConsumableItem
-                        var seedMap  = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase); // SeedItem
-
-                        AggregateByType(invBlocks, token, compMap, "Component");
-                        AggregateByType(invBlocks, token, ingotMap, "Ingot");
-                        AggregateByType(invBlocks, token, oreMap,   "Ore");
-                        AggregateByType(invBlocks, token, ammoMap,  "AmmoMagazine");
-                        AggregateByType(invBlocks, token, consMap,  "ConsumableItem");
-                        AggregateByType(invBlocks, token, seedMap,  "SeedItem");
-
                         // ==== Gases (H2/O2): total/atual + taxa total (grid/token)
                         double capH2 = 0, amtH2 = 0, capO2 = 0, amtO2 = 0;
                         SumGasesFromTankInfos(tankInfos, token, ref capH2, ref amtH2, ref capO2, ref amtO2);
@@ -138,7 +125,6 @@ namespace Graph.Data.Scripts.Graph.Sys
 
                         WriteCustomData(
                             lcd,
-                            compMap, ingotMap, oreMap, ammoMap, consMap, seedMap,
                             totalBlocks, remainingBlocks, missingMap,
                             capH2, amtH2, inH2, outH2,
                             capO2, amtO2, inO2, outO2,
@@ -531,12 +517,6 @@ namespace Graph.Data.Scripts.Graph.Sys
         // ===== SAÍDA PARA AS LCDs =====
         void WriteCustomData(
             Sandbox.ModAPI.IMyTextPanel lcd,
-            Dictionary<string, double> compMap,
-            Dictionary<string, double> ingotMap,
-            Dictionary<string, double> oreMap,
-            Dictionary<string, double> ammoMap,
-            Dictionary<string, double> consMap,
-            Dictionary<string, double> seedMap,
             int totalBlocks,
             int remainingBlocks,
             Dictionary<string, int> missing,
@@ -549,36 +529,6 @@ namespace Graph.Data.Scripts.Graph.Sys
         )
         {
             var sb = new StringBuilder();
-
-            sb.AppendLine("[ComponentCharts]");
-            foreach (var kv in compMap)
-                sb.AppendLine("Item=" + kv.Key + ": " + kv.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine();
-
-            sb.AppendLine("[IngotCharts]");
-            foreach (var kv in ingotMap)
-                sb.AppendLine("Item=" + kv.Key + ": " + kv.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine();
-
-            sb.AppendLine("[OreCharts]");
-            foreach (var kv in oreMap)
-                sb.AppendLine("Item=" + kv.Key + ": " + kv.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine();
-
-            sb.AppendLine("[AmmoCharts]");
-            foreach (var kv in ammoMap)
-                sb.AppendLine("Item=" + kv.Key + ": " + kv.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine();
-
-            sb.AppendLine("[ConsumablesCharts]");
-            foreach (var kv in consMap)
-                sb.AppendLine("Item=" + kv.Key + ": " + kv.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine();
-
-            sb.AppendLine("[SeedCharts]");
-            foreach (var kv in seedMap)
-                sb.AppendLine("Item=" + kv.Key + ": " + kv.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine();
 
             sb.AppendLine("[GasCharts]");
             sb.AppendLine("TotalH2="   + capH2.ToString(System.Globalization.CultureInfo.InvariantCulture));

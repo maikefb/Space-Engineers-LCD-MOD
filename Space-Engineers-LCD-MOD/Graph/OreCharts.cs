@@ -2,19 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
-
+using Graph.Data.Scripts.Graph.Sys;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.Game.Entities.Cube;
 using Sandbox.ModAPI;
 using VRage.Game.GUI.TextPanel;
-using VRage.Game.ModAPI;
+using VRage.Game.ModAPI.Ingame;
 using VRageMath;
 
 namespace Graph.Data.Scripts.Graph
 {
     [MyTextSurfaceScript("OreCharts", "Minério")]
-    public class OreCharts : MyTextSurfaceScriptBase
+    public class OreCharts : ItemCharts
     {
+        public override Dictionary<string, double> ItemSource => GridLogic?.Ores;
+        
         private static readonly Vector2 TITLE_POS = new Vector2(16, 20);
         private static readonly Vector2 INFO_POS  = new Vector2(16, 50);
         private const float LINE = 18f;
@@ -29,16 +31,18 @@ namespace Graph.Data.Scripts.Graph
         private static readonly CultureInfo Pt = new CultureInfo("pt-BR");
 
         public new IMyTextSurface Surface { get; set; }
-        public new IMyCubeBlock Block { get; set; }
+        public new VRage.Game.ModAPI.Ingame.IMyCubeBlock Block { get; set; }
         public override ScriptUpdate NeedsUpdate { get { return ScriptUpdate.Update10; } }
 
-        public OreCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
+        public OreCharts(IMyTextSurface surface, VRage.Game.ModAPI.Ingame.IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
             Surface = surface; Block = block; Surface.ContentType = ContentType.SCRIPT;
         }
 
         public override void Run()
         {
+            base.Run();
+            
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
@@ -119,8 +123,8 @@ namespace Graph.Data.Scripts.Graph
 
         private List<KeyValuePair<string,double>> ReadItems(IMyTerminalBlock lcd)
         {
-            var list = new List<KeyValuePair<string,double>>(); if (lcd == null) return list;
-            var data = lcd.CustomData ?? "";
+            var list = new List<KeyValuePair<string,double>>(); if (lcd == null || ItemSource == null) return list;
+            /*var data = lcd.CustomData ?? "";
             var sec = RxSection.Match(data); if (!sec.Success) return list;
 
             var ms = RxItem.Matches(sec.Groups[1].Value);
@@ -132,8 +136,13 @@ namespace Graph.Data.Scripts.Graph
                 double q = 0.0;
                 if (double.TryParse(valS, NumberStyles.Float, CultureInfo.InvariantCulture, out q))
                     list.Add(new KeyValuePair<string,double>(key, q));
-            }
+            }*/
 
+            foreach (var keyValuePair in ItemSource)
+            {
+                list.Add(keyValuePair);
+            }
+            
             list.Sort((a, b) => b.Value.CompareTo(a.Value));
             return list;
         }
