@@ -1,4 +1,3 @@
-﻿// /Graph/ItemCharts.cs
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -7,10 +6,10 @@ using System.Text.RegularExpressions;
 using Graph.Data.Scripts.Graph.Sys;
 
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
-using Sandbox.ModAPI;                     // IMyTextSurface, MyAPIGateway
+using Sandbox.ModAPI;                    
 
-using VRage.Game.ModAPI;                  // IMyCubeBlock, IMyTerminalBlock
-using VRage.Game.GUI.TextPanel;           // MySprite, SpriteType, TextAlignment  <-- IMPORTANTE
+using VRage.Game.ModAPI;                 
+using VRage.Game.GUI.TextPanel;          
 using VRageMath;
 
 namespace Graph.Data.Scripts.Graph
@@ -27,14 +26,12 @@ namespace Graph.Data.Scripts.Graph
         protected ItemCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
             : base(surface, block, size)
         {
-            // Calcula a área realmente visível do painel (útil para alinhamentos).
+           
             var sizeOffset = (surface.TextureSize - surface.SurfaceSize) / 2f;
             ViewBox = new RectangleF(sizeOffset.X, sizeOffset.Y, surface.SurfaceSize.X, surface.SurfaceSize.Y);
         }
 
-        /// <summary>
-        /// Fonte de dados do item (ex.: GridLogic.Ingots / Ores / Seeds / etc.)
-        /// </summary>
+  
         public abstract Dictionary<string, double> ItemSource { get; }
 
         public override void Run()
@@ -47,9 +44,6 @@ namespace Graph.Data.Scripts.Graph
             base.Run();
         }
 
-        // =================== Helpers compartilhados ===================
-
-        // Regex para filtros no nome do LCD
         protected static readonly Regex RxGroup     = new Regex(@"\(\s*G\s*:\s*(.+?)\s*\)", RegexOptions.IgnoreCase);
         protected static readonly Regex RxContainer = new Regex(@"\(\s*(?!G\s*:)(.+?)\s*\)", RegexOptions.IgnoreCase);
 
