@@ -10,10 +10,17 @@ namespace Graph.Data.Scripts.Graph
 {
     public abstract class ItemCharts : MyTextSurfaceScriptBase
     {
-        protected GridLogic GridLogic = null;
+        /// <summary>
+        /// Relative area of the <see cref="Sandbox.ModAPI.IMyTextSurface.TextureSize"/> That is Visible
+        /// </summary>
+        public readonly RectangleF ViewBox;
+        
+        protected GridLogic GridLogic;
         
         protected ItemCharts(Sandbox.ModAPI.Ingame.IMyTextSurface surface, VRage.Game.ModAPI.Ingame.IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
+            var sizeOffset = (surface.TextureSize - surface.SurfaceSize) / 2;
+            ViewBox = new RectangleF(sizeOffset.X, sizeOffset.Y, surface.SurfaceSize.X, surface.SurfaceSize.Y);
         }
 
         public abstract Dictionary<string, double> ItemSource { get; }
