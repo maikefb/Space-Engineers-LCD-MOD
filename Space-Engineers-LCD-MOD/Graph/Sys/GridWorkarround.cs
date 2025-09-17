@@ -42,6 +42,11 @@ namespace Graph.Data.Scripts.Graph.Sys
             _grids.Clear();
             components.Clear();
             components = null;
+            
+            ItemCharts.LocKeysCache?.Clear();
+            ItemCharts.LocKeysCache = null;
+            ItemCharts.SpriteCache?.Clear();
+            ItemCharts.SpriteCache = null;
         }
 
         private void EntityAdded(IMyEntity ent)

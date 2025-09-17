@@ -1,89 +1,23 @@
 using System;
 using System.Collections.Generic;
-
+using System.Globalization;
+using System.Text.RegularExpressions;
+using Graph.Data.Scripts.Graph.Sys;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
+using Sandbox.Game.Entities.Cube;
 using Sandbox.ModAPI;
 using VRage.Game.GUI.TextPanel;
-using VRage.Game.ModAPI;
+using VRage.Game.ModAPI.Ingame;
 using VRageMath;
 
 namespace Graph.Data.Scripts.Graph
 {
-    [MyTextSurfaceScript("IngotCharts", "Lingotes")]
+    [MyTextSurfaceScript("IngotCharts", "DisplayName_BlueprintClass_Ingots")]
     public class IngotCharts : ItemCharts
     {
-        public override Dictionary<string, double> ItemSource => GridLogic != null ? GridLogic.Ingots : null;
-
-        private static readonly Vector2 TITLE_POS = new Vector2(16, 20);
-        private static readonly Vector2 INFO_POS  = new Vector2(16, 50);
-        private const float LINE = 18f;
-        private const int SCROLL_SECONDS = 2;
-
-        public new IMyTextSurface Surface { get; set; }
-        public new IMyCubeBlock  Block   { get; set; }
-        public override ScriptUpdate NeedsUpdate { get { return ScriptUpdate.Update10; } }
-
-        public IngotCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
-        {
-            Surface = surface;
-            Block   = block;
-            Surface.ContentType = ContentType.SCRIPT;
-        }
-
-        public override void Run()
-        {
-            base.Run();
-
-            using (var frame = Surface.DrawFrame())
-            {
-                var sprites = new List<MySprite>();
-
-                string mode, token;
-                ParseFilter(Block as IMyTerminalBlock, out mode, out token);
-
-                var title = "Lingotes";
-                if (!string.IsNullOrEmpty(token))
-                    title += (mode == "group") ? ("  ·  (G: " + token + ")") : ("  ·  (" + token + ")");
-                sprites.Add(MakeText(Surface, title, TITLE_POS, 0.95f));
-
-                var items = SortedItems(ItemSource);
-
-                var pos = INFO_POS;
-                sprites.Add(MakeText(Surface, "Estoque de lingotes", pos, 0.85f));
-                pos += new Vector2(0, LINE);
-                pos += new Vector2(0, LINE);
-
-                if (items.Count == 0)
-                {
-                    sprites.Add(MakeText(Surface, "- sem dados -", pos, 0.78f));
-                }
-                else
-                {
-                    int maxRows = GetMaxRows(Surface, pos.Y, LINE);
-                    if (maxRows < 1) maxRows = 1;
-
-                    bool shouldScroll = items.Count > (int)Math.Floor(maxRows * 0.95);
-                    int visible = maxRows;
-                    int start = 0;
-                    if (shouldScroll && items.Count > visible)
-                    {
-                        int step = GetScrollStep(SCROLL_SECONDS);
-                        start = step % items.Count;
-                    }
-
-                    int showCount = Math.Min(visible, items.Count);
-                    for (int visIdx = 0; visIdx < showCount; visIdx++)
-                    {
-                        int realIdx = (start + visIdx) % items.Count;
-                        var rowPos = pos + new Vector2(0f, visIdx * LINE);
-
-                        string line = items[realIdx].Key + ": " + FormatQty(items[realIdx].Value);
-                        sprites.Add(MakeText(Surface, line, rowPos, 0.78f));
-                    }
-                }
-
-                frame.AddRange(sprites);
-            }
-        }
+        public override Dictionary<MyItemType, double> ItemSource => GridLogic?.Ingots;
+        public override string Title { get; protected set; } = "DisplayName_BlueprintClass_Ingots";
+        public IngotCharts(IMyTextSurface surface, VRage.Game.ModAPI.Ingame.IMyCubeBlock block, Vector2 size) : base(surface, block, size)
+        { }
     }
 }
