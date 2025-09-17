@@ -4,6 +4,7 @@ using System.Globalization;
 
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.Game.Entities.Cube;
+using Sandbox.ModAPI;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
 using VRageMath;

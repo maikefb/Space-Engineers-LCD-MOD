@@ -8,6 +8,7 @@ using VRage.ModAPI;
 using VRage.Game.ModAPI;
 using VRage.Game;
 using Sandbox.Definitions;
+using VRage.Game.Components;
 using IngameItem = VRage.Game.ModAPI.Ingame.MyInventoryItem;
 
 namespace Graph.Data.Scripts.Graph.Sys

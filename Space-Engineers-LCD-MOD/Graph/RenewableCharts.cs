@@ -9,6 +9,7 @@ using VRage.Game.ModAPI;
 using VRageMath;
 
 using Graph.Data.Scripts.Graph.Panels;
+using Sandbox.ModAPI;
 
 namespace Graph.Data.Scripts.Graph
 {
