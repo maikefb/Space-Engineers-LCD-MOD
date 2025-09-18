@@ -278,6 +278,9 @@ namespace Graph.Data.Scripts.Graph
             return new MySprite { Type = SpriteType.TEXT, Data = s, Position = p,
                 Color = Surface.ScriptForegroundColor, Alignment = TextAlignment.CENTER, RotationOrScale = scale };
         }
+
+        protected static readonly CultureInfo Pt = new CultureInfo("pt-BR");
+
         protected string Pow(double mw)
         {
             double a = Math.Abs(mw);
