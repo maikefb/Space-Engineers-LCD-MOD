@@ -38,7 +38,7 @@ namespace Graph.Data.Scripts.Graph.Sys
                     return;
                 
                 MyTuple<int, ScreenProviderConfig> settings;
-                if (ItemCharts.ActiveScreens.TryGetValue(block, out settings))
+                if (ChartBase.ActiveScreens.TryGetValue(block, out settings))
                 {
                     if(settings.Item2.Screens.Count != packet.Config.Screens.Count)
                         return;
@@ -46,6 +46,8 @@ namespace Graph.Data.Scripts.Graph.Sys
                     settings.Item2.Dirty = false;
                     for (var index = 0; index < settings.Item2.Screens.Count; index++) 
                         settings.Item2.Screens[index].CopyFrom(packet.Config.Screens[index]);
+
+                    ChartBase.Save(block, settings.Item2);
                 }
             }
 
