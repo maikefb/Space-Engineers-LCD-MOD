@@ -74,6 +74,7 @@ namespace Graph.Data.Scripts.Graph.Sys
                     return;
                 
                 networkManager.TransmitToServer(new PacketSyncScreenConfig(screen.Key.EntityId, screen.Value.Item2));
+                screen.Value.Item2.Dirty = false;
             }
         }
 
