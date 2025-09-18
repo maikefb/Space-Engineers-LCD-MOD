@@ -80,7 +80,6 @@ namespace Graph.Data.Scripts.Graph.Sys
 
         IMyTerminalControlColor _colorPicker;
         IMyTerminalControlColor _colorPickerLcd;
-        IMyTerminalControlColor _originalColorPicker;
 
         void CustomControlGetter(IMyTerminalBlock block, List<IMyTerminalControl> controls)
         {
@@ -114,9 +113,6 @@ namespace Graph.Data.Scripts.Graph.Sys
             var provider = block as IMyTextSurfaceProvider;
             if (_colorPicker == null)
             {
-                _originalColorPicker =
-                    controls.Find(a => a.Id == "ScriptForegroundColor") as IMyTerminalControlColor;
-
                 _colorPicker =
                     MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlColor, IMyTerminalBlock>(
                         "ItemChartHeaderPanel");
