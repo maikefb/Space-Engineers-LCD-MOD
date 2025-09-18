@@ -247,13 +247,12 @@ namespace Graph.Data.Scripts.Graph
                 token = mc.Groups[1].Value.Trim();
             }
         }
-
-        protected static readonly CultureInfo Pt = new CultureInfo("pt-BR");
+        
 
         protected static string FormatQty(double v)
         {
-            if (v >= 1000.0) return Math.Round(v).ToString("#,0", Pt);
-            return v.ToString("0.##", Pt);
+            if (v >= 1000.0) return Math.Round(v).ToString("#,0", CultureInfo.CurrentUICulture);
+            return v.ToString("0.##", CultureInfo.CurrentUICulture);
         }
 
         protected static List<KeyValuePair<string, double>> SortedItems(Dictionary<string, double> source)
