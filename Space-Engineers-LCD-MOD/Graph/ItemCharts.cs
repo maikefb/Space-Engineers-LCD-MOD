@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Game.GUI.TextPanel;
@@ -156,7 +157,7 @@ namespace Graph.Data.Scripts.Graph
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
-                Data = FormatQty(item.Value),
+                Data = FormatItemQty(item.Value),
                 Position = position,
                 RotationOrScale = scale,
                 Color = Surface.ScriptForegroundColor,
@@ -214,6 +215,19 @@ namespace Graph.Data.Scripts.Graph
             });
 
             CaretY += 40 * scale;
+        }
+
+        protected static string FormatItemQty(double input)
+        {
+            if (input >= 1000000000)
+                // Congratulations, you've successfully created a singularity
+                return (input / 1000000000d).ToString("0.00", CultureInfo.CurrentUICulture) + "G"; 
+            if (input >= 1000000)
+                return (input / 1000000d).ToString("0.00", CultureInfo.CurrentUICulture) + "M";
+            if (input >= 10000)
+                return (input / 1000d).ToString("0.00", CultureInfo.CurrentUICulture) + "k";
+            
+            return input.ToString("0.##", CultureInfo.CurrentUICulture);
         }
     }
 }
