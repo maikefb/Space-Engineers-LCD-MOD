@@ -158,7 +158,7 @@ namespace Graph.Data.Scripts.Graph
             position.X += ViewBox.Width / 8f;
 
             frame.Add(MySprite.CreateClipRect(new Rectangle((int)position.X, (int)position.Y,
-                (int)(ViewBox.Width - position.X),
+                (int)(ViewBox.Width - position.X + ViewBox.X),
                 (int)(position.Y + 35 * scale))));
 
             frame.Add(new MySprite()
