@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sandbox.Game.Entities;
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
+using Space_Engineers_LCD_MOD.Controls;
 using Space_Engineers_LCD_MOD.Graph.Config;
 using Space_Engineers_LCD_MOD.Networking;
 using VRage;
@@ -19,48 +21,74 @@ namespace Graph.Data.Scripts.Graph.Sys
     public class TerminalSessionComponent : MySessionComponentBase
     {
         MyEasyNetworkManager networkManager;
-        
+
         public override void BeforeStart()
         {
+#if DEBUG
+            try
+            {
+                throw new Exception("Hello DNSpy");
+            }
+            catch
+            {
+                /* workaround for Debugger.Attach() not available for Mods */
+            }
+#endif
+
             networkManager = new MyEasyNetworkManager(46541);
-            
+
             networkManager.OnReceivedPacket += OnReceivedPacket;
             MyAPIGateway.TerminalControls.CustomControlGetter += CustomControlGetter;
+
+            var source = new ListboxBlockSelection();
+            var target = new ListboxBlockSelected();
+            
+            _controls.Add(new ColorPickerHeader());
+            _controls.Add(new SeparatorFilter());
+            _controls.Add(new LabelSeparator());
+            _controls.Add(source);
+            _controls.Add(new ButtonAddToSelection(source, target));
+            _controls.Add(target);
+            _controls.Add(new ButtonRemoveFromSelection(source, target));
         }
 
+        readonly List<TerminalControlsCharts> _controls = new List<TerminalControlsCharts>();
+        
         void OnReceivedPacket(MyEasyNetworkManager.PacketIn packetRaw)
         {
             if (packetRaw.PacketId == 1)
             {
                 var packet = packetRaw.UnWrap<PacketSyncScreenConfig>();
                 var block = MyEntities.GetEntityById(packet.BlockId) as IMyFunctionalBlock;
-                
-                if(block == null)
+
+                if (block == null)
                     return;
-                
+
                 MyTuple<int, ScreenProviderConfig> settings;
                 if (ChartBase.ActiveScreens.TryGetValue(block, out settings))
                 {
-                    if(settings.Item2.Screens.Count != packet.Config.Screens.Count)
+                    if (settings.Item2.Screens.Count != packet.Config.Screens.Count)
                         return;
 
                     settings.Item2.Dirty = false;
-                    for (var index = 0; index < settings.Item2.Screens.Count; index++) 
+                    for (var index = 0; index < settings.Item2.Screens.Count; index++)
                         settings.Item2.Screens[index].CopyFrom(packet.Config.Screens[index]);
 
                     ChartBase.Save(block, settings.Item2);
                 }
             }
-
         }
 
-        protected override void UnloadData() =>
+        protected override void UnloadData()
+        {
             MyAPIGateway.TerminalControls.CustomControlGetter -= CustomControlGetter;
+            _controls.Clear();
+        }
 
         public override void SaveData()
         {
-            foreach (var screen in ItemCharts.ActiveScreens)
-                ItemCharts.Save(screen.Key, screen.Value.Item2);
+            foreach (var screen in ChartBase.ActiveScreens)
+                ChartBase.Save(screen.Key, screen.Value.Item2);
 
             base.SaveData();
         }
@@ -68,130 +96,50 @@ namespace Graph.Data.Scripts.Graph.Sys
         public override void UpdateAfterSimulation()
         {
             base.UpdateAfterSimulation();
-            foreach (var screen in ItemCharts.ActiveScreens)
+            foreach (var screen in ChartBase.ActiveScreens)
             {
-                if(!screen.Value.Item2.Dirty)
+                if (!screen.Value.Item2.Dirty)
                     return;
-                
+
                 networkManager.TransmitToServer(new PacketSyncScreenConfig(screen.Key.EntityId, screen.Value.Item2));
                 screen.Value.Item2.Dirty = false;
+
+                ChartBase.Save(screen.Key, screen.Value.Item2);
             }
         }
-
-        IMyTerminalControlColor _colorPicker;
-        IMyTerminalControlColor _colorPickerLcd;
 
         void CustomControlGetter(IMyTerminalBlock block, List<IMyTerminalControl> controls)
         {
             if (controls == null)
                 return;
 
-            if (block is IMyTextPanel)
-                SetupLcdTerminal(block, controls);
-            else if (block is IMyTextSurfaceProvider)
-                SetupProviderTerminal(block, controls);
-        }
-
-        void SetupLcdTerminal(IMyTerminalBlock block, List<IMyTerminalControl> controls)
-        {
-            if (_colorPickerLcd == null)
-            {
-                _colorPickerLcd =
-                    MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlColor, IMyTextPanel>(
-                        "ItemChartHeaderLcd");
-                _colorPickerLcd.Getter = GetterPanelColorPicker;
-                _colorPickerLcd.Setter = SetterPanelColorPicker;
-                _colorPickerLcd.Visible = VisiblePanelColorPicker;
-                _colorPickerLcd.Title = MyStringId.GetOrCompute("BlockPropertyTitle_TextPanelPublicTitle");
-            }
-
-            controls.Add(_colorPickerLcd);
+            SetupProviderTerminal(block, controls);
         }
 
         void SetupProviderTerminal(IMyTerminalBlock block, List<IMyTerminalControl> controls)
         {
             var provider = block as IMyTextSurfaceProvider;
-            if (_colorPicker == null)
+
+            if (provider == null)
+                return;
+
+            if (block is IMyTextPanel)
             {
-                _colorPicker =
-                    MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlColor, IMyTerminalBlock>(
-                        "ItemChartHeaderPanel");
-                _colorPicker.Getter = ColorPickerGetter;
-                _colorPicker.Setter = ColorPickerSetter;
-                _colorPicker.Visible = ColorPickerVisible;
-                _colorPicker.Title = MyStringId.GetOrCompute("BlockPropertyTitle_TextPanelPublicTitle");
+                foreach (var control in _controls)
+                {
+                    controls.Add(control.TerminalControl);
+                }
             }
-
-            if (provider.SurfaceCount > 0)
+            else if (provider.SurfaceCount > 0)
             {
-                var index = controls.FindIndex(p => p.Id == "Script");
-                controls.AddOrInsert(_colorPicker, index + 3);
-            }
-        }
-
-        int GetThisSurfaceIndex(IMyTerminalBlock block)
-        {
-            var multiTextPanel = block.Components.Get<MyMultiTextPanelComponent>();
-            return multiTextPanel.SelectedPanelIndex;
-        }
-        
-        
-        bool ColorPickerVisible(IMyTerminalBlock b)
-        {
-            var sf = ((IMyTextSurfaceProvider)b).GetSurface(GetThisSurfaceIndex(b));
-            return !string.IsNullOrEmpty(sf?.Script) && sf.Script.Contains("Charts") &&
-                   sf.ContentType == ContentType.SCRIPT;
-        }
-
-        void ColorPickerSetter(IMyTerminalBlock b, Color c)
-        {
-            var index = GetThisSurfaceIndex(b);
-            if (index == -1) return;
-            MyTuple<int, ScreenProviderConfig> settings;
-            if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
-            {
-                settings.Item2.Screens[index].HeaderColor = c;
-                settings.Item2.Dirty = true;
-            }
-        }
-
-        Color ColorPickerGetter(IMyTerminalBlock b)
-        {
-            var index = GetThisSurfaceIndex(b);
-            if (index != -1)
-            {
-                MyTuple<int, ScreenProviderConfig> settings;
-                if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
-                    return settings.Item2.Screens[index].HeaderColor;
-            }
-
-            return Color.White;
-        }
-
-        bool VisiblePanelColorPicker(IMyTerminalBlock b)
-        {
-            var sf = (IMyTextSurface)b;
-            return !string.IsNullOrEmpty(sf?.Script) && sf.Script.Contains("Charts") &&
-                   sf.ContentType == ContentType.SCRIPT;
-        }
-
-        void SetterPanelColorPicker(IMyTerminalBlock b, Color c)
-        {
-            MyTuple<int, ScreenProviderConfig> settings;
-            if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > 0)
-            {
-                settings.Item2.Screens[0].HeaderColor = c;
-                settings.Item2.Dirty = true;
-            }
+                var index = controls.FindIndex(p => p.Id == "Script") + 3;
                 
-        }
-
-        Color GetterPanelColorPicker(IMyTerminalBlock b)
-        {
-            MyTuple<int, ScreenProviderConfig> settings;
-            if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > 0)
-                return settings.Item2.Screens[0].HeaderColor;
-            return Color.White;
+                foreach (var control in _controls)
+                {
+                    controls.AddOrInsert(control.TerminalControl, index);
+                    index++;
+                }
+            }
         }
     }
 }

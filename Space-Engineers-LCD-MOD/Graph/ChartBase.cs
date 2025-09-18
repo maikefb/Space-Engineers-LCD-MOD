@@ -49,8 +49,6 @@ namespace Graph.Data.Scripts.Graph
 
         ScreenProviderConfig _providerConfig;
 
-        public int SurfaceIndex { get; protected set; }
-
         protected ChartBase(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
             UpdateViewBox();
@@ -115,12 +113,17 @@ namespace Graph.Data.Scripts.Graph
 
         void GetSettings(IMyTextSurface surface, IMyCubeBlock block)
         {
-            IMyTextSurfaceProvider surfaceProvider = block as IMyTextSurfaceProvider;
-            while (!surface.Equals(surfaceProvider.GetSurface(SurfaceIndex)) && SurfaceIndex < 32)
-                SurfaceIndex++;
-
-            if (SurfaceIndex < 32)
-                LoadSettings(surface, block);
+            var index = 0;
+            IMyTextSurfaceProvider surfaceProvider = (IMyTextSurfaceProvider)block;
+            while (index < surfaceProvider.SurfaceCount)
+            {
+                if (surface.Equals(surfaceProvider.GetSurface(index)))
+                {
+                    LoadSettings(block, index);
+                    return;
+                }
+                index++;
+            }
         }
 
         protected List<KeyValuePair<MyItemType, double>> ReadItems(IMyTerminalBlock lcd)
@@ -291,7 +294,7 @@ namespace Graph.Data.Scripts.Graph
         }
         protected string Pct(float f) { return ((int)Math.Round(f * 100f)).ToString(Pt) + "%"; }
 
-        private void LoadSettings(IMyTextSurface surface, IMyCubeBlock block)
+        private void LoadSettings(IMyCubeBlock block, int index)
         {
             MyTuple<int, ScreenProviderConfig> config;
 
@@ -299,7 +302,7 @@ namespace Graph.Data.Scripts.Graph
             {
                 _providerConfig = config.Item2;
                 config.Item1++;
-                Config = _providerConfig.Screens[SurfaceIndex];
+                Config = _providerConfig.Screens[index];
             }
             else
             {
@@ -315,18 +318,22 @@ namespace Graph.Data.Scripts.Graph
                         _providerConfig =
                             MyAPIGateway.Utilities.SerializeFromBinary<ScreenProviderConfig>(
                                 Convert.FromBase64String(value));
-                        Config = _providerConfig.Screens[SurfaceIndex];
+                        
+                        if(_providerConfig.ParentGrid != block.CubeGrid.EntityId)
+                            _providerConfig.ParentGrid = block.CubeGrid.EntityId;
+                        
+                        Config = _providerConfig.Screens[index];
                     }
                     catch (Exception e)
                     {
                         MyAPIGateway.Utilities.ShowNotification("Fail to Load Settings");
                         MyLog.Default.Log(MyLogSeverity.Error, e.ToString());
-                        CreateSettings(block);
+                        CreateSettings(block, index);
                     }
                 }
                 else
                 {
-                    CreateSettings(block);
+                    CreateSettings(block, index);
                 }
 
                 if (_providerConfig != null)
@@ -342,18 +349,18 @@ namespace Graph.Data.Scripts.Graph
             }
         }
 
-        private void CreateSettings(IMyCubeBlock block)
+        private void CreateSettings(IMyCubeBlock block, int index)
         {
             var lcd = block as IMyTextPanel;
             if (lcd != null)
             {
-                _providerConfig = new ScreenProviderConfig(1);
+                _providerConfig = new ScreenProviderConfig(1, block.CubeGrid.EntityId);
                 Config = _providerConfig.Screens[0];
                 return;
             }
 
-            _providerConfig = new ScreenProviderConfig(((IMyTextSurfaceProvider)block).SurfaceCount);
-            Config = _providerConfig.Screens[SurfaceIndex];
+            _providerConfig = new ScreenProviderConfig(((IMyTextSurfaceProvider)block).SurfaceCount, block.CubeGrid.EntityId);
+            Config = _providerConfig.Screens[index];
         }
     }
 }
