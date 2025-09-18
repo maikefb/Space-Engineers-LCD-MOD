@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using Sandbox.Definitions;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Game.GUI.TextPanel;
@@ -113,8 +114,7 @@ namespace Graph.Data.Scripts.Graph
 
             if (!LocKeysCache.TryGetValue(item.Key, out locKey))
             {
-                var name = item.Key.ToString().Substring(16).Split('/');
-                locKey = MyStringId.TryGet("DisplayName_Item_" + name[1] + name[0]);
+                locKey = MyDefinitionManager.Static.TryGetPhysicalItemDefinition(item.Key).DisplayNameEnum ?? MyStringId.GetOrCompute(item.Key.TypeId);
                 LocKeysCache[item.Key] = locKey;
             }
 
@@ -137,15 +137,11 @@ namespace Graph.Data.Scripts.Graph
             frame.Add(MySprite.CreateClipRect(new Rectangle((int)position.X, (int)position.Y,
                 (int)(ViewBox.Width - position.X + (ViewBox.X) - 105 * scale),
                 (int)(position.Y + 35 * scale))));
-
-            var itemName = locKey == MyStringId.NullOrEmpty
-                ? item.Key.ToString().Split('/')[1]
-                : MyTexts.GetString(locKey);
-
+            
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
-                Data = itemName,
+                Data = MyTexts.GetString(locKey),
                 Position = position,
                 RotationOrScale = scale,
                 Color = Surface.ScriptForegroundColor,
