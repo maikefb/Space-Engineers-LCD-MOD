@@ -24,6 +24,10 @@ namespace Graph.Data.Scripts.Graph
         public override void Run()
         {
             base.Run();
+
+            if (Config == null)
+                return;
+            
             DrawItems();
         }
 
