@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Graph.Data.Scripts.Graph;
+using Graph.Data.Scripts.Graph.Sys;
 using Sandbox.Game.Screens.Helpers;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
@@ -16,7 +17,7 @@ namespace Space_Engineers_LCD_MOD.Controls
         IMyTerminalControlButton _addToListboxButton;
         ListboxBlockSelection _sourceList;
         ListboxBlockSelected _targetList;
-        
+
         public ButtonAddToSelection(ListboxBlockSelection sourceList, ListboxBlockSelected targetList)
         {
             _sourceList = sourceList;
@@ -29,7 +30,7 @@ namespace Space_Engineers_LCD_MOD.Controls
             _addToListboxButton.Title = MyStringId.GetOrCompute("EventControllerBlock_AddBlocks_Title");
         }
 
-        
+
         public void Action(IMyTerminalBlock b)
         {
             if (_sourceList.Selection != null && _sourceList.Selection.Count > 0)
@@ -39,24 +40,50 @@ namespace Space_Engineers_LCD_MOD.Controls
 
                 if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
                 {
-                    if (settings.Item2.Screens[index].SelectedBlocks.Length == 0)
-                    {
-                        settings.Item2.Screens[index].SelectedBlocks =
-                            _sourceList.Selection.Select(a => (long)a.UserData).ToArray();
-                    }
-                    else
-                    {
-                        var list = settings.Item2.Screens[index].SelectedBlocks.ToList();
-                        list.AddRange(_sourceList.Selection.Select(a => (long)a.UserData));
-                        settings.Item2.Screens[index].SelectedBlocks = list.ToArray();
-                    }
+                    AddBlocks(settings.Item2.Screens[index]);
+                    AddGroups(settings.Item2.Screens[index]);
 
                     settings.Item2.Dirty = true;
                     _sourceList.TerminalControl.UpdateVisual();
                     _targetList.TerminalControl.UpdateVisual();
                 }
-                
+
                 _sourceList.Selection.Clear();
+            }
+        }
+
+        public void AddGroups(ScreenConfig config)
+        {
+            var groups = _sourceList.Selection.Where(a => a.UserData is string)
+                .Select(a => (string)a.UserData);
+
+            if (config.SelectedGroups.Length > 0)
+            {
+                var list = config.SelectedGroups.ToList();
+                list.AddRange(groups);
+                config.SelectedGroups = list.ToArray();
+            }
+            else
+            {
+                config.SelectedGroups = groups.ToArray();
+            }
+        }
+
+        public void AddBlocks(ScreenConfig config)
+        {
+            var ids = _sourceList.Selection
+                .Where(a => a.UserData is long)
+                .Select(a => (long)a.UserData);
+
+            if (config.SelectedBlocks.Length > 0)
+            {
+                var list = config.SelectedBlocks.ToList();
+                list.AddRange(ids);
+                config.SelectedBlocks = list.ToArray();
+            }
+            else
+            {
+                config.SelectedBlocks = ids.ToArray();
             }
         }
     }

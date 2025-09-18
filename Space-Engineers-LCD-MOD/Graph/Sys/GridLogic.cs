@@ -7,6 +7,7 @@ using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.ModAPI.Ingame;
 using VRage.ModAPI;
+using VRage.Utils;
 using IMyCubeGrid = VRage.Game.ModAPI.IMyCubeGrid;
 using IMySlimBlock = VRage.Game.ModAPI.IMySlimBlock;
 using IngameItem = VRage.Game.ModAPI.Ingame.MyInventoryItem;
@@ -18,12 +19,14 @@ namespace Graph.Data.Scripts.Graph.Sys
     /// </summary>
     public class GridLogic
     {
-        const int DELAY = 120; // 120 ticks means 2 seconds delay
+        const int DELAY = 600; // 120 ticks means 2 seconds delay
         long _clock;
 
         public readonly IMyCubeGrid Grid;
         List<IMySlimBlock> _blocks = new List<IMySlimBlock>();
         List<IMyTerminalBlock> _invBlocks = new List<IMyTerminalBlock>();
+
+        IMyGridTerminalSystem GridTerminalSystem => MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(Grid);
 
         public Dictionary<MyItemType, double> // Dictionary for Specific Category of Items
             Components = new Dictionary<MyItemType, double>(),
@@ -33,8 +36,9 @@ namespace Graph.Data.Scripts.Graph.Sys
             Consumables = new Dictionary<MyItemType, double>(),
             Seeds = new Dictionary<MyItemType, double>();
 
-        public Dictionary<SearchQuery, Dictionary<MyItemType, double>> Cache = new Dictionary<SearchQuery, Dictionary<MyItemType, double>>();
-        
+        public Dictionary<SearchQuery, Dictionary<MyItemType, double>> Cache =
+            new Dictionary<SearchQuery, Dictionary<MyItemType, double>>();
+
         /// <summary>
         /// Logic attached to <see cref="grid"/>
         /// </summary>
@@ -57,8 +61,9 @@ namespace Graph.Data.Scripts.Graph.Sys
 
             Cache.Clear();
             _blocks.Clear();
+
             Grid.GetBlocks(_blocks, a => a.FatBlock?.InventoryCount != 0 && a.FatBlock is IMyTerminalBlock);
-            
+
             _invBlocks.Clear();
             _invBlocks.AddRange(_blocks.Where(a =>
             {
@@ -119,45 +124,73 @@ namespace Graph.Data.Scripts.Graph.Sys
             }
         }
 
-        public Dictionary<MyItemType, double> GetItems(ScreenConfig config)
+        public Dictionary<MyItemType, double> GetItems(ScreenConfig config, IMyTerminalBlock referenceBlock)
         {
             Dictionary<MyItemType, double> dictionary;
-            var query = new SearchQuery(config.SelectedBlocks, config.SelectedItems);
 
-            if (!Cache.TryGetValue(query, out dictionary))
+            try
             {
-                dictionary = new Dictionary<MyItemType, double>();
+                SearchQuery query;
+                if (!config.SelectedBlocks.Any() && !config.SelectedGroups.Any() && !config.SelectedItems.Any())
+                    query = SearchQuery.Empty;
+                else
+                    query = new SearchQuery(config.SelectedBlocks, config.SelectedItems, config.SelectedGroups);
 
-                var blocks = config.SelectedBlocks.Length == 0
-                    ? _invBlocks
-                    : config.SelectedBlocks.Select(a => MyAPIGateway.Entities.GetEntityById(a))
-                        .Where(a => a is IMyTerminalBlock && a.HasInventory).Cast<IMyTerminalBlock>().ToList(); 
+                if (!Cache.TryGetValue(query, out dictionary))
+                {
+                    dictionary = new Dictionary<MyItemType, double>();
 
-                if(blocks.Count == 0)
-                    blocks = _invBlocks;
+                    List<IMyTerminalBlock> blocks =
+                        config.SelectedBlocks.Length == 0 && config.SelectedGroups.Length == 0
+                            ? _invBlocks
+                            : new List<IMyTerminalBlock>();
 
-                AggregateByType(blocks, dictionary, "");
-                
-                Cache[query] = dictionary;
+                    foreach (var groupName in config.SelectedGroups)
+                    {
+                        GridTerminalSystem.GetBlockGroupWithName(groupName)?
+                            .GetBlocks(blocks, b => b.HasInventory &&
+                                                    b.GetUserRelationToOwner(referenceBlock.OwnerId)
+                                                    <= MyRelationsBetweenPlayerAndBlock.FactionShare &&
+                                                    !blocks.Contains(b));
+                    }
+                    
+                    blocks.AddRange(config.SelectedBlocks.Select(id => MyAPIGateway.Entities.GetEntityById(id))
+                        .Select(entity => entity as IMyTerminalBlock)
+                        .Where(block => block != null && block.HasInventory && block.CubeGrid.IsInSameLogicalGroupAs(referenceBlock.CubeGrid)));
+
+                    AggregateByType(blocks, dictionary, "");
+
+                    Cache[query] = dictionary;
+                }
+
+                return dictionary;
             }
-            
-            return dictionary;
+            catch (Exception ex)
+            {
+                MyLog.Default.Log(MyLogSeverity.Error, ex.ToString());
+                MyAPIGateway.Utilities.ShowNotification("ERROR on updating LCD, Check log!");
+                return new Dictionary<MyItemType, double>();
+            }
         }
-        
+
         public struct SearchQuery : IEquatable<SearchQuery>
         {
+            public static readonly SearchQuery Empty = new SearchQuery();
+
             public long[] Storages;
+            public string[] Groups;
             public string[] Names;
 
-            public SearchQuery(long[] storages, string[] names)
+            public SearchQuery(long[] storages, string[] names, string[] groups)
             {
                 Storages = storages;
                 Names = names;
+                Groups = groups;
             }
 
             public bool Equals(SearchQuery other)
             {
-                return Equals(Storages, other.Storages) && Equals(Names, other.Names);
+                return Equals(Storages, other.Storages) && Equals(Groups, other.Groups) && Equals(Names, other.Names);
             }
 
             public override bool Equals(object obj)
@@ -170,7 +203,10 @@ namespace Graph.Data.Scripts.Graph.Sys
             {
                 unchecked
                 {
-                    return ((Storages != null ? Storages.GetHashCode() : 0) * 397) ^ (Names != null ? Names.GetHashCode() : 0);
+                    var hashCode = (Storages != null ? Storages.GetHashCode() : 0);
+                    hashCode = (hashCode * 397) ^ (Groups != null ? Groups.GetHashCode() : 0);
+                    hashCode = (hashCode * 397) ^ (Names != null ? Names.GetHashCode() : 0);
+                    return hashCode;
                 }
             }
         }

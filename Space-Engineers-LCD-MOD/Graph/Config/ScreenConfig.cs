@@ -24,6 +24,7 @@ namespace Graph.Data.Scripts.Graph.Sys
         [ProtoMember(3)] public long[] SelectedBlocks { get; set; } = Array.Empty<long>();
         
         [ProtoMember(4)] public string[] SelectedGroups { get; set; } = Array.Empty<string>();
+        
         [ProtoMember(5)] public string[] SelectedItems { get; set; } = Array.Empty<string>();
 
         public void CopyFrom(ScreenConfig newValue)

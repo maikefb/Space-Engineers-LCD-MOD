@@ -23,8 +23,6 @@ namespace Space_Engineers_LCD_MOD.Controls
     {
         public override IMyTerminalControl TerminalControl => _selectedListbox;
         IMyTerminalControlListbox _selectedListbox;
-        
-        readonly List<IMyCubeBlock> _blocks = new List<IMyCubeBlock>();
         public List<MyTerminalControlListBoxItem> Selection;
 
         public ListboxBlockSelected()
@@ -39,39 +37,59 @@ namespace Space_Engineers_LCD_MOD.Controls
             _selectedListbox.Multiselect = true;
             _selectedListbox.Title = MyStringId.GetOrCompute("EventControllerBlock_SelectedBlocks_Title");
         }
-        
+
         public void Setter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> selection)
         {
             Selection = selection;
         }
 
-        public void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> blockList, List<MyTerminalControlListBoxItem> _)
+        public void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> blockList,
+            List<MyTerminalControlListBoxItem> _)
         {
-            _blocks.Clear();
-            
             var index = GetThisSurfaceIndex(b);
             MyTuple<int, ScreenProviderConfig> settings;
             if (!ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
                 return;
 
             var screenSettings = settings.Item2.Screens[index];
-            
-            if(!screenSettings.SelectedBlocks.Any())
+
+            blockList.AddRange(screenSettings.SelectedGroups.Select(a => new MyTerminalControlListBoxItem(
+                MyStringId.GetOrCompute($"*{a}*"),
+                MyStringId.GetOrCompute($"{MyStringId.GetOrCompute("Terminal_GroupTitle")} {a}"),
+                a)));
+
+            if (!screenSettings.SelectedBlocks.Any())
                 return;
 
-            foreach (var block in screenSettings.SelectedBlocks)
+            foreach (var id in screenSettings.SelectedBlocks)
             {
-                var entity = MyAPIGateway.Entities.GetEntityById(block) as IMyCubeBlock;
-                if(entity != null)
-                    _blocks.Add(entity);
+                var block = MyAPIGateway.Entities.GetEntityById(id) as IMyCubeBlock;
+                if (block != null)
+                {
+                    if (block.CubeGrid.Equals(b.CubeGrid))
+                    {
+                        blockList.Add(new MyTerminalControlListBoxItem(
+                            MyStringId.GetOrCompute(block.DisplayNameText),
+                            MyStringId.GetOrCompute(block.DisplayNameText),
+                            block.EntityId));
+                    }
+                    else if (block.CubeGrid.IsInSameLogicalGroupAs(b.CubeGrid))
+                    {
+                        blockList.Add(new MyTerminalControlListBoxItem(
+                            MyStringId.GetOrCompute($"@{block.DisplayNameText}@"),
+                            MyStringId.GetOrCompute(block.CubeGrid.DisplayName + " => " + block.DisplayNameText),
+                            block.EntityId));
+                    }
+                    else
+                    {
+                        blockList.Add(new MyTerminalControlListBoxItem(
+                            MyStringId.GetOrCompute(MyTexts.GetString(MyStringId.Get("EventControllerBlock_UnknownBlock"))),
+                            MyStringId.GetOrCompute(string.Format(MyTexts.GetString(MyStringId.Get("EventControllerBlock_UnknownBlockTooltip")), 
+                                block.EntityId)),
+                            block.EntityId));
+                    }
+                }
             }
-
-            var terminal = _blocks.Select(a => new MyTerminalControlListBoxItem(
-                MyStringId.GetOrCompute(a.DisplayNameText),
-                MyStringId.GetOrCompute(a.CubeGrid.DisplayName + " => " + a.DisplayNameText),
-                a.EntityId));
-
-            blockList.AddRange(terminal);
         }
     }
 }

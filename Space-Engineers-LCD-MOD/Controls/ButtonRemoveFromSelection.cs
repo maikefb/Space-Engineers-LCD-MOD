@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Graph.Data.Scripts.Graph;
+using Graph.Data.Scripts.Graph.Sys;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
 using Space_Engineers_LCD_MOD.Graph.Config;
@@ -37,13 +38,9 @@ namespace Space_Engineers_LCD_MOD.Controls
                 MyTuple<int, ScreenProviderConfig> settings;
                 if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
                 {
-                    if (settings.Item2.Screens[index].SelectedBlocks.Length == 0)
-                        return;
-
-                    var array = _targetList.Selection.Select(a => (long)a.UserData);
-                    settings.Item2.Screens[index].SelectedBlocks = settings.Item2.Screens[index].SelectedBlocks
-                        .Where(a => !array.Contains(a)).ToArray();
-
+                    var config = settings.Item2.Screens[index];
+                    RemoveGroups(config);
+                    RemoveBlocks(config);
                     settings.Item2.Dirty = true;
                     _sourceList.TerminalControl.UpdateVisual();
                     _targetList.TerminalControl.UpdateVisual();
@@ -51,6 +48,26 @@ namespace Space_Engineers_LCD_MOD.Controls
 
                 _targetList.Selection.Clear();
             }
+        }
+        
+        public void RemoveGroups(ScreenConfig config)
+        {
+            var groups = _targetList.Selection
+                .Where(a => a.UserData is string)
+                .Select(a => (string)a.UserData);
+
+            if (config.SelectedGroups.Length > 0) 
+                config.SelectedGroups = config.SelectedGroups.Where(a => !groups.Contains(a)).ToArray();
+        }
+
+        public void RemoveBlocks(ScreenConfig config)
+        {
+            var ids = _targetList.Selection
+                .Where(a => a.UserData is long)
+                .Select(a => (long)a.UserData);
+
+            if (config.SelectedBlocks.Length > 0) 
+                config.SelectedBlocks = config.SelectedBlocks.Where(a => !ids.Contains(a)).ToArray();
         }
     }
 }

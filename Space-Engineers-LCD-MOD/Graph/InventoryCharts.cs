@@ -16,9 +16,8 @@ namespace Graph.Data.Scripts.Graph
             {
                 if (Config == null)
                     return null;
-                
-                
-                return GridLogic?.GetItems(Config);
+
+                return GridLogic?.GetItems(Config, Block as IMyTerminalBlock);
             }
         }
 
