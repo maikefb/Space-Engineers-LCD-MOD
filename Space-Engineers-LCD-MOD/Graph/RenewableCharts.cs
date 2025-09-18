@@ -55,12 +55,12 @@ namespace Graph.Data.Scripts.Graph
                 var pieSolar = new PieChartPanel(
                     "", (IMyTextSurface)Surface,
                     ToScreenMargin(ViewBox.Position + PIE_SOLAR),
-                    new Vector2(120), false);
+                    new Vector2(120), false, Config.HeaderColor);
 
                 var pieWind = new PieChartPanel(
                     "", (IMyTextSurface)Surface,
                     ToScreenMargin(ViewBox.Position + PIE_WIND),
-                    new Vector2(120), false);
+                    new Vector2(120), false, Config.HeaderColor);
 
                 sprites.AddRange(pieSolar.GetSprites(useSolar, true));
                 sprites.AddRange(pieWind .GetSprites(useWind,  true));
