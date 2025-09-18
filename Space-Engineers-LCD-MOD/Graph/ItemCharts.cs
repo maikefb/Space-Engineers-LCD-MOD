@@ -1,26 +1,38 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
-
 using Graph.Data.Scripts.Graph.Sys;
-
+using Sandbox.Game.EntityComponents;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
+using Space_Engineers_LCD_MOD;
+using Space_Engineers_LCD_MOD.Graph.Config;
 using VRage;
-using VRage.Game.ModAPI;                 
 using VRage.Game.GUI.TextPanel;
-using VRage.Game.ModAPI.Ingame;
+using VRage.Game.ModAPI;
+using VRage.ModAPI;
 using VRage.Utils;
 using VRageMath;
+using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
+using IMyTextSurfaceProvider = Sandbox.ModAPI.Ingame.IMyTextSurfaceProvider;
 
 namespace Graph.Data.Scripts.Graph
 {
     public abstract class ItemCharts : MyTextSurfaceScriptBase
-    {        public static Dictionary<MyItemType, string> SpriteCache = new Dictionary<MyItemType, string>();
-        public static Dictionary<MyItemType, MyStringId> LocKeysCache = new Dictionary<MyItemType, MyStringId>();
+    {
+        public static Dictionary<MyItemType, string> SpriteCache =
+            new Dictionary<MyItemType, string>();
 
-        List<KeyValuePair<MyItemType, double>> _itemsCache = new List<KeyValuePair<MyItemType, double>>();
+        public static Dictionary<MyItemType, MyStringId> LocKeysCache =
+            new Dictionary<MyItemType, MyStringId>();
+
+        public static Dictionary<IMyTerminalBlock, MyTuple<int, ScreenProviderConfig>> ActiveScreens =
+            new Dictionary<IMyTerminalBlock, MyTuple<int, ScreenProviderConfig>>();
+
+        List<KeyValuePair<MyItemType, double>> _itemsCache =
+            new List<KeyValuePair<MyItemType, double>>();
 
         /// <summary>
         /// Relative area of the <see cref="Sandbox.ModAPI.IMyTextSurface.TextureSize"/> That is Visible
@@ -39,10 +51,42 @@ namespace Graph.Data.Scripts.Graph
 
         public override ScriptUpdate NeedsUpdate => ScriptUpdate.Update10;
 
-        protected ItemCharts(Sandbox.ModAPI.Ingame.IMyTextSurface surface, VRage.Game.ModAPI.Ingame.IMyCubeBlock block,
-            Vector2 size) : base(surface, block, size)
+        public ScreenConfig Config { get; protected set; }
+
+        ScreenProviderConfig _providerConfig;
+
+        public int SurfaceIndex { get; protected set; }
+
+        protected ItemCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
             UpdateViewBox();
+        }
+        
+        public override void Dispose()
+        {
+            if (_providerConfig != null)
+            {
+                MyTuple<int, ScreenProviderConfig> config;
+                if (ActiveScreens.TryGetValue((IMyTerminalBlock)Block, out config))
+                {
+                    config.Item1++;
+                    if (config.Item1 == 0)
+                    {
+                        ActiveScreens.Remove((IMyTerminalBlock)Block);
+                        Save((IMyEntity)Block, _providerConfig);
+                    }
+                }
+            }
+
+            base.Dispose();
+        }
+
+        public static void Save(IMyEntity storageEntity, ScreenProviderConfig providerConfig)
+        {
+            if (storageEntity.Storage != null)
+                storageEntity.Storage[Constants.STORAGE_GUID] = Convert
+                    .ToBase64String(MyAPIGateway.Utilities
+                        .SerializeToBinary(providerConfig));
         }
 
         protected void UpdateViewBox()
@@ -60,6 +104,12 @@ namespace Graph.Data.Scripts.Graph
 
         public override void Run()
         {
+            if (Config == null)
+            {
+                GetSettings((IMyTextSurface)Surface, (IMyCubeBlock)Block);
+                return;
+            }
+
             if (Math.Abs(CurrentTextPadding - Surface.TextPadding) > .1f)
                 UpdateViewBox();
 
@@ -71,13 +121,23 @@ namespace Graph.Data.Scripts.Graph
             DrawItems();
         }
 
+        void GetSettings(IMyTextSurface surface, IMyCubeBlock block)
+        {
+            IMyTextSurfaceProvider surfaceProvider = block as IMyTextSurfaceProvider;
+            while (!surface.Equals(surfaceProvider.GetSurface(SurfaceIndex)) && SurfaceIndex < 32)
+                SurfaceIndex++;
+
+            if (SurfaceIndex < 32)
+                LoadSettings(surface, block);
+        }
+
         public void DrawItems()
         {
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
 
-                DrawTitle(sprites, 0.95f, Color.Red);
+                DrawTitle(sprites, 1, Config.HeaderColor);
 
                 var items = ReadItems(Block as IMyTerminalBlock);
 
@@ -87,7 +147,8 @@ namespace Graph.Data.Scripts.Graph
                     Vector2 position = ViewBox.Position;
                     position.X += margin;
                     position.Y = CaretY;
-                    sprites.Add(MakeText((IMyTextSurface)Surface, $"- {MyTexts.GetString("BlockPropertyProperties_WaterLevel_Empty")} -", position, 0.78f));
+                    sprites.Add(MakeText((IMyTextSurface)Surface,
+                        $"- {MyTexts.GetString("BlockPropertyProperties_WaterLevel_Empty")} -", position, 0.78f));
                 }
                 else
                 {
@@ -188,7 +249,8 @@ namespace Graph.Data.Scripts.Graph
             CaretY += 40 * scale;
         }
 
-        protected void DrawRow(List<MySprite> frame, float scale, KeyValuePair<MyItemType, double> item)
+        protected void DrawRow(List<MySprite> frame, float scale,
+            KeyValuePair<MyItemType, double> item)
         {
             string sprite;
             MyStringId locKey;
@@ -266,7 +328,7 @@ namespace Graph.Data.Scripts.Graph
             CaretY += 30 * scale;
         }
 
-        protected static readonly Regex RxGroup     = new Regex(@"\(\s*G\s*:\s*(.+?)\s*\)", RegexOptions.IgnoreCase);
+        protected static readonly Regex RxGroup = new Regex(@"\(\s*G\s*:\s*(.+?)\s*\)", RegexOptions.IgnoreCase);
         protected static readonly Regex RxContainer = new Regex(@"\(\s*(?!G\s*:)(.+?)\s*\)", RegexOptions.IgnoreCase);
 
         protected static MySprite MakeText(IMyTextSurface surf, string s, Vector2 p, float scale)
@@ -292,13 +354,23 @@ namespace Graph.Data.Scripts.Graph
                 double sec = sess.ElapsedPlayTime.TotalSeconds;
                 return (int)(sec / secondsPerStep);
             }
-            catch { return 0; }
+            catch
+            {
+                return 0;
+            }
         }
 
         protected static int GetMaxRows(IMyTextSurface surf, float listStartY, float lineHeight)
         {
             float surfH = 512f;
-            try { surfH = surf.SurfaceSize.Y; } catch { }
+            try
+            {
+                surfH = surf.SurfaceSize.Y;
+            }
+            catch
+            {
+            }
+
             float available = Math.Max(0f, surfH - listStartY - 10f);
             int rows = (int)Math.Floor(available / Math.Max(1f, lineHeight));
             return rows < 1 ? 1 : rows;
@@ -306,15 +378,25 @@ namespace Graph.Data.Scripts.Graph
 
         protected static void ParseFilter(IMyTerminalBlock lcd, out string mode, out string token)
         {
-            mode = null; token = null;
+            mode = null;
+            token = null;
             if (lcd == null) return;
             var name = lcd.CustomName ?? string.Empty;
 
             var mg = RxGroup.Match(name);
-            if (mg.Success) { mode = "group"; token = mg.Groups[1].Value.Trim(); return; }
+            if (mg.Success)
+            {
+                mode = "group";
+                token = mg.Groups[1].Value.Trim();
+                return;
+            }
 
             var mc = RxContainer.Match(name);
-            if (mc.Success) { mode = "container"; token = mc.Groups[1].Value.Trim(); }
+            if (mc.Success)
+            {
+                mode = "container";
+                token = mc.Groups[1].Value.Trim();
+            }
         }
 
         protected static readonly CultureInfo Pt = new CultureInfo("pt-BR");
@@ -332,6 +414,69 @@ namespace Graph.Data.Scripts.Graph
             foreach (var kv in source) list.Add(kv);
             list.Sort((a, b) => b.Value.CompareTo(a.Value));
             return list;
+        }
+
+        private void LoadSettings(IMyTextSurface surface, IMyCubeBlock block)
+        {
+            MyTuple<int, ScreenProviderConfig> config;
+
+            if (ActiveScreens.TryGetValue((IMyTerminalBlock)block, out config))
+            {
+                _providerConfig = config.Item2;
+                config.Item1++;
+                Config = _providerConfig.Screens[SurfaceIndex];
+            }
+            else
+            {
+                var storageEntity = (IMyEntity)block;
+                if (storageEntity.Storage == null)
+                    storageEntity.Storage = new MyModStorageComponent();
+
+                string value;
+                if (storageEntity.Storage.TryGetValue(Constants.STORAGE_GUID, out value))
+                {
+                    try
+                    {
+                        _providerConfig = MyAPIGateway.Utilities.SerializeFromBinary<ScreenProviderConfig>(Convert.FromBase64String(value));
+                        Config = _providerConfig.Screens[SurfaceIndex];
+                    }
+                    catch (Exception e)
+                    {
+                        MyAPIGateway.Utilities.ShowNotification("Fail to Load Settings");
+                        MyLog.Default.Log(MyLogSeverity.Error, e.ToString());
+                        CreateSettings(block);
+                    }
+                }
+                else
+                {
+                    CreateSettings(block);
+                }
+
+                if (_providerConfig != null)
+                {
+                    if (!ActiveScreens.TryGetValue((IMyTerminalBlock)block, out config))
+                    {
+                        ActiveScreens[(IMyTerminalBlock)block] =
+                            new MyTuple<int, ScreenProviderConfig>(0, _providerConfig);
+                    }
+
+                    config.Item1++;
+                }
+            }
+        }
+
+        private void CreateSettings(IMyCubeBlock block)
+        {
+            var lcd = block as IMyTextPanel;
+            if (lcd != null)
+            {
+                _providerConfig = new ScreenProviderConfig(1);
+                Config = _providerConfig.Screens[0];
+                return;
+            }
+
+            _providerConfig = new ScreenProviderConfig(((IMyTextSurfaceProvider)block).SurfaceCount);
+            Config = _providerConfig.Screens[SurfaceIndex];
         }
     }
 }

@@ -1,14 +1,9 @@
-using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Text.RegularExpressions;
-using Graph.Data.Scripts.Graph.Sys;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
-using Sandbox.Game.Entities.Cube;
 using Sandbox.ModAPI;
-using VRage.Game.GUI.TextPanel;
-using VRage.Game.ModAPI.Ingame;
+using VRage.Game.ModAPI;
 using VRageMath;
+using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
 namespace Graph.Data.Scripts.Graph
 {
@@ -17,7 +12,7 @@ namespace Graph.Data.Scripts.Graph
     {
         public override Dictionary<MyItemType, double> ItemSource => GridLogic?.Seeds;
         public override string Title { get; protected set; } = "DisplayName_BlueprintClass_GardenItems";
-        public SeedCharts(IMyTextSurface surface, VRage.Game.ModAPI.Ingame.IMyCubeBlock block, Vector2 size) : base(surface, block, size)
+        public SeedCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
         }
     }
