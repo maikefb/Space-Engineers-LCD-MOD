@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Sandbox.Game.Entities;
+using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
 using Space_Engineers_LCD_MOD.Graph.Config;
@@ -131,6 +132,13 @@ namespace Graph.Data.Scripts.Graph.Sys
             }
         }
 
+        int GetThisSurfaceIndex(IMyTerminalBlock block)
+        {
+            var multiTextPanel = block.Components.Get<MyMultiTextPanelComponent>();
+            return multiTextPanel.SelectedPanelIndex;
+        }
+        
+        
         bool ColorPickerVisible(IMyTerminalBlock b)
         {
             var sf = ((IMyTextSurfaceProvider)b).GetSurface(GetThisSurfaceIndex(b));
@@ -143,8 +151,11 @@ namespace Graph.Data.Scripts.Graph.Sys
             var index = GetThisSurfaceIndex(b);
             if (index == -1) return;
             MyTuple<int, ScreenProviderConfig> settings;
-            if (ItemCharts.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
+            if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
+            {
                 settings.Item2.Screens[index].HeaderColor = c;
+                settings.Item2.Dirty = true;
+            }
         }
 
         Color ColorPickerGetter(IMyTerminalBlock b)
@@ -153,33 +164,11 @@ namespace Graph.Data.Scripts.Graph.Sys
             if (index != -1)
             {
                 MyTuple<int, ScreenProviderConfig> settings;
-                if (ItemCharts.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
+                if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
                     return settings.Item2.Screens[index].HeaderColor;
             }
 
             return Color.White;
-        }
-
-        int GetThisSurfaceIndex(IMyTerminalBlock block)
-        {
-            if (block == null)
-                return 0;
-
-            var provider = block as IMyTextSurfaceProvider;
-
-            var original = _originalColorPicker.Getter.Invoke(block);
-            _originalColorPicker.Setter.Invoke(block, Color.Transparent);
-
-            for (int i = 0; i < provider.SurfaceCount; i++)
-            {
-                if (provider.GetSurface(i).ScriptForegroundColor == Color.Transparent)
-                {
-                    _originalColorPicker.Setter.Invoke(block, original);
-                    return i;
-                }
-            }
-
-            return 0;
         }
 
         bool VisiblePanelColorPicker(IMyTerminalBlock b)
@@ -192,14 +181,18 @@ namespace Graph.Data.Scripts.Graph.Sys
         void SetterPanelColorPicker(IMyTerminalBlock b, Color c)
         {
             MyTuple<int, ScreenProviderConfig> settings;
-            if (ItemCharts.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > 0)
+            if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > 0)
+            {
                 settings.Item2.Screens[0].HeaderColor = c;
+                settings.Item2.Dirty = true;
+            }
+                
         }
 
         Color GetterPanelColorPicker(IMyTerminalBlock b)
         {
             MyTuple<int, ScreenProviderConfig> settings;
-            if (ItemCharts.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > 0)
+            if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > 0)
                 return settings.Item2.Screens[0].HeaderColor;
             return Color.White;
         }
