@@ -264,6 +264,30 @@ namespace Graph.Data.Scripts.Graph
             list.Sort((a, b) => b.Value.CompareTo(a.Value));
             return list;
         }
+        
+        protected Vector2 ToScreenMargin(Vector2 absoluteCenterInViewBox)
+        {
+            return new Vector2(absoluteCenterInViewBox.X, 512f - absoluteCenterInViewBox.Y);
+        }
+        protected MySprite Text(string s, Vector2 p, float scale)
+        {
+            return new MySprite { Type = SpriteType.TEXT, Data = s, Position = p,
+                Color = Surface.ScriptForegroundColor, Alignment = TextAlignment.LEFT, RotationOrScale = scale };
+        }
+        protected MySprite Centered(string s, Vector2 p, float scale)
+        {
+            return new MySprite { Type = SpriteType.TEXT, Data = s, Position = p,
+                Color = Surface.ScriptForegroundColor, Alignment = TextAlignment.CENTER, RotationOrScale = scale };
+        }
+        protected string Pow(double mw)
+        {
+            double a = Math.Abs(mw);
+            string sign = mw < 0 ? "-" : "";
+            if (a >= 1000000.0) return sign + (a/1000000.0).ToString("0.##", Pt) + " MW";
+            if (a >= 1.0)       return sign + a.ToString("0.##", Pt) + " MW";
+            return sign + (a*1000.0).ToString("0.##", Pt) + " kW";
+        }
+        protected string Pct(float f) { return ((int)Math.Round(f * 100f)).ToString(Pt) + "%"; }
 
         private void LoadSettings(IMyTextSurface surface, IMyCubeBlock block)
         {
