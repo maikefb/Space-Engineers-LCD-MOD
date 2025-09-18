@@ -48,6 +48,8 @@ namespace Space_Engineers_LCD_MOD.Controls
                     _sourceList.TerminalControl.UpdateVisual();
                     _targetList.TerminalControl.UpdateVisual();
                 }
+
+                _targetList.Selection.Clear();
             }
         }
     }

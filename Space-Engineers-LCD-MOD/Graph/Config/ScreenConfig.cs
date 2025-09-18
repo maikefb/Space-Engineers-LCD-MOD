@@ -22,12 +22,15 @@ namespace Graph.Data.Scripts.Graph.Sys
         [ProtoMember(2)] public Color HeaderColor { get; set; } = new Color(54, 0, 63);
 
         [ProtoMember(3)] public long[] SelectedBlocks { get; set; } = Array.Empty<long>();
-        [ProtoMember(4)] public string[] SelectedItems { get; set; } = Array.Empty<string>();
+        
+        [ProtoMember(4)] public string[] SelectedGroups { get; set; } = Array.Empty<string>();
+        [ProtoMember(5)] public string[] SelectedItems { get; set; } = Array.Empty<string>();
 
         public void CopyFrom(ScreenConfig newValue)
         {
             HeaderColor = newValue.HeaderColor;
             SelectedBlocks = newValue.SelectedBlocks;
+            SelectedGroups = newValue.SelectedGroups;
             SelectedItems = newValue.SelectedItems;
         }
     }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Sandbox.ModAPI;
+using VRage;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.ModAPI.Ingame;
@@ -22,6 +23,7 @@ namespace Graph.Data.Scripts.Graph.Sys
 
         public readonly IMyCubeGrid Grid;
         List<IMySlimBlock> _blocks = new List<IMySlimBlock>();
+        List<IMyTerminalBlock> _invBlocks = new List<IMyTerminalBlock>();
 
         public Dictionary<MyItemType, double> // Dictionary for Specific Category of Items
             Components = new Dictionary<MyItemType, double>(),
@@ -31,6 +33,8 @@ namespace Graph.Data.Scripts.Graph.Sys
             Consumables = new Dictionary<MyItemType, double>(),
             Seeds = new Dictionary<MyItemType, double>();
 
+        public Dictionary<SearchQuery, Dictionary<MyItemType, double>> Cache = new Dictionary<SearchQuery, Dictionary<MyItemType, double>>();
+        
         /// <summary>
         /// Logic attached to <see cref="grid"/>
         /// </summary>
@@ -51,16 +55,23 @@ namespace Graph.Data.Scripts.Graph.Sys
             if (_clock % DELAY != 0)
                 return; // skip update by {DELAY} ticks
 
+            Cache.Clear();
             _blocks.Clear();
             Grid.GetBlocks(_blocks, a => a.FatBlock?.InventoryCount != 0 && a.FatBlock is IMyTerminalBlock);
-            var invBlocks = _blocks.Select(a => a.FatBlock as IMyTerminalBlock).ToList();
+            
+            _invBlocks.Clear();
+            _invBlocks.AddRange(_blocks.Where(a =>
+            {
+                var block = a?.FatBlock as IMyTerminalBlock;
+                return block != null && block.HasInventory;
+            }).Select(a => (IMyTerminalBlock)a.FatBlock));
 
-            AggregateByType(invBlocks, Components, "Component");
-            AggregateByType(invBlocks, Ingots, "Ingot");
-            AggregateByType(invBlocks, Ores, "Ore");
-            AggregateByType(invBlocks, Ammo, "AmmoMagazine");
-            AggregateByType(invBlocks, Consumables, "ConsumableItem");
-            AggregateByType(invBlocks, Seeds, "SeedItem");
+            AggregateByType(_invBlocks, Components, "Component");
+            AggregateByType(_invBlocks, Ingots, "Ingot");
+            AggregateByType(_invBlocks, Ores, "Ore");
+            AggregateByType(_invBlocks, Ammo, "AmmoMagazine");
+            AggregateByType(_invBlocks, Consumables, "ConsumableItem");
+            AggregateByType(_invBlocks, Seeds, "SeedItem");
         }
 
         /// <summary>
@@ -104,6 +115,62 @@ namespace Graph.Data.Scripts.Graph.Sys
                         if (dictionary.TryGetValue(type, out acc)) dictionary[type] = acc + amount;
                         else dictionary[type] = amount;
                     }
+                }
+            }
+        }
+
+        public Dictionary<MyItemType, double> GetItems(ScreenConfig config)
+        {
+            Dictionary<MyItemType, double> dictionary;
+            var query = new SearchQuery(config.SelectedBlocks, config.SelectedItems);
+
+            if (!Cache.TryGetValue(query, out dictionary))
+            {
+                dictionary = new Dictionary<MyItemType, double>();
+
+                var blocks = config.SelectedBlocks.Length == 0
+                    ? _invBlocks
+                    : config.SelectedBlocks.Select(a => MyAPIGateway.Entities.GetEntityById(a))
+                        .Where(a => a is IMyTerminalBlock && a.HasInventory).Cast<IMyTerminalBlock>().ToList(); 
+
+                if(blocks.Count == 0)
+                    blocks = _invBlocks;
+
+                AggregateByType(blocks, dictionary, "");
+                
+                Cache[query] = dictionary;
+            }
+            
+            return dictionary;
+        }
+        
+        public struct SearchQuery : IEquatable<SearchQuery>
+        {
+            public long[] Storages;
+            public string[] Names;
+
+            public SearchQuery(long[] storages, string[] names)
+            {
+                Storages = storages;
+                Names = names;
+            }
+
+            public bool Equals(SearchQuery other)
+            {
+                return Equals(Storages, other.Storages) && Equals(Names, other.Names);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                return obj is SearchQuery && Equals((SearchQuery)obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return ((Storages != null ? Storages.GetHashCode() : 0) * 397) ^ (Names != null ? Names.GetHashCode() : 0);
                 }
             }
         }
