@@ -106,7 +106,7 @@ namespace Graph.Data.Scripts.Graph
                 UpdateViewBox();
 
             if (GridLogic == null)
-                GridLogicSession.components.TryGetValue(Block.CubeGrid.EntityId, out GridLogic);
+                GridLogicSession.Components.TryGetValue(Block.CubeGrid.EntityId, out GridLogic);
 
             base.Run();
         }

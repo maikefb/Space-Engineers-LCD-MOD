@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Sandbox.ModAPI;
+using Space_Engineers_LCD_MOD.Helpers;
 using VRage;
 using VRage.Game;
 using VRage.Game.Components;
@@ -59,24 +60,32 @@ namespace Graph.Data.Scripts.Graph.Sys
             if (_clock % DELAY != 0)
                 return; // skip update by {DELAY} ticks
 
-            Cache.Clear();
-            _blocks.Clear();
-
-            Grid.GetBlocks(_blocks, a => a.FatBlock?.InventoryCount != 0 && a.FatBlock is IMyTerminalBlock);
-
-            _invBlocks.Clear();
-            _invBlocks.AddRange(_blocks.Where(a =>
+            try
             {
-                var block = a?.FatBlock as IMyTerminalBlock;
-                return block != null && block.HasInventory;
-            }).Select(a => (IMyTerminalBlock)a.FatBlock));
+                _blocks.Clear();
 
-            AggregateByType(_invBlocks, Components, "Component");
-            AggregateByType(_invBlocks, Ingots, "Ingot");
-            AggregateByType(_invBlocks, Ores, "Ore");
-            AggregateByType(_invBlocks, Ammo, "AmmoMagazine");
-            AggregateByType(_invBlocks, Consumables, "ConsumableItem");
-            AggregateByType(_invBlocks, Seeds, "SeedItem");
+                Grid.GetBlocks(_blocks, a => a.FatBlock?.InventoryCount != 0 && a.FatBlock is IMyTerminalBlock);
+
+                _invBlocks.Clear();
+                _invBlocks.AddRange(_blocks.Where(a =>
+                {
+                    var block = a?.FatBlock as IMyTerminalBlock;
+                    return block != null && block.HasInventory;
+                }).Select(a => (IMyTerminalBlock)a.FatBlock));
+
+                AggregateByType(_invBlocks, Components, "Component");
+                AggregateByType(_invBlocks, Ingots, "Ingot");
+                AggregateByType(_invBlocks, Ores, "Ore");
+                AggregateByType(_invBlocks, Ammo, "AmmoMagazine");
+                AggregateByType(_invBlocks, Consumables, "ConsumableItem");
+                AggregateByType(_invBlocks, Seeds, "SeedItem");
+
+                Cache.Clear();
+            }
+            catch (Exception e)
+            {
+                ErrorHandlerHelper.LogError(e, this);
+            }
         }
 
         /// <summary>
@@ -126,8 +135,6 @@ namespace Graph.Data.Scripts.Graph.Sys
 
         public Dictionary<MyItemType, double> GetItems(ScreenConfig config, IMyTerminalBlock referenceBlock)
         {
-            Dictionary<MyItemType, double> dictionary;
-
             try
             {
                 SearchQuery query;
@@ -136,6 +143,7 @@ namespace Graph.Data.Scripts.Graph.Sys
                 else
                     query = new SearchQuery(config.SelectedBlocks, config.SelectedItems, config.SelectedGroups);
 
+                Dictionary<MyItemType, double> dictionary;
                 if (!Cache.TryGetValue(query, out dictionary))
                 {
                     dictionary = new Dictionary<MyItemType, double>();
@@ -153,10 +161,12 @@ namespace Graph.Data.Scripts.Graph.Sys
                                                     <= MyRelationsBetweenPlayerAndBlock.FactionShare &&
                                                     !blocks.Contains(b));
                     }
-                    
+
                     blocks.AddRange(config.SelectedBlocks.Select(id => MyAPIGateway.Entities.GetEntityById(id))
                         .Select(entity => entity as IMyTerminalBlock)
-                        .Where(block => block != null && block.HasInventory && block.CubeGrid.IsInSameLogicalGroupAs(referenceBlock.CubeGrid)));
+                        .Where(block =>
+                            block != null && block.HasInventory &&
+                            block.CubeGrid.IsInSameLogicalGroupAs(referenceBlock.CubeGrid)));
 
                     AggregateByType(blocks, dictionary, "");
 
@@ -165,10 +175,9 @@ namespace Graph.Data.Scripts.Graph.Sys
 
                 return dictionary;
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                MyLog.Default.Log(MyLogSeverity.Error, ex.ToString());
-                MyAPIGateway.Utilities.ShowNotification("ERROR on updating LCD, Check log!");
+                ErrorHandlerHelper.LogError(e, this);
                 return new Dictionary<MyItemType, double>();
             }
         }

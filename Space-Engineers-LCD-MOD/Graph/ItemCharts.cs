@@ -1,8 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Sandbox.Definitions;
 using Sandbox.ModAPI;
+using Space_Engineers_LCD_MOD.Helpers;
 using VRage;
+using VRage.Game;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
 using VRage.Utils;
@@ -18,7 +21,7 @@ namespace Graph.Data.Scripts.Graph
 
         public static Dictionary<MyItemType, MyStringId> LocKeysCache =
             new Dictionary<MyItemType, MyStringId>();
-        
+
         protected ItemCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
         }
@@ -29,8 +32,15 @@ namespace Graph.Data.Scripts.Graph
 
             if (Config == null)
                 return;
-            
-            DrawItems();
+
+            try
+            {
+                DrawItems();
+            }
+            catch (Exception e)
+            {
+                ErrorHandlerHelper.LogError(e, this);
+            }
         }
 
         public void DrawItems()
@@ -88,8 +98,8 @@ namespace Graph.Data.Scripts.Graph
                 frame.AddRange(sprites);
             }
         }
-        
-        
+
+
         protected void DrawRow(List<MySprite> frame, float scale,
             KeyValuePair<MyItemType, double> item)
         {
@@ -114,7 +124,8 @@ namespace Graph.Data.Scripts.Graph
 
             if (!LocKeysCache.TryGetValue(item.Key, out locKey))
             {
-                locKey = MyDefinitionManager.Static.TryGetPhysicalItemDefinition(item.Key).DisplayNameEnum ?? MyStringId.GetOrCompute(item.Key.TypeId);
+                locKey = MyDefinitionManager.Static.TryGetPhysicalItemDefinition(item.Key).DisplayNameEnum ??
+                         MyStringId.GetOrCompute(item.Key.TypeId);
                 LocKeysCache[item.Key] = locKey;
             }
 
@@ -137,7 +148,7 @@ namespace Graph.Data.Scripts.Graph
             frame.Add(MySprite.CreateClipRect(new Rectangle((int)position.X, (int)position.Y,
                 (int)(ViewBox.Width - position.X + (ViewBox.X) - 105 * scale),
                 (int)(position.Y + 35 * scale))));
-            
+
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
@@ -163,7 +174,7 @@ namespace Graph.Data.Scripts.Graph
 
             CaretY += 30 * scale;
         }
-        
+
         protected override void DrawTitle(List<MySprite> frame, float scale)
         {
             var margin = ViewBox.Size.X * Margin;
@@ -217,12 +228,12 @@ namespace Graph.Data.Scripts.Graph
         {
             if (input >= 1000000000)
                 // Congratulations, you've successfully created a singularity
-                return (input / 1000000000d).ToString("0.00", CultureInfo.CurrentUICulture) + "G"; 
+                return (input / 1000000000d).ToString("0.00", CultureInfo.CurrentUICulture) + "G";
             if (input >= 1000000)
                 return (input / 1000000d).ToString("0.00", CultureInfo.CurrentUICulture) + "M";
             if (input >= 10000)
                 return (input / 1000d).ToString("0.00", CultureInfo.CurrentUICulture) + "k";
-            
+
             return input.ToString("0.##", CultureInfo.CurrentUICulture);
         }
     }
