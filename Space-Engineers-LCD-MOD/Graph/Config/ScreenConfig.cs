@@ -32,6 +32,13 @@ namespace Graph.Data.Scripts.Graph.Sys
 
         [ProtoMember(4)] public string[] SelectedGroups { get; set; } = Array.Empty<string>();
 
+        [ProtoMember(5)] public string[] SelectedDefinition { get; set; } = Array.Empty<string>();
+
+        [ProtoMember(6)] public string[] SelectedCategories { get; set; } = Array.Empty<string>();
+        
+
+        [ProtoMember(7)] public float InternalScale { get; set; } = 1;
+        
         public MyDefinitionId[] SelectedItems
         {
             get
@@ -50,9 +57,17 @@ namespace Graph.Data.Scripts.Graph.Sys
             set { SelectedDefinition = value.Select(a => a.ToString()).ToArray(); }
         }
 
-        [ProtoMember(5)] public string[] SelectedDefinition { get; set; } = Array.Empty<string>();
-
-        [ProtoMember(6)] public string[] SelectedCategories { get; set; } = Array.Empty<string>();
+        public float Scale
+        {
+            get
+            {
+                return MathHelper.Clamp(InternalScale, 0.1f, 10f);
+            }
+            set
+            {
+                InternalScale = MathHelper.Clamp(value, 0.1f, 10f);
+            }
+        } 
 
         public void CopyFrom(ScreenConfig newValue)
         {

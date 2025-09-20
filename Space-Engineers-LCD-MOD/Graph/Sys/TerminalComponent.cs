@@ -54,6 +54,7 @@ namespace Graph.Data.Scripts.Graph.Sys
                 _controls.Add(new ButtonItemRemoveFromSelection(source, target));
                 _controls.Add(source);
                 _controls.Add(new ButtonItemAddToSelection(source, target));
+                _controls.Add(new SliderChartScale());
             }
             catch (Exception e)
             {

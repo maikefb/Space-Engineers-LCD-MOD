@@ -374,9 +374,7 @@ namespace Graph.Data.Scripts.Graph
         protected float GetAutoScaleUniform(float logicalWidth = 512f, float logicalHeight = 512f)
         {
             var s = GetAutoScale2D(logicalWidth, logicalHeight);
-            return Math.Min(s.X, s.Y);
+            return Math.Min(s.X, s.Y) * Config.Scale;
         }
-
-        
     }
 }
