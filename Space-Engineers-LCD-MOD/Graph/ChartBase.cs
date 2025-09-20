@@ -363,19 +363,17 @@ namespace Graph.Data.Scripts.Graph
             Config = _providerConfig.Screens[index];
         }
         
-        protected float GetAutoScale(bool useTextureHeight = false, float logicalHeight = 512f)
+        protected Vector2 GetAutoScale2D(float logicalWidth = 512f, float logicalHeight = 512f)
         {
-            try
-            {
-                var size = useTextureHeight ? Surface.TextureSize : Surface.SurfaceSize;
-                float h = (size.Y > 1f) ? size.Y : 512f;
-                if (logicalHeight <= 0f) logicalHeight = 512f;
-                return h / logicalHeight;
-            }
-            catch
-            {
-                return 1f;
-            }
+            if (logicalWidth  <= 0f) logicalWidth  = 512f;
+            if (logicalHeight <= 0f) logicalHeight = 512f;
+            return new Vector2(ViewBox.Size.X / logicalWidth, ViewBox.Size.Y / logicalHeight);
+        }
+
+        protected float GetAutoScaleUniform(float logicalWidth = 512f, float logicalHeight = 512f)
+        {
+            var s = GetAutoScale2D(logicalWidth, logicalHeight);
+            return Math.Min(s.X, s.Y);
         }
 
         

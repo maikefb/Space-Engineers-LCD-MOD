@@ -41,7 +41,7 @@ namespace Graph.Data.Scripts.Graph
             if (Math.Abs(CurrentTextPadding - Surface.TextPadding) > 0.1f)
                 UpdateViewBox();
 
-            float scale = GetAutoScale( false, 512f);
+            float scale = GetAutoScaleUniform();
 
             using (var frame = Surface.DrawFrame())
             {
