@@ -48,8 +48,14 @@ namespace Space_Engineers_LCD_MOD.Controls
         {
             var index = GetThisSurfaceIndex(b);
             MyTuple<int, ScreenProviderConfig> settings;
-            if (!ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
+            if (!ChartBase.ActiveScreens.TryGetValue(b, out settings)
+                || settings.Item2 == null
+                || settings.Item2.Screens == null
+                || settings.Item2.Screens.Count <= index
+                || index < 0)
+            {
                 return;
+            }
 
             var screenSettings = settings.Item2.Screens[index];
 
