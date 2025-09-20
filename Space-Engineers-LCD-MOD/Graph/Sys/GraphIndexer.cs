@@ -8,6 +8,7 @@ using VRage.ModAPI;
 using VRage.Game.ModAPI;
 using VRage.Game;
 using Sandbox.Definitions;
+using Space_Engineers_LCD_MOD.Helpers;
 using VRage.Game.Components;
 using IngameItem = VRage.Game.ModAPI.Ingame.MyInventoryItem;
 
@@ -21,12 +22,10 @@ namespace Graph.Data.Scripts.Graph.Sys
         const int TICKS_INTERVAL = 120; // ~2s
         int _ticks;
 
-        // ===== Filtros com PARÊNTESES =====
         static readonly Regex RxGroup     = new Regex(@"\(\s*G\s*:\s*(.+?)\s*\)", RegexOptions.IgnoreCase);
         static readonly Regex RxContainer = new Regex(@"\(\s*(?!G\s*:)(.+?)\s*\)", RegexOptions.IgnoreCase);
         static readonly Regex RxProjToken = new Regex(@"\(\s*(.+?)\s*\)", RegexOptions.IgnoreCase);
 
-        // faltantes (PT/EN) - projector
         static readonly Regex RxMissA = new Regex(@"^\s*([\p{L}0-9][\p{L}0-9 _\.\-]+?)\s*[x×]\s*([0-9][0-9\.\, ]*)\s*$", RegexOptions.IgnoreCase);
         static readonly Regex RxMissB = new Regex(@"^\s*([0-9][0-9\.\, ]*)\s*[x×]\s*([\p{L}0-9][\p{L}0-9 _\.\-]+?)\s*$", RegexOptions.IgnoreCase);
         static readonly Regex RxMissC = new Regex(@"^\s*([\p{L}0-9][\p{L}0-9 _\.\-]+?)\s*:\s*([0-9][0-9\.\, ]*)\s*$", RegexOptions.IgnoreCase);
@@ -133,7 +132,10 @@ namespace Graph.Data.Scripts.Graph.Sys
                     }
                 }
             }
-            catch { /* silencioso */ }
+            catch (Exception e)
+            {
+                ErrorHandlerHelper.LogError(e, this);
+            }
         }
 
         // ===== util =====

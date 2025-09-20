@@ -1,72 +1,59 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using Graph.Data.Scripts.Graph.Sys;
-using Sandbox.Game.GameSystems.TextSurfaceScripts;
+using Sandbox.Definitions;
 using Sandbox.ModAPI;
+using Space_Engineers_LCD_MOD.Helpers;
 using VRage;
+using VRage.Game;
 using VRage.Game.GUI.TextPanel;
-using VRage.Game.ModAPI.Ingame;
+using VRage.Game.ModAPI;
 using VRage.Utils;
 using VRageMath;
+using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
 namespace Graph.Data.Scripts.Graph
 {
-    public abstract class ItemCharts : MyTextSurfaceScriptBase
+    public abstract class ItemCharts : ChartBase
     {
-        public static Dictionary<MyItemType, string> SpriteCache = new Dictionary<MyItemType, string>();
-        public static Dictionary<MyItemType, MyStringId> LocKeysCache = new Dictionary<MyItemType, MyStringId>();
+        public static Dictionary<MyItemType, string> SpriteCache =
+            new Dictionary<MyItemType, string>();
 
-        List<KeyValuePair<MyItemType, double>> _itemsCache = new List<KeyValuePair<MyItemType, double>>();
+        public static Dictionary<MyItemType, MyStringId> LocKeysCache =
+            new Dictionary<MyItemType, MyStringId>();
 
-        /// <summary>
-        /// Relative area of the <see cref="Sandbox.ModAPI.IMyTextSurface.TextureSize"/> That is Visible
-        /// </summary>
-        public RectangleF ViewBox { get; protected set; }
+        public Dictionary<string, string> TitleCache =
+            new Dictionary<string, string>();
 
-        protected GridLogic GridLogic;
+        char[] _chars = { ',', ' ' };
 
-        protected float CurrentTextPadding;
+        const int DELAY = 10; // 10 means 100 ticks delay (or ~1.6 seconds)
+        long _clock;
 
-        protected float CaretY;
-
-        protected float Margin = 0.02f;
-        public abstract Dictionary<MyItemType, double> ItemSource { get; }
-        public abstract string Title { get; protected set; }
-
-        public override ScriptUpdate NeedsUpdate => ScriptUpdate.Update10;
-
-        protected ItemCharts(Sandbox.ModAPI.Ingame.IMyTextSurface surface, VRage.Game.ModAPI.Ingame.IMyCubeBlock block,
-            Vector2 size) : base(surface, block, size)
+        protected ItemCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
-            UpdateViewBox();
-        }
-
-        protected void UpdateViewBox()
-        {
-            var sizeOffset = (Surface.TextureSize - Surface.SurfaceSize) / 2;
-
-            CurrentTextPadding = Surface.TextPadding;
-
-            var padding = (Surface.TextPadding / 100) * Surface.SurfaceSize;
-            sizeOffset += padding / 2;
-
-            ViewBox = new RectangleF(sizeOffset.X, sizeOffset.Y, Surface.SurfaceSize.X - padding.X,
-                Surface.SurfaceSize.Y - padding.Y);
         }
 
         public override void Run()
         {
-            if (Math.Abs(CurrentTextPadding - Surface.TextPadding) > .1f)
-                UpdateViewBox();
-
-            if (GridLogic == null)
-                GridLogicSession.components.TryGetValue(Block.CubeGrid.EntityId, out GridLogic);
-
             base.Run();
 
-            DrawItems();
+            _clock++;
+            if (_clock % DELAY != 0 && !Dirty)
+                return; // skip update by {DELAY} ticks
+
+            if (Config == null)
+                return;
+
+            try
+            {
+                DrawItems();
+            }
+            catch (Exception e)
+            {
+                ErrorHandlerHelper.LogError(e, this);
+            }
         }
 
         public void DrawItems()
@@ -75,7 +62,7 @@ namespace Graph.Data.Scripts.Graph
             {
                 var sprites = new List<MySprite>();
 
-                DrawTitle(sprites, 0.95f, Color.Red);
+                DrawTitle(sprites, GetAutoScaleUniform());
 
                 var items = ReadItems(Block as IMyTerminalBlock);
 
@@ -85,7 +72,9 @@ namespace Graph.Data.Scripts.Graph
                     Vector2 position = ViewBox.Position;
                     position.X += margin;
                     position.Y = CaretY;
-                    sprites.Add(Text($"- {MyTexts.GetString("BlockPropertyProperties_WaterLevel_Empty")} -", position, 0.78f));
+                    sprites.Add(MakeText((IMyTextSurface)Surface,
+                        $"- {MyTexts.GetString("BlockPropertyProperties_WaterLevel_Empty")} -",
+                        ViewBox.Center, GetAutoScaleUniform(), TextAlignment.CENTER));
                 }
                 else
                 {
@@ -116,7 +105,7 @@ namespace Graph.Data.Scripts.Graph
 
                     foreach (var item in items)
                     {
-                        DrawRow(sprites, 1, item);
+                        DrawRow(sprites, GetAutoScaleUniform(), item);
                     }
                 }
 
@@ -124,69 +113,9 @@ namespace Graph.Data.Scripts.Graph
             }
         }
 
-        protected List<KeyValuePair<MyItemType, double>> ReadItems(IMyTerminalBlock lcd)
-        {
-            _itemsCache.Clear();
-            if (lcd == null || ItemSource == null)
-                return _itemsCache;
 
-            foreach (var keyValuePair in ItemSource)
-                _itemsCache.Add(keyValuePair);
-
-            _itemsCache.Sort((a, b) => b.Value.CompareTo(a.Value));
-            return _itemsCache;
-        }
-
-        protected void DrawTitle(List<MySprite> frame, float scale, Color color)
-        {
-            var margin = ViewBox.Size.X * Margin;
-
-            Vector2 position = ViewBox.Position;
-            position.X += margin;
-            position.Y += (ViewBox.Size.Y * Margin) / 2;
-
-            CaretY = position.Y;
-
-            frame.Add(new MySprite()
-            {
-                Type = SpriteType.TEXTURE,
-                Data = "Textures\\FactionLogo\\Others\\OtherIcon_5.dds",
-                Position = position + new Vector2(10f, 20) * scale,
-                Size = new Vector2(40 * scale),
-                Color = color,
-                Alignment = TextAlignment.CENTER
-            });
-            position.X += ViewBox.Width / 8f;
-            frame.Add(MySprite.CreateClipRect(new Rectangle((int)position.X, (int)position.Y,
-                (int)(ViewBox.Width - position.X + (ViewBox.X) - 105 * scale),
-                (int)(position.Y + 35 * scale))));
-            frame.Add(new MySprite()
-            {
-                Type = SpriteType.TEXT,
-                Data = MyTexts.GetString(Title),
-                Position = position,
-                RotationOrScale = scale * 1.3f,
-                Color = color,
-                Alignment = TextAlignment.LEFT,
-                FontId = "White"
-            });
-            frame.Add(MySprite.CreateClearClipRect());
-            position.X = ViewBox.Width + ViewBox.X - margin;
-            frame.Add(new MySprite()
-            {
-                Type = SpriteType.TEXT,
-                Data = MyTexts.GetString("BlockPropertyTitle_Stockpile"),
-                Position = position,
-                RotationOrScale = scale * 1.3f,
-                Color = color,
-                Alignment = TextAlignment.RIGHT,
-                FontId = "White"
-            });
-
-            CaretY += 40 * scale;
-        }
-
-        protected void DrawRow(List<MySprite> frame, float scale, KeyValuePair<MyItemType, double> item)
+        protected void DrawRow(List<MySprite> frame, float scale,
+            KeyValuePair<MyItemType, double> item)
         {
             string sprite;
             MyStringId locKey;
@@ -209,8 +138,8 @@ namespace Graph.Data.Scripts.Graph
 
             if (!LocKeysCache.TryGetValue(item.Key, out locKey))
             {
-                var name = item.Key.ToString().Substring(16).Split('/');
-                locKey = MyStringId.TryGet("DisplayName_Item_" + name[1] + name[0]);
+                locKey = MyDefinitionManager.Static.TryGetPhysicalItemDefinition(item.Key).DisplayNameEnum ??
+                         MyStringId.GetOrCompute(item.Key.TypeId);
                 LocKeysCache[item.Key] = locKey;
             }
 
@@ -234,14 +163,10 @@ namespace Graph.Data.Scripts.Graph
                 (int)(ViewBox.Width - position.X + (ViewBox.X) - 105 * scale),
                 (int)(position.Y + 35 * scale))));
 
-            var itemName = locKey == MyStringId.NullOrEmpty
-                ? item.Key.ToString().Split('/')[1]
-                : MyTexts.GetString(locKey);
-
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
-                Data = itemName,
+                Data = MyTexts.GetString(locKey),
                 Position = position,
                 RotationOrScale = scale,
                 Color = Surface.ScriptForegroundColor,
@@ -253,7 +178,7 @@ namespace Graph.Data.Scripts.Graph
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
-                Data = FormatQty(item.Value),
+                Data = FormatItemQty(item.Value),
                 Position = position,
                 RotationOrScale = scale,
                 Color = Surface.ScriptForegroundColor,
@@ -264,16 +189,118 @@ namespace Graph.Data.Scripts.Graph
             CaretY += 30 * scale;
         }
 
+        protected override void DrawTitle(List<MySprite> frame, float scale)
+        {
+            var margin = ViewBox.Size.X * Margin;
 
-        private string FormatQty(double v)
-        {
-            if (v >= 1000) return Math.Round(v).ToString("#,0", new CultureInfo("pt-BR"));
-            return v.ToString("0.##", new CultureInfo("pt-BR"));
+            Vector2 position = ViewBox.Position;
+            position.X += margin;
+            position.Y += (ViewBox.Size.Y * Margin) / 2;
+
+            CaretY = position.Y;
+
+            frame.Add(new MySprite()
+            {
+                Type = SpriteType.TEXTURE,
+                Data = "Textures\\FactionLogo\\Others\\OtherIcon_5.dds",
+                Position = position + new Vector2(10f, 20) * scale,
+                Size = new Vector2(40 * scale),
+                Color = Config.HeaderColor,
+                Alignment = TextAlignment.CENTER
+            });
+            position.X += ViewBox.Width / 8f;
+
+            var stockText = MyTexts.Get(MyStringId.GetOrCompute("BlockPropertyTitle_Stockpile"));
+
+            var endSize = Surface.MeasureStringInPixels(stockText, "White", scale * 1.3f);
+
+            var availableSize = new Rectangle((int)position.X, (int)position.Y,
+                (int)(ViewBox.Width - position.X + (ViewBox.X) - endSize.X - (2 * margin)),
+                (int)(position.Y + 35 * scale));
+            frame.Add(MySprite.CreateClipRect(availableSize));
+
+            StringBuilder displayNameSb = new StringBuilder();
+            string displayName;
+
+            foreach (var item in Config.SelectedCategories)
+                displayNameSb.Append(ItemCategoryHelper.GetGroupDisplayName(item) + ", ");
+
+            if (displayNameSb.Length == 0)
+                displayName = MyTexts.GetString(Title);
+            else
+            {
+                displayNameSb.Length--;
+                displayNameSb.Length--;
+
+                if (!TitleCache.TryGetValue(displayNameSb.ToString() + scale, out displayName))
+                {
+                    TitleCache.Clear();
+                    
+                    StringBuilder trimmedSb = new StringBuilder(displayNameSb.ToString());
+                    Vector2 textSize = Surface.MeasureStringInPixels(trimmedSb, "White", scale * 1.3f);
+
+                    if (textSize.X > availableSize.Width)
+                    {
+                        const string ELLIPSIS = "...";
+
+                        // Trim until it fits
+                        for (int i = trimmedSb.Length - 1; i > 0; i--)
+                        {
+                            trimmedSb.Length = i; // cut characters at the end
+                            trimmedSb.Append(ELLIPSIS); // append "..."
+                            textSize = Surface.MeasureStringInPixels(trimmedSb, "White", scale * 1.3f);
+
+                            if (textSize.X <= availableSize.Width)
+                                break;
+
+                            trimmedSb.Length = i; // reset before next loop
+                        }
+                    }
+
+                    displayName = trimmedSb.ToString();
+                    TitleCache[displayNameSb.ToString() + scale] = displayName;
+                }
+            }
+
+            frame.Add(new MySprite()
+            {
+                Type = SpriteType.TEXT,
+                Data = displayName,
+                Position = position,
+                RotationOrScale = scale * 1.3f,
+                Color = Config.HeaderColor,
+                Alignment = TextAlignment.LEFT,
+                FontId = "White"
+            });
+
+            frame.Add(MySprite.CreateClearClipRect());
+            position.X = ViewBox.Width + ViewBox.X - margin;
+
+            frame.Add(new MySprite()
+            {
+                Type = SpriteType.TEXT,
+                Data = stockText.ToString(),
+                Position = position,
+                RotationOrScale = scale * 1.3f,
+                Color = Config.HeaderColor,
+                Alignment = TextAlignment.RIGHT,
+                FontId = "White"
+            });
+
+            CaretY += 40 * scale;
         }
-        
-        private MySprite Text(string s, Vector2 p, float scale)
+
+        protected static string FormatItemQty(double input)
         {
-            return new MySprite { Type = SpriteType.TEXT, Data = s, Position = p, Color = Surface.ScriptForegroundColor, Alignment = TextAlignment.LEFT, RotationOrScale = scale };
+            if (input >= 1000000000)
+                // Congratulations, you've successfully created a singularity
+                return (input / 1000000000d).ToString("0.00", CultureInfo.CurrentUICulture) + "G";
+            if (input >= 1000000)
+                return (input / 1000000d).ToString("0.00", CultureInfo.CurrentUICulture) + "M";
+            if (input >= 10000)
+                return (input / 1000d).ToString("0.00", CultureInfo.CurrentUICulture) + "k";
+
+            return input.ToString("0.##", CultureInfo.CurrentUICulture);
         }
     }
 }

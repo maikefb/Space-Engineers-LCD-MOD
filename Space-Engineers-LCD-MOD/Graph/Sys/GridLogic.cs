@@ -1,11 +1,16 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Sandbox.ModAPI;
+using Space_Engineers_LCD_MOD.Graph.Sys;
+using Space_Engineers_LCD_MOD.Helpers;
+using VRage;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.ModAPI.Ingame;
 using VRage.ModAPI;
+using VRage.Utils;
 using IMyCubeGrid = VRage.Game.ModAPI.IMyCubeGrid;
 using IMySlimBlock = VRage.Game.ModAPI.IMySlimBlock;
 using IngameItem = VRage.Game.ModAPI.Ingame.MyInventoryItem;
@@ -22,14 +27,25 @@ namespace Graph.Data.Scripts.Graph.Sys
 
         public readonly IMyCubeGrid Grid;
         List<IMySlimBlock> _blocks = new List<IMySlimBlock>();
+        List<IMyTerminalBlock> _invBlocks = new List<IMyTerminalBlock>();
 
-        public Dictionary<MyItemType, double> // Dictionary for Specific Category of Items
-            Components = new Dictionary<MyItemType, double>(),
-            Ingots = new Dictionary<MyItemType, double>(),
-            Ores = new Dictionary<MyItemType, double>(),
-            Ammo = new Dictionary<MyItemType, double>(),
-            Consumables = new Dictionary<MyItemType, double>(),
-            Seeds = new Dictionary<MyItemType, double>();
+        IMyGridTerminalSystem GridTerminalSystem => MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(Grid);
+
+        public Dictionary<MyItemType, double> Components
+        {
+            get
+            {
+                if (!_compCache.Any()) 
+                    AggregateItems(GetAllInventories(), _compCache, new[] { "Component" }, Array.Empty<MyDefinitionId>());
+
+                return _compCache;
+            }
+        }
+
+        readonly Dictionary<SearchQueryToken, Dictionary<MyItemType, double>> _queryCache =
+            new Dictionary<SearchQueryToken, Dictionary<MyItemType, double>>();
+
+        readonly Dictionary<MyItemType, double> _compCache = new Dictionary<MyItemType, double>();
 
         /// <summary>
         /// Logic attached to <see cref="grid"/>
@@ -51,25 +67,28 @@ namespace Graph.Data.Scripts.Graph.Sys
             if (_clock % DELAY != 0)
                 return; // skip update by {DELAY} ticks
 
-            _blocks.Clear();
-            Grid.GetBlocks(_blocks, a => a.FatBlock?.InventoryCount != 0 && a.FatBlock is IMyTerminalBlock);
-            var invBlocks = _blocks.Select(a => a.FatBlock as IMyTerminalBlock).ToList();
-
-            AggregateByType(invBlocks, Components, "Component");
-            AggregateByType(invBlocks, Ingots, "Ingot");
-            AggregateByType(invBlocks, Ores, "Ore");
-            AggregateByType(invBlocks, Ammo, "AmmoMagazine");
-            AggregateByType(invBlocks, Consumables, "ConsumableItem");
-            AggregateByType(invBlocks, Seeds, "SeedItem");
+            try
+            {
+                _blocks.Clear();
+                _compCache.Clear();
+                _invBlocks.Clear();
+                _queryCache.Clear();
+            }
+            catch (Exception e)
+            {
+                ErrorHandlerHelper.LogError(e, this);
+            }
         }
 
         /// <summary>
-        /// Collect items from <see cref="blocks"/> with specific <see cref="suffix"/>> and add to <see cref="dictionary"/>
+        /// Collect items from <see cref="blocks"/> with specific <see cref="categories"/>> or specific <see cref="idWhiteList"/> and add to <see cref="dictionary"/>
         /// </summary>
         /// <param name="blocks">Blocks to collect from</param>
         /// <param name="dictionary">Dictionary to store item Type/Ammount</param>
-        /// <param name="suffix">Suffix of the item to be collected</param>
-        void AggregateByType(List<IMyTerminalBlock> blocks, Dictionary<MyItemType, double> dictionary, string suffix)
+        /// <param name="categories">Suffix of the item to be collected</param>
+        /// <param name="idWhiteList">Items to be collected</param>
+        void AggregateItems(List<IMyTerminalBlock> blocks, Dictionary<MyItemType, double> dictionary,
+            string[] categories, MyDefinitionId[] idWhiteList)
         {
             dictionary.Clear();
 
@@ -92,8 +111,20 @@ namespace Graph.Data.Scripts.Graph.Sys
                     {
                         var it = items[k];
 
-                        var typeIdStr = it.Type.TypeId != null ? it.Type.TypeId.ToString() : "";
-                        if (!typeIdStr.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) continue;
+                        var typeIdStr = it.Type.TypeId;
+
+                        var filter = categories.Length > 0 || idWhiteList.Length > 0;
+
+                        if (filter)
+                        {
+                            var match = 
+                                categories.Any(category => typeIdStr.EndsWith(category, StringComparison.OrdinalIgnoreCase)) ||
+                                        idWhiteList.Any(definition => definition.Equals(it.Type));
+
+                            if (!match)
+                                continue;
+                        }
+
 
                         MyItemType type = it.Type;
 
@@ -106,6 +137,66 @@ namespace Graph.Data.Scripts.Graph.Sys
                     }
                 }
             }
+        }
+
+
+        public Dictionary<MyItemType, double> GetItems(ScreenConfig config, IMyTerminalBlock referenceBlock)
+        {
+            try
+            {
+                SearchQueryToken queryToken = SearchQueryToken.GetToken(config);
+                Dictionary<MyItemType, double> dictionary;
+                if (!_queryCache.TryGetValue(queryToken, out dictionary))
+                {
+                    dictionary = new Dictionary<MyItemType, double>();
+
+                    List<IMyTerminalBlock> blocks =
+                        config.SelectedBlocks.Length == 0 && config.SelectedGroups.Length == 0
+                            ? GetAllInventories()
+                            : new List<IMyTerminalBlock>();
+
+                    foreach (var groupName in config.SelectedGroups)
+                    {
+                        GridTerminalSystem.GetBlockGroupWithName(groupName)?
+                            .GetBlocks(blocks, b => b.HasInventory &&
+                                                    b.GetUserRelationToOwner(referenceBlock.OwnerId)
+                                                    <= MyRelationsBetweenPlayerAndBlock.FactionShare &&
+                                                    !blocks.Contains(b));
+                    }
+
+                    blocks.AddRange(config.SelectedBlocks.Select(id => MyAPIGateway.Entities.GetEntityById(id))
+                        .Select(entity => entity as IMyTerminalBlock)
+                        .Where(block =>
+                            block != null && block.HasInventory &&
+                            block.CubeGrid.IsInSameLogicalGroupAs(referenceBlock.CubeGrid)));
+
+                    AggregateItems(blocks, dictionary, config.SelectedCategories, config.SelectedItems);
+
+                    _queryCache[queryToken] = dictionary;
+                }
+
+                return dictionary;
+            }
+            catch (Exception e)
+            {
+                ErrorHandlerHelper.LogError(e, this);
+                return new Dictionary<MyItemType, double>();
+            }
+        }
+
+        public List<IMyTerminalBlock> GetAllInventories()
+        {
+            if (_invBlocks.Any()) 
+                return _invBlocks;
+
+            Grid.GetBlocks(_blocks, a => a.FatBlock?.InventoryCount != 0 && a.FatBlock is IMyTerminalBlock);
+            _invBlocks = _blocks.Where(a =>
+            {
+                var block = a?.FatBlock as IMyTerminalBlock;
+                return block != null && block.HasInventory;
+            }).Select(a => (IMyTerminalBlock)a.FatBlock).ToList();
+
+            return _invBlocks;
         }
     }
 }

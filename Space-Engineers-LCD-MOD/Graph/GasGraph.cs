@@ -11,8 +11,8 @@ using VRageMath;
 
 namespace Graph.Data.Scripts.Graph
 {
-    [MyTextSurfaceScript("GasCharts", "Hidrogênio & Oxigênio")]
-    public class GasCharts : MyTextSurfaceScriptBase
+    [MyTextSurfaceScript("GasGraph", "Hidrogênio & Oxigênio")]
+    public class GasGraph : MyTextSurfaceScriptBase
     {
         private static readonly Vector2 TITLE_POS = new Vector2(16, 20);
         private static readonly Vector2 INFO_POS  = new Vector2(16, 56);
@@ -28,7 +28,7 @@ namespace Graph.Data.Scripts.Graph
         public new IMyCubeBlock Block { get; set; }
         public override ScriptUpdate NeedsUpdate { get { return ScriptUpdate.Update10; } }
 
-        public GasCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
+        public GasGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
             Surface = surface;
             Block = block;
