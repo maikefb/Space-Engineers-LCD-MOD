@@ -47,8 +47,10 @@ namespace Graph.Data.Scripts.Graph
         public override ScriptUpdate NeedsUpdate => ScriptUpdate.Update10;
 
         public ScreenConfig Config { get; protected set; }
+        
+        public bool Dirty => _providerConfig?.Dirty ?? false;
 
-        ScreenProviderConfig _providerConfig;
+        protected ScreenProviderConfig _providerConfig;
 
         protected ChartBase(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {

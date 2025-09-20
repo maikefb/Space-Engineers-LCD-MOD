@@ -36,7 +36,7 @@ namespace Graph.Data.Scripts.Graph
             base.Run();
 
             _clock++;
-            if (_clock % DELAY != 0)
+            if (_clock % DELAY != 0 && !Dirty)
                 return; // skip update by {DELAY} ticks
             
             if (Config == null)

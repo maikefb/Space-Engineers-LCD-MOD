@@ -40,6 +40,9 @@ namespace Graph.Data.Scripts.Graph.Sys
                 TerminalControlsListboxCharts target = new ListboxBlockSelected();
 
                 _controls.Add(new ColorPickerHeader());
+                
+                _controls.Add(new SliderChartScale());
+                
                 _controls.Add(new SeparatorFilter());
                 _controls.Add(new LabelSeparator());
                 _controls.Add(source);
@@ -54,7 +57,6 @@ namespace Graph.Data.Scripts.Graph.Sys
                 _controls.Add(new ButtonItemRemoveFromSelection(source, target));
                 _controls.Add(source);
                 _controls.Add(new ButtonItemAddToSelection(source, target));
-                _controls.Add(new SliderChartScale());
             }
             catch (Exception e)
             {

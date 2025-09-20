@@ -1,3 +1,4 @@
+using System.Text;
 using Graph.Data.Scripts.Graph;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
@@ -19,9 +20,22 @@ namespace Space_Engineers_LCD_MOD.Controls
             slider.Setter = Setter;
             slider.Visible = Visible;
             slider.SetLimits(.1f, 10f);
+            slider.Writer = Writer;
             slider.Title = MyStringId.GetOrCompute("BlockPropertyTitle_Scale");
 
             TerminalControl = slider;
+        }
+
+        void Writer(IMyTerminalBlock b, StringBuilder arg2)
+        {
+            var index = GetThisSurfaceIndex(b);
+            if (index == -1) return;
+            MyTuple<int, ScreenProviderConfig> settings;
+            if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
+            {
+                arg2.Clear();
+                arg2.Append(settings.Item2.Screens[index].Scale.ToString("0.000"));
+            }
         }
 
         void Setter(IMyTerminalBlock b, float c)
