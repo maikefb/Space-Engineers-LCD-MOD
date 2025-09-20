@@ -22,6 +22,8 @@ namespace Graph.Data.Scripts.Graph
         public static Dictionary<MyItemType, MyStringId> LocKeysCache =
             new Dictionary<MyItemType, MyStringId>();
         
+        char[] _chars = {',', ' '};
+        
         const int DELAY = 10; // 10 means 100 ticks delay (or ~1.6 seconds)
         long _clock;
 
@@ -205,10 +207,24 @@ namespace Graph.Data.Scripts.Graph
             frame.Add(MySprite.CreateClipRect(new Rectangle((int)position.X, (int)position.Y,
                 (int)(ViewBox.Width - position.X + (ViewBox.X) - 105 * scale),
                 (int)(position.Y + 35 * scale))));
+
+            string displayName = string.Empty;
+            foreach (var item in Config.SelectedCategories)
+                displayName += ItemCategoryHelper.GetGroupDisplayName(item) + ", ";
+
+            if (displayName == string.Empty)
+                displayName = MyTexts.GetString(Title);
+            else
+            {
+                displayName = displayName.Trim(_chars);
+                if(displayName.Length > 15) 
+                    displayName = displayName.Substring(0, 10) + "...";
+            }
+            
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
-                Data = MyTexts.GetString(Title),
+                Data = displayName,
                 Position = position,
                 RotationOrScale = scale * 1.3f,
                 Color = Config.HeaderColor,
