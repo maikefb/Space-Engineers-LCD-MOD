@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using Sandbox.Definitions;
 using Sandbox.ModAPI;
 using Space_Engineers_LCD_MOD.Helpers;
@@ -21,9 +22,12 @@ namespace Graph.Data.Scripts.Graph
 
         public static Dictionary<MyItemType, MyStringId> LocKeysCache =
             new Dictionary<MyItemType, MyStringId>();
-        
-        char[] _chars = {',', ' '};
-        
+
+        public static Dictionary<string, string> TitleCache =
+            new Dictionary<string, string>();
+
+        char[] _chars = { ',', ' ' };
+
         const int DELAY = 10; // 10 means 100 ticks delay (or ~1.6 seconds)
         long _clock;
 
@@ -38,7 +42,7 @@ namespace Graph.Data.Scripts.Graph
             _clock++;
             if (_clock % DELAY != 0 && !Dirty)
                 return; // skip update by {DELAY} ticks
-            
+
             if (Config == null)
                 return;
 
@@ -68,7 +72,8 @@ namespace Graph.Data.Scripts.Graph
                     Vector2 position = ViewBox.Position;
                     position.X += margin;
                     position.Y = CaretY;
-                    sprites.Add(MakeText((IMyTextSurface)Surface,$"- {MyTexts.GetString("BlockPropertyProperties_WaterLevel_Empty")} -", 
+                    sprites.Add(MakeText((IMyTextSurface)Surface,
+                        $"- {MyTexts.GetString("BlockPropertyProperties_WaterLevel_Empty")} -",
                         ViewBox.Center, GetAutoScaleUniform(), TextAlignment.CENTER));
                 }
                 else
@@ -204,23 +209,57 @@ namespace Graph.Data.Scripts.Graph
                 Alignment = TextAlignment.CENTER
             });
             position.X += ViewBox.Width / 8f;
-            frame.Add(MySprite.CreateClipRect(new Rectangle((int)position.X, (int)position.Y,
-                (int)(ViewBox.Width - position.X + (ViewBox.X) - 105 * scale),
-                (int)(position.Y + 35 * scale))));
 
-            string displayName = string.Empty;
+            var stockText = MyTexts.Get(MyStringId.GetOrCompute("BlockPropertyTitle_Stockpile"));
+
+            var endSize = Surface.MeasureStringInPixels(stockText, "White", scale * 1.3f);
+
+            var availableSize = new Rectangle((int)position.X, (int)position.Y,
+                (int)(ViewBox.Width - position.X + (ViewBox.X) - endSize.X - (2 * margin)),
+                (int)(position.Y + 35 * scale));
+            frame.Add(MySprite.CreateClipRect(availableSize));
+
+            StringBuilder displayNameSb = new StringBuilder();
+            string displayName;
+
             foreach (var item in Config.SelectedCategories)
-                displayName += ItemCategoryHelper.GetGroupDisplayName(item) + ", ";
+                displayNameSb.Append(ItemCategoryHelper.GetGroupDisplayName(item) + ", ");
 
-            if (displayName == string.Empty)
+            if (displayNameSb.Length == 0)
                 displayName = MyTexts.GetString(Title);
             else
             {
-                displayName = displayName.Trim(_chars);
-                if(displayName.Length > 15) 
-                    displayName = displayName.Substring(0, 10) + "...";
+                displayNameSb.Length--;
+                displayNameSb.Length--;
+
+                if (!TitleCache.TryGetValue(displayNameSb.ToString(), out displayName))
+                {
+                    StringBuilder trimmedSb = new StringBuilder(displayNameSb.ToString());
+                    Vector2 textSize = Surface.MeasureStringInPixels(trimmedSb, "White", scale * 1.3f);
+
+                    if (textSize.X > availableSize.Width)
+                    {
+                        const string ELLIPSIS = "...";
+
+                        // Trim until it fits
+                        for (int i = trimmedSb.Length - 1; i > 0; i--)
+                        {
+                            trimmedSb.Length = i; // cut characters at the end
+                            trimmedSb.Append(ELLIPSIS); // append "..."
+                            textSize = Surface.MeasureStringInPixels(trimmedSb, "White", scale * 1.3f);
+
+                            if (textSize.X <= availableSize.Width)
+                                break;
+
+                            trimmedSb.Length = i; // reset before next loop
+                        }
+                    }
+
+                    displayName = trimmedSb.ToString();
+                    TitleCache[displayNameSb.ToString()] = displayName;
+                }
             }
-            
+
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
@@ -231,12 +270,14 @@ namespace Graph.Data.Scripts.Graph
                 Alignment = TextAlignment.LEFT,
                 FontId = "White"
             });
+
             frame.Add(MySprite.CreateClearClipRect());
             position.X = ViewBox.Width + ViewBox.X - margin;
+
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
-                Data = MyTexts.GetString("BlockPropertyTitle_Stockpile"),
+                Data = stockText.ToString(),
                 Position = position,
                 RotationOrScale = scale * 1.3f,
                 Color = Config.HeaderColor,
