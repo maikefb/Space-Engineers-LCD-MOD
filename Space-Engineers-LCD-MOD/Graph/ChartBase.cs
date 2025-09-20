@@ -362,5 +362,22 @@ namespace Graph.Data.Scripts.Graph
             _providerConfig = new ScreenProviderConfig(((IMyTextSurfaceProvider)block).SurfaceCount, block.CubeGrid.EntityId);
             Config = _providerConfig.Screens[index];
         }
+        
+        protected float GetAutoScale(bool useTextureHeight = false, float logicalHeight = 512f)
+        {
+            try
+            {
+                var size = useTextureHeight ? Surface.TextureSize : Surface.SurfaceSize;
+                float h = (size.Y > 1f) ? size.Y : 512f;
+                if (logicalHeight <= 0f) logicalHeight = 512f;
+                return h / logicalHeight;
+            }
+            catch
+            {
+                return 1f;
+            }
+        }
+
+        
     }
 }
