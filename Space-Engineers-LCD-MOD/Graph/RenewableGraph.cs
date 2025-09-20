@@ -13,8 +13,8 @@ using IMySlimBlock = VRage.Game.ModAPI.IMySlimBlock;
 
 namespace Graph.Data.Scripts.Graph
 {
-    [MyTextSurfaceScript("RenewableCharts", "Turbina & Painel Solar")]
-    public class RenewableCharts : ChartBase
+    [MyTextSurfaceScript("RenewableGraph", "Turbina & Painel Solar")]
+    public class RenewableGraph : ChartBase
     {
         private static readonly Vector2 TITLE_POS       = new Vector2(16, 18);
         private static readonly Vector2 PIE_SOLAR       = new Vector2(90, 240);
@@ -26,7 +26,7 @@ namespace Graph.Data.Scripts.Graph
         public override Dictionary<MyItemType, double> ItemSource => null;
         public override string Title { get; protected set; } = "Turbina & Painel Solar";
 
-        public RenewableCharts(IMyTextSurface surface, VRage.Game.ModAPI.IMyCubeBlock block, Vector2 size) : base(surface, block, size)
+        public RenewableGraph(IMyTextSurface surface, VRage.Game.ModAPI.IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
             Surface.ContentType = ContentType.SCRIPT;
         }

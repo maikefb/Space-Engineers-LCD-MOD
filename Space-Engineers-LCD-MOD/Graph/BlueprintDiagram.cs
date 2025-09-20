@@ -18,8 +18,8 @@ using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
 namespace Graph.Data.Scripts.Graph
 {
-    [MyTextSurfaceScript("BlueprintCharts", "Blueprints")]
-    public class BlueprintCharts : ItemCharts
+    [MyTextSurfaceScript("BlueprintDiagram", "Blueprints")]
+    public class BlueprintDiagram : ItemCharts
     {
         public override string Title { get; protected set; } = "Blueprints";
 
@@ -47,7 +47,7 @@ namespace Graph.Data.Scripts.Graph
         private static Dictionary<string, Dictionary<MyItemType,int>> _blockToCompsNorm;  
         private static List<KeyValuePair<string, Dictionary<MyItemType,int>>> _blockListNormalized;
 
-        public BlueprintCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
+        public BlueprintDiagram(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
             : base(surface, block, size)
         {
             Surface.ContentType = ContentType.SCRIPT;
