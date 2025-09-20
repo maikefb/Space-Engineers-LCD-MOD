@@ -61,11 +61,11 @@ namespace Graph.Data.Scripts.Graph.Sys
         {
             get
             {
-                return MathHelper.Clamp(InternalScale, 0.1f, 10f);
+                return MathHelper.Clamp(InternalScale, 0.1f, 2.5f);
             }
             set
             {
-                InternalScale = MathHelper.Clamp(value, 0.1f, 10f);
+                InternalScale = MathHelper.Clamp(value, 0.1f, 2.5f);
             }
         } 
 

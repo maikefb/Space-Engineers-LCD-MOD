@@ -19,7 +19,7 @@ namespace Space_Engineers_LCD_MOD.Controls
             slider.Getter = Getter;
             slider.Setter = Setter;
             slider.Visible = Visible;
-            slider.SetLimits(.1f, 10f);
+            slider.SetLimits(.1f, 2.5f);
             slider.Writer = Writer;
             slider.Title = MyStringId.GetOrCompute("BlockPropertyTitle_Scale");
 

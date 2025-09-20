@@ -23,7 +23,7 @@ namespace Graph.Data.Scripts.Graph
         public static Dictionary<MyItemType, MyStringId> LocKeysCache =
             new Dictionary<MyItemType, MyStringId>();
 
-        public static Dictionary<string, string> TitleCache =
+        public Dictionary<string, string> TitleCache =
             new Dictionary<string, string>();
 
         char[] _chars = { ',', ' ' };
@@ -232,8 +232,10 @@ namespace Graph.Data.Scripts.Graph
                 displayNameSb.Length--;
                 displayNameSb.Length--;
 
-                if (!TitleCache.TryGetValue(displayNameSb.ToString(), out displayName))
+                if (!TitleCache.TryGetValue(displayNameSb.ToString() + scale, out displayName))
                 {
+                    TitleCache.Clear();
+                    
                     StringBuilder trimmedSb = new StringBuilder(displayNameSb.ToString());
                     Vector2 textSize = Surface.MeasureStringInPixels(trimmedSb, "White", scale * 1.3f);
 
@@ -256,7 +258,7 @@ namespace Graph.Data.Scripts.Graph
                     }
 
                     displayName = trimmedSb.ToString();
-                    TitleCache[displayNameSb.ToString()] = displayName;
+                    TitleCache[displayNameSb.ToString() + scale] = displayName;
                 }
             }
 
