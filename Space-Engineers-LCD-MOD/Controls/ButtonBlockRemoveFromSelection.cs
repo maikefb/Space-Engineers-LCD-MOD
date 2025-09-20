@@ -6,25 +6,26 @@ using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
 using Space_Engineers_LCD_MOD.Graph.Config;
 using VRage;
+using VRage.Game;
 using VRage.Utils;
 
 namespace Space_Engineers_LCD_MOD.Controls
 {
-    public class ButtonRemoveFromSelection : TerminalControlsCharts
+    public class ButtonBlockRemoveFromSelection : TerminalControlsCharts
     {
         public override IMyTerminalControl TerminalControl => _removeFromListboxButton;
         IMyTerminalControlButton _removeFromListboxButton;
-        ListboxBlockSelection _sourceList;
-        ListboxBlockSelected _targetList;
+        TerminalControlsListboxCharts _sourceList;
+        TerminalControlsListboxCharts _targetList;
 
-        public ButtonRemoveFromSelection(ListboxBlockSelection sourceList, ListboxBlockSelected targetList)
+        public ButtonBlockRemoveFromSelection(TerminalControlsListboxCharts sourceList, TerminalControlsListboxCharts targetList)
         {
             _sourceList = sourceList;
             _targetList = targetList;
 
             _removeFromListboxButton =
                 MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlButton, IMyTerminalBlock>(
-                    "ItemChartRemoveFromSelection");
+                    "ItemChartRemoveBlockFromSelection");
             _removeFromListboxButton.Action = Action;
             _removeFromListboxButton.Visible = Visible;
             _removeFromListboxButton.Title = MyStringId.GetOrCompute("EventControllerBlock_RemoveBlocks_Title");
@@ -40,7 +41,7 @@ namespace Space_Engineers_LCD_MOD.Controls
                 {
                     var config = settings.Item2.Screens[index];
                     RemoveGroups(config);
-                    RemoveBlocks(config);
+                    RemoveItems(config);
                     settings.Item2.Dirty = true;
                     _sourceList.TerminalControl.UpdateVisual();
                     _targetList.TerminalControl.UpdateVisual();
@@ -56,18 +57,18 @@ namespace Space_Engineers_LCD_MOD.Controls
                 .Where(a => a.UserData is string)
                 .Select(a => (string)a.UserData);
 
-            if (config.SelectedGroups.Length > 0) 
-                config.SelectedGroups = config.SelectedGroups.Where(a => !groups.Contains(a)).ToArray();
+            if (config.SelectedCategories.Length > 0) 
+                config.SelectedCategories = config.SelectedCategories.Where(a => !groups.Contains(a)).ToArray();
         }
 
-        public void RemoveBlocks(ScreenConfig config)
+        public void RemoveItems(ScreenConfig config)
         {
             var ids = _targetList.Selection
-                .Where(a => a.UserData is long)
-                .Select(a => (long)a.UserData);
+                .Where(a => a.UserData is MyDefinitionId)
+                .Select(a => (MyDefinitionId)a.UserData);
 
-            if (config.SelectedBlocks.Length > 0) 
-                config.SelectedBlocks = config.SelectedBlocks.Where(a => !ids.Contains(a)).ToArray();
+            if (config.SelectedItems.Length > 0) 
+                config.SelectedItems = config.SelectedItems.Where(a => !ids.Contains(a)).ToArray();
         }
     }
 }

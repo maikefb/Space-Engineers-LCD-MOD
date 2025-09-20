@@ -19,11 +19,10 @@ using VRageMath;
 
 namespace Space_Engineers_LCD_MOD.Controls
 {
-    public class ListboxBlockSelected : TerminalControlsCharts
+    public class ListboxBlockSelected : TerminalControlsListboxCharts
     {
         public override IMyTerminalControl TerminalControl => _selectedListbox;
         IMyTerminalControlListbox _selectedListbox;
-        public List<MyTerminalControlListBoxItem> Selection;
 
         public ListboxBlockSelected()
         {
@@ -38,24 +37,18 @@ namespace Space_Engineers_LCD_MOD.Controls
             _selectedListbox.Title = MyStringId.GetOrCompute("EventControllerBlock_SelectedBlocks_Title");
         }
 
-        public void Setter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> selection)
-        {
-            Selection = selection;
-        }
-
         public void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> blockList,
             List<MyTerminalControlListBoxItem> _)
         {
             var index = GetThisSurfaceIndex(b);
             MyTuple<int, ScreenProviderConfig> settings;
-            if (!ChartBase.ActiveScreens.TryGetValue(b, out settings)
-                || settings.Item2 == null
-                || settings.Item2.Screens == null
+
+            if (ChartBase.ActiveScreens == null ||
+                !ChartBase.ActiveScreens.TryGetValue(b, out settings)
+                || settings.Item2?.Screens == null
                 || settings.Item2.Screens.Count <= index
                 || index < 0)
-            {
                 return;
-            }
 
             var screenSettings = settings.Item2.Screens[index];
 

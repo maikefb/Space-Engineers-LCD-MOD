@@ -9,6 +9,7 @@ using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
 using Space_Engineers_LCD_MOD;
 using Space_Engineers_LCD_MOD.Graph.Config;
+using Space_Engineers_LCD_MOD.Helpers;
 using VRage;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
@@ -183,7 +184,7 @@ namespace Graph.Data.Scripts.Graph
         protected static readonly Regex RxGroup = new Regex(@"\(\s*G\s*:\s*(.+?)\s*\)", RegexOptions.IgnoreCase);
         protected static readonly Regex RxContainer = new Regex(@"\(\s*(?!G\s*:)(.+?)\s*\)", RegexOptions.IgnoreCase);
 
-        protected static MySprite MakeText(IMyTextSurface surf, string s, Vector2 p, float scale)
+        protected static MySprite MakeText(IMyTextSurface surf, string s, Vector2 p, float scale, TextAlignment alignment = TextAlignment.LEFT)
         {
             return new MySprite
             {
@@ -191,7 +192,7 @@ namespace Graph.Data.Scripts.Graph
                 Data = s,
                 Position = p,
                 Color = surf.ScriptForegroundColor,
-                Alignment = TextAlignment.LEFT,
+                Alignment = alignment,
                 RotationOrScale = scale
             };
         }
@@ -326,8 +327,8 @@ namespace Graph.Data.Scripts.Graph
                     }
                     catch (Exception e)
                     {
-                        MyAPIGateway.Utilities.ShowNotification("Fail to Load Settings");
-                        MyLog.Default.Log(MyLogSeverity.Error, e.ToString());
+                        MyAPIGateway.Utilities.ShowNotification($"Fail to Load Settings for block {block.DisplayNameText}\n{e.Message}");
+                        ErrorHandlerHelper.LogError(e, this);
                         CreateSettings(block, index);
                     }
                 }

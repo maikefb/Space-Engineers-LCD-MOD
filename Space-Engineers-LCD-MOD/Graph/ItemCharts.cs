@@ -21,6 +21,9 @@ namespace Graph.Data.Scripts.Graph
 
         public static Dictionary<MyItemType, MyStringId> LocKeysCache =
             new Dictionary<MyItemType, MyStringId>();
+        
+        const int DELAY = 10; // 10 means 100 ticks delay (or ~1.6 seconds)
+        long _clock;
 
         protected ItemCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
@@ -30,6 +33,10 @@ namespace Graph.Data.Scripts.Graph
         {
             base.Run();
 
+            _clock++;
+            if (_clock % DELAY != 0)
+                return; // skip update by {DELAY} ticks
+            
             if (Config == null)
                 return;
 
@@ -49,7 +56,7 @@ namespace Graph.Data.Scripts.Graph
             {
                 var sprites = new List<MySprite>();
 
-                DrawTitle(sprites, 1);
+                DrawTitle(sprites, GetAutoScaleUniform());
 
                 var items = ReadItems(Block as IMyTerminalBlock);
 
@@ -59,8 +66,8 @@ namespace Graph.Data.Scripts.Graph
                     Vector2 position = ViewBox.Position;
                     position.X += margin;
                     position.Y = CaretY;
-                    sprites.Add(MakeText((IMyTextSurface)Surface,
-                        $"- {MyTexts.GetString("BlockPropertyProperties_WaterLevel_Empty")} -", position, 0.78f));
+                    sprites.Add(MakeText((IMyTextSurface)Surface,$"- {MyTexts.GetString("BlockPropertyProperties_WaterLevel_Empty")} -", 
+                        ViewBox.Center, GetAutoScaleUniform(), TextAlignment.CENTER));
                 }
                 else
                 {
@@ -91,7 +98,7 @@ namespace Graph.Data.Scripts.Graph
 
                     foreach (var item in items)
                     {
-                        DrawRow(sprites, 1, item);
+                        DrawRow(sprites, GetAutoScaleUniform(), item);
                     }
                 }
 

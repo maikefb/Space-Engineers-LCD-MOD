@@ -21,7 +21,7 @@ using IMyBlockGroup = Sandbox.ModAPI.Ingame.IMyBlockGroup ;
 
 namespace Space_Engineers_LCD_MOD.Controls
 {
-    public class ListboxBlockSelection : TerminalControlsCharts
+    public class ListboxBlockSelection : TerminalControlsListboxCharts
     {
         public override IMyTerminalControl TerminalControl => _selectorListbox;
         IMyTerminalControlListbox _selectorListbox;
@@ -30,7 +30,6 @@ namespace Space_Engineers_LCD_MOD.Controls
         readonly List<IMyCubeGrid> _grids = new List<IMyCubeGrid>();
         readonly List<IMySlimBlock> _blocks = new List<IMySlimBlock>();
         readonly List<IMyBlockGroup> _groups = new List<IMyBlockGroup>();
-        public List<MyTerminalControlListBoxItem> Selection;
 
         public ListboxBlockSelection()
         {
@@ -46,24 +45,18 @@ namespace Space_Engineers_LCD_MOD.Controls
                 MyStringId.GetOrCompute("ScreenTerminalInventory_FilterGamepadHelp_AllInventories");
         }
 
-        public void Setter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> selection)
-        {
-            Selection = selection;
-        }
-
         public void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> blockList,
             List<MyTerminalControlListBoxItem> _)
         {
             var index = GetThisSurfaceIndex(b);
             MyTuple<int, ScreenProviderConfig> settings;
-            if (!ChartBase.ActiveScreens.TryGetValue(b, out settings) 
-                || settings.Item2 == null
-                || settings.Item2.Screens == null
+
+            if (ChartBase.ActiveScreens == null ||
+                !ChartBase.ActiveScreens.TryGetValue(b, out settings)
+                || settings.Item2?.Screens == null
                 || settings.Item2.Screens.Count <= index
                 || index < 0)
-            {
                 return;
-            }
 
             var screenSettings = settings.Item2.Screens[index];
 

@@ -26,16 +26,9 @@ namespace Graph.Data.Scripts.Graph.Sys
 
         public override void BeforeStart()
         {
-#if DEBUG
-            try
-            {
-                throw new Exception("Hello DNSpy");
-            }
-            catch
-            {
-                /* workaround for Debugger.Attach() not available for Mods */
-            }
-#endif
+
+            DebuggerHelper.Break();
+
             try
             {
                 _networkManager = new MyEasyNetworkManager(46541);
@@ -43,16 +36,24 @@ namespace Graph.Data.Scripts.Graph.Sys
                 _networkManager.OnReceivedPacket += OnReceivedPacket;
                 MyAPIGateway.TerminalControls.CustomControlGetter += CustomControlGetter;
 
-                var source = new ListboxBlockSelection();
-                var target = new ListboxBlockSelected();
+                TerminalControlsListboxCharts source = new ListboxBlockSelection();
+                TerminalControlsListboxCharts target = new ListboxBlockSelected();
 
                 _controls.Add(new ColorPickerHeader());
                 _controls.Add(new SeparatorFilter());
                 _controls.Add(new LabelSeparator());
                 _controls.Add(source);
-                _controls.Add(new ButtonAddToSelection(source, target));
+                _controls.Add(new ButtonBlockAddToSelection(source, target));
                 _controls.Add(target);
-                _controls.Add(new ButtonRemoveFromSelection(source, target));
+                _controls.Add(new ButtonBlockRemoveFromSelection(source, target));
+                
+                source = new ListboxItemsSelection();
+                target = new ListboxItemsSelected();
+                
+                _controls.Add(target);
+                _controls.Add(new ButtonItemRemoveFromSelection(source, target));
+                _controls.Add(source);
+                _controls.Add(new ButtonItemAddToSelection(source, target));
             }
             catch (Exception e)
             {

@@ -11,27 +11,28 @@ using VRage.Utils;
 
 namespace Space_Engineers_LCD_MOD.Controls
 {
-    public class ButtonAddToSelection : TerminalControlsCharts
+    public class ButtonBlockAddToSelection : TerminalControlsCharts
     {
         public override IMyTerminalControl TerminalControl => _addToListboxButton;
         IMyTerminalControlButton _addToListboxButton;
-        ListboxBlockSelection _sourceList;
-        ListboxBlockSelected _targetList;
+        TerminalControlsListboxCharts _sourceList;
+        TerminalControlsListboxCharts _targetList;
 
-        public ButtonAddToSelection(ListboxBlockSelection sourceList, ListboxBlockSelected targetList)
+        public ButtonBlockAddToSelection(TerminalControlsListboxCharts sourceList, 
+            TerminalControlsListboxCharts targetList)
         {
             _sourceList = sourceList;
             _targetList = targetList;
             _addToListboxButton =
                 MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlButton, IMyTerminalBlock>(
-                    "ItemChartAddToSelection");
-            _addToListboxButton.Action = Action;
+                    "ItemChartAddBlockToSelection");
+            _addToListboxButton.Action = BlockSelection;
             _addToListboxButton.Visible = Visible;
             _addToListboxButton.Title = MyStringId.GetOrCompute("EventControllerBlock_AddBlocks_Title");
         }
 
 
-        public void Action(IMyTerminalBlock b)
+        public void BlockSelection(IMyTerminalBlock b)
         {
             if (_sourceList.Selection != null && _sourceList.Selection.Count > 0)
             {
