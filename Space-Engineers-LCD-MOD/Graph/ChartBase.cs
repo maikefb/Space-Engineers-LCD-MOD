@@ -285,14 +285,63 @@ namespace Graph.Data.Scripts.Graph
 
         protected static readonly CultureInfo Pt = new CultureInfo("pt-BR");
 
-        protected string Pow(double mw)
+        protected string Pow(double watts)
         {
-            double a = Math.Abs(mw);
-            string sign = mw < 0 ? "-" : "";
-            if (a >= 1000000.0) return sign + (a/1000000.0).ToString("0.##", Pt) + " MW";
-            if (a >= 1.0)       return sign + a.ToString("0.##", Pt) + " MW";
-            return sign + (a*1000.0).ToString("0.##", Pt) + " kW";
+            CultureInfo culture = new CultureInfo("pt-BR");
+
+            double a = System.Math.Abs(watts);
+            string sign = watts < 0 ? "-" : "";
+
+            if (a < 1e-12)
+                return "0 W";
+
+            if (a >= 1e24) return sign + (a / 1e24).ToString("0.##", culture) + " YW";
+            if (a >= 1e21) return sign + (a / 1e21).ToString("0.##", culture) + " ZW";
+            if (a >= 1e18) return sign + (a / 1e18).ToString("0.##", culture) + " EW";
+            if (a >= 1e15) return sign + (a / 1e15).ToString("0.##", culture) + " PW";
+            if (a >= 1e12) return sign + (a / 1e12).ToString("0.##", culture) + " TW";
+            if (a >= 1e9 ) return sign + (a / 1e9 ).ToString("0.##", culture) + " GW";
+            if (a >= 1e6 ) return sign + (a / 1e6 ).ToString("0.##", culture) + " MW";
+            if (a >= 1e3 ) return sign + (a / 1e3 ).ToString("0.##", culture) + " kW";
+            if (a >= 1.0 )  return sign + a.ToString("0.##", culture)       + " W";
+            if (a >= 1e-3 ) return sign + (a / 1e-3 ).ToString("0.##", culture) + " mW";
+            if (a >= 1e-6 ) return sign + (a / 1e-6 ).ToString("0.##", culture) + " uW";
+            if (a >= 1e-9 ) return sign + (a / 1e-9 ).ToString("0.##", culture) + " nW";
+            if (a >= 1e-12) return sign + (a / 1e-12).ToString("0.##", culture) + " pW";
+            return sign + a.ToString("0.##", culture) + " W";
         }
+        
+        
+        
+        
+
+        protected string PowForce(double newtons)
+        {
+            var culture = new CultureInfo("pt-BR");
+
+            double a = System.Math.Abs(newtons);
+            string sign = newtons < 0 ? "-" : "";
+
+            if (a < 1e-12)
+                return "0 N";
+
+            if (a >= 1e24) return sign + (a / 1e24).ToString("0.##", culture) + " YN"; 
+            if (a >= 1e21) return sign + (a / 1e21).ToString("0.##", culture) + " ZN"; 
+            if (a >= 1e18) return sign + (a / 1e18).ToString("0.##", culture) + " EN"; 
+            if (a >= 1e15) return sign + (a / 1e15).ToString("0.##", culture) + " PN"; 
+            if (a >= 1e12) return sign + (a / 1e12).ToString("0.##", culture) + " TN"; 
+            if (a >= 1e9)  return sign + (a / 1e9 ).ToString("0.##", culture) + " GN"; 
+            if (a >= 1e6)  return sign + (a / 1e6 ).ToString("0.##", culture) + " MN"; 
+            if (a >= 1e3)  return sign + (a / 1e3 ).ToString("0.##", culture) + " kN"; 
+            if (a >= 1e-3) return sign + (a / 1e-3).ToString("0.##", culture) + " mN";  
+            if (a >= 1e-6) return sign + (a / 1e-6).ToString("0.##", culture) + " uN";  
+            if (a >= 1e-9) return sign + (a / 1e-9).ToString("0.##", culture) + " nN";  
+            return sign + a.ToString("0.##", culture) + " N";
+        }
+
+
+
+        
         protected string Pct(float f) { return ((int)Math.Round(f * 100f)).ToString(Pt) + "%"; }
 
         private void LoadSettings(IMyCubeBlock block, int index)
