@@ -34,14 +34,14 @@ namespace Graph.Data.Scripts.Graph.Panels
                 color = _surface.ScriptForegroundColor;
             _sprites.Clear();
             if (_showTitle) DrawTitle(value, color.Value);
-            DrawBackground(value, _surface.ScriptForegroundColor, turnDarkOnComplete);
+            DrawBackground(value, color.Value, _surface.ScriptForegroundColor, turnDarkOnComplete);
             if (value > .99) 
                 return _sprites;
             DrawPie(value, color.Value, _surface.ScriptForegroundColor);
             return _sprites;
         }
 
-        protected virtual void DrawBackground(float value, Color color, bool turnDarkOnComplete)
+        protected virtual void DrawBackground(float value, Color color, Color backgroundColor, bool turnDarkOnComplete)
         {
             Vector2 position = _origo - (_size / 2);
 
@@ -53,7 +53,7 @@ namespace Graph.Data.Scripts.Graph.Panels
                 Data = "Circle",
                 Position = position,
                 Size = _size,
-                Color = deg > 358 && turnDarkOnComplete ? color : DarkenColor(color),
+                Color = deg > 358 && turnDarkOnComplete ? color : DarkenColor(backgroundColor),
                 Alignment = TextAlignment.LEFT
             });
         }
