@@ -7,89 +7,97 @@ namespace Graph.Data.Scripts.Graph.Panels
 {
     public class PieChartPanel
     {
-        private readonly IMyTextSurface _surface;
-        private readonly string _title;
-        private readonly Vector2 _origo;
-        private readonly Vector2 _size;
-        private readonly bool _showTitle;
-        private readonly List<MySprite> _sprites = new List<MySprite>();
-        private readonly Color _colorHeader;
+        protected readonly IMyTextSurface _surface;
+        protected readonly string _title;
+        protected Vector2 _origo;
+        protected Vector2 _size;
+        protected readonly bool _showTitle;
+        protected readonly List<MySprite> _sprites = new List<MySprite>();
 
-        public PieChartPanel(string title, IMyTextSurface surface, Vector2 margin, Vector2 size, bool showTitle = true,
-            Color? configHeaderColor = null)
+        public PieChartPanel(string title, IMyTextSurface surface, Vector2 margin, Vector2 size, bool showTitle = true)
         {
             _title = title ?? "";
             _surface = surface;
-            _size = size;
             _showTitle = showTitle;
-            _colorHeader = configHeaderColor ?? surface.ScriptForegroundColor;
-            _origo = new Vector2(margin.X, 512 - margin.Y); 
-            
+            SetMargin(margin, size);
         }
 
-        public List<MySprite> GetSprites(float value, bool turnDarkOnComplete = false)
+        public void SetMargin(Vector2 margin, Vector2 size)
         {
+            _origo = new Vector2(margin.X, 512 - margin.Y);
+            _size = size;
+        }
+
+        public virtual List<MySprite> GetSprites(float value, Color? color = null, bool turnDarkOnComplete = false)
+        {
+            if (color == null)
+                color = _surface.ScriptForegroundColor;
             _sprites.Clear();
-            if (_showTitle) DrawTitle(value, turnDarkOnComplete);
-            DrawPie(value, turnDarkOnComplete);
+            if (_showTitle) DrawTitle(value, color.Value);
+            DrawBackground(value, _surface.ScriptForegroundColor, turnDarkOnComplete);
+            if (value > .99) 
+                return _sprites;
+            DrawPie(value, color.Value, _surface.ScriptForegroundColor);
             return _sprites;
         }
 
-        private void DrawPie(float value, bool turnDarkOnComplete)
+        protected virtual void DrawBackground(float value, Color color, bool turnDarkOnComplete)
         {
             Vector2 position = _origo - (_size / 2);
-            int r = (int)(_surface.ScriptForegroundColor.R * 0.5f);
-            int g = (int)(_surface.ScriptForegroundColor.G * 0.5f);
-            int b = (int)(_surface.ScriptForegroundColor.B * 0.5f);
-            
-            int headerR = (int)(_colorHeader.R * 0.5f);
-            int headerG = (int)(_colorHeader.G * 0.5f);
-            int headerB = (int)(_colorHeader.B * 0.5f);
 
             float deg = 360 * value;
-            float flip = value < 0.5f ? 1 : -1;
 
-            // Fundo
             _sprites.Add(new MySprite
             {
                 Type = SpriteType.TEXTURE,
                 Data = "Circle",
                 Position = position,
                 Size = _size,
-                Color = deg > 358 && turnDarkOnComplete ? _surface.ScriptForegroundColor : new Color(r, g, b),
+                Color = deg > 358 && turnDarkOnComplete ? color : DarkenColor(color),
                 Alignment = TextAlignment.LEFT
             });
+        }
+        
+        protected virtual void DrawPie(float value, Color color, Color backgroundColor)
+        {
+            Vector2 position = _origo - (_size / 2);
 
-            if (deg > 358) return;
+            float deg = 360 * value;
+            float flip = value < 0.5f ? 1 : -1;
+
+            if (value > .99) 
+                return;
 
             float val = value < 0.5f ? 180 : 0;
 
-            // Cobertura 1
+            // Cover 1
             _sprites.Add(new MySprite
             {
                 Type = SpriteType.TEXTURE,
                 Data = "SemiCircle",
                 Position = position,
                 Size = _size,
-                Color = _colorHeader,
+                Color = color,
                 RotationOrScale = MathHelper.ToRadians((flip * 90) + deg - val),
                 Alignment = TextAlignment.LEFT
             });
 
-            // Cobertura 2
+            // Cover 2
             _sprites.Add(new MySprite
             {
                 Type = SpriteType.TEXTURE,
                 Data = "SemiCircle",
                 Position = position,
                 Size = _size,
-                Color = value > 0.5f ? _colorHeader : new Color(r, g, b),
+                Color = value > 0.5f ? color : DarkenColor(backgroundColor),
                 RotationOrScale = MathHelper.ToRadians(flip * (-90)),
                 Alignment = TextAlignment.LEFT
             });
         }
 
-        private void DrawTitle(float value, bool turnDarkOnComplete)
+        Color DarkenColor(Color color) => new Color((int)(color.R * 0.5f), (int)(color.G * 0.5f), (int)(color.B * 0.5f), color.A);
+
+        protected virtual void DrawTitle(float value, Color color)
         {
             Vector2 titleSize = new Vector2(_size.X, 18);
             _sprites.Add(new MySprite
@@ -107,7 +115,7 @@ namespace Graph.Data.Scripts.Graph.Panels
                 Type = SpriteType.TEXT,
                 Data = _title + " (" + (value * 100).ToString("F0") + "%)",
                 Position = _origo - new Vector2(_size.X - 4, _size.Y + (titleSize.Y / 2) + 16),
-                Color = _colorHeader,
+                Color = color,
                 Alignment = TextAlignment.LEFT,
                 RotationOrScale = 0.55f
             });

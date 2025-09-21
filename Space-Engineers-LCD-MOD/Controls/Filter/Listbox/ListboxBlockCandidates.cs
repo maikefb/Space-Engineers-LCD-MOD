@@ -47,7 +47,7 @@ namespace Space_Engineers_LCD_MOD.Controls.Filter.Listbox
 
             MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(b.CubeGrid).GetBlockGroups(_groups,
                 g => !screenSettings.SelectedGroups.Contains(g.Name));
-            blockList.AddRange(_groups.Select((IMyBlockGroup a) => new MyTerminalControlListBoxItem(
+            blockList.AddRange(_groups.Select(a => new MyTerminalControlListBoxItem(
                 MyStringId.GetOrCompute($"*{a.Name}*"),
                 MyStringId.GetOrCompute($"{MyStringId.GetOrCompute("Terminal_GroupTitle")} {a.Name}"),
                 a.Name)));

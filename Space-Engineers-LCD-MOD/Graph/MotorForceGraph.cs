@@ -24,23 +24,36 @@ namespace Graph.Data.Scripts.Graph
         public override Dictionary<VRage.Game.ModAPI.Ingame.MyItemType, double> ItemSource => null;
         public override string Title { get; protected set; } = "Força dos Motores (solo)";
 
+        PieChartPanel pie;
+        
         public MotorForceGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
             Surface.ContentType = ContentType.SCRIPT;
+            
+            pie = new PieChartPanel(
+                "", (IMyTextSurface)Surface,
+                ToScreenMargin(ViewBox.Position + (PIE_POS * 1)),
+                new Vector2(PIE_RADIUS * 1),
+                false);
         }
 
+        protected override void LayoutChanged()
+        {
+            base.LayoutChanged();
+            pie.SetMargin(ToScreenMargin(ViewBox.Position + PIE_POS * Scale),new Vector2(PIE_RADIUS * Scale));
+        }
+        
         public override void Run()
         {
             base.Run();
             if (Config == null) return;
 
-            float scale = GetAutoScaleUniform();
-
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
 
-                DrawTitle(sprites, 1f);
+                DrawTitle(sprites);
+                DrawFooter(sprites);
 
                 double massKg, gMag; Vector3D upDir;
                 GetMassAndUp((IMyCubeGrid)Block?.CubeGrid, out massKg, out gMag, out upDir);
@@ -51,17 +64,10 @@ namespace Graph.Data.Scripts.Graph
                 if (availUpN > 0)
                     useFrac = (float)Math.Max(0.0, Math.Min(1.0, needN / availUpN));
 
-                var pieCenterAbs = ViewBox.Position + (PIE_POS * scale);
+                var pieCenterAbs = ViewBox.Position + (PIE_POS * Scale);
                 float surfH = 512f; try { surfH = Surface.SurfaceSize.Y; } catch { }
-                var pieMarginForPanel = new Vector2(pieCenterAbs.X, surfH - pieCenterAbs.Y);
 
-                var pie = new PieChartPanel(
-                    "", (IMyTextSurface)Surface,
-                    ToScreenMargin(ViewBox.Position + (PIE_POS * scale)),
-                    new Vector2(PIE_RADIUS * scale),
-                    false, Config.HeaderColor);
-
-                sprites.AddRange(pie.GetSprites(useFrac, true));
+                sprites.AddRange(pie.GetSprites(useFrac, Config.HeaderColor,true));
 
                 sprites.Add(new MySprite
                 {
@@ -70,14 +76,14 @@ namespace Graph.Data.Scripts.Graph
                     Position = pieCenterAbs,
                     Color = Surface.ScriptForegroundColor,
                     Alignment = TextAlignment.CENTER,
-                    RotationOrScale = PCT_FONT * scale
+                    RotationOrScale = PCT_FONT * Scale
                 });
 
-                var p = ViewBox.Position + (INFO_POS * scale);
-                float lh = LINE * scale;
+                var p = ViewBox.Position + (INFO_POS * Scale);
+                float lh = LINE * Scale;
 
-                sprites.Add(Text("Necessário: " + PowForce(needN) , p, 1.5f * scale)); p += new Vector2(0, lh);
-                sprites.Add(Text("Disponível: " + PowForce(availUpN), p, 1.5f * scale)); p += new Vector2(0, lh);
+                sprites.Add(Text("Necessário: " + PowForce(needN) , p, 1.5f * Scale)); p += new Vector2(0, lh);
+                sprites.Add(Text("Disponível: " + PowForce(availUpN), p, 1.5f * Scale)); p += new Vector2(0, lh);
                 p += new Vector2(0, lh); p += new Vector2(0, lh);
 
                 if (availUpN <= 0.0)

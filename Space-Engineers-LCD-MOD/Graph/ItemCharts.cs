@@ -31,8 +31,6 @@ namespace Graph.Data.Scripts.Graph
         const int SCROLLER_WIDTH = 8;
         const int SCROLL_DELAY = 12; // 12 means 2 seconds delay (10 ticks per operation, 60 ticks per second)
 
-        char[] _chars = { ',', ' ' };
-
         long _clock;
 
         protected ItemCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
@@ -66,7 +64,8 @@ namespace Graph.Data.Scripts.Graph
             {
                 var sprites = new List<MySprite>();
 
-                DrawTitle(sprites, GetAutoScaleUniform());
+                DrawTitle(sprites);
+                DrawFooter(sprites);
 
                 var items = ReadItems(Block as IMyTerminalBlock);
 
@@ -78,13 +77,11 @@ namespace Graph.Data.Scripts.Graph
                     position.Y = CaretY;
                     sprites.Add(MakeText((IMyTextSurface)Surface,
                         $"- {MyTexts.GetString("BlockPropertyProperties_WaterLevel_Empty")} -",
-                        ViewBox.Center, GetAutoScaleUniform(), TextAlignment.CENTER));
+                        ViewBox.Center, Scale, TextAlignment.CENTER));
                 }
                 else
                 {
-                    var scale = GetAutoScaleUniform();
-
-                    int maxRows = GetMaxRowsFromSurface(scale);
+                    int maxRows = GetMaxRowsFromSurface();
                     if (maxRows < 1)
                         maxRows = 1;
 
@@ -101,7 +98,7 @@ namespace Graph.Data.Scripts.Graph
 
                         start = step % (totalSteps + 1);
 
-                        float viewportHeight = maxRows * (LINE_HEIGHT * scale) - (SCROLLER_WIDTH * 2 * scale);
+                        float viewportHeight = maxRows * (LINE_HEIGHT * Scale) - (SCROLLER_WIDTH * 2 * Scale);
                         float scrollBarHeight = (float)maxRows / items.Count * viewportHeight;
 
                         float totalScrollableRows = items.Count - maxRows;
@@ -113,30 +110,30 @@ namespace Graph.Data.Scripts.Graph
                         float scrollBarY = scrollFraction * scrollBarTravel;
                         float scrollBarCenter = scrollBarY + scrollBarHeight / 2f;
 
-                        var initialY = CaretY + SCROLLER_WIDTH * scale;
+                        var initialY = CaretY + SCROLLER_WIDTH * Scale;
 
-                        DrawScrollBar(sprites, scale, initialY, viewportHeight, scrollBarCenter, scrollBarHeight);
+                        DrawScrollBar(sprites, Scale, initialY, viewportHeight, scrollBarCenter, scrollBarHeight);
                     }
 
                     int showCount = Math.Min(maxRows, items.Count);
 
                     for (int visIdx = start; visIdx < start + showCount; visIdx++)
-                        DrawRow(sprites, scale, items[visIdx], shouldScroll);
+                        DrawRow(sprites, items[visIdx], shouldScroll);
                 }
 
                 frame.AddRange(sprites);
             }
         }
 
-        int GetMaxRowsFromSurface(float scale)
+        int GetMaxRowsFromSurface()
         {
-            var max = ViewBox.Height - (CaretY - ViewBox.Y);
-            var perLine = LINE_HEIGHT * scale;
+            var max = ViewBox.Height - (CaretY - ViewBox.Y) - FooterHeight;
+            var perLine = LINE_HEIGHT * Scale;
             return (int)(Math.Round(max / perLine - .5, MidpointRounding.AwayFromZero));
         }
 
 
-        protected void DrawRow(List<MySprite> frame, float scale,
+        protected void DrawRow(List<MySprite> frame,
             KeyValuePair<MyItemType, double> item, bool showScrollBar)
         {
             string sprite;
@@ -174,23 +171,23 @@ namespace Graph.Data.Scripts.Graph
             {
                 Type = SpriteType.TEXTURE,
                 Data = sprite,
-                Position = position + new Vector2(10f, 15) * scale,
-                Size = new Vector2(LINE_HEIGHT * scale),
+                Position = position + new Vector2(10f, 15) * Scale,
+                Size = new Vector2(LINE_HEIGHT * Scale),
                 Color = Surface.ScriptForegroundColor,
                 Alignment = TextAlignment.CENTER
             });
             position.X += ViewBox.Width / 8f;
 
             frame.Add(MySprite.CreateClipRect(new Rectangle((int)position.X, (int)position.Y,
-                (int)(ViewBox.Width - position.X + (ViewBox.X) - 105 * scale),
-                (int)(position.Y + (LINE_HEIGHT + 5) * scale))));
+                (int)(ViewBox.Width - position.X + (ViewBox.X) - 105 * Scale),
+                (int)(position.Y + (LINE_HEIGHT + 5) * Scale))));
 
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
                 Data = MyTexts.GetString(locKey),
                 Position = position,
-                RotationOrScale = scale,
+                RotationOrScale = Scale,
                 Color = Surface.ScriptForegroundColor,
                 Alignment = TextAlignment.LEFT,
                 FontId = "White"
@@ -198,19 +195,19 @@ namespace Graph.Data.Scripts.Graph
             frame.Add(MySprite.CreateClearClipRect());
             position.X = ViewBox.Width + ViewBox.X - margin;
             if (showScrollBar)
-                position.X -= SCROLLER_WIDTH * scale;
+                position.X -= SCROLLER_WIDTH * Scale;
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
                 Data = FormatItemQty(item.Value),
                 Position = position,
-                RotationOrScale = scale,
+                RotationOrScale = Scale,
                 Color = Surface.ScriptForegroundColor,
                 Alignment = TextAlignment.RIGHT,
                 FontId = "White"
             });
 
-            CaretY += LINE_HEIGHT * scale;
+            CaretY += LINE_HEIGHT * Scale;
         }
 
         protected void DrawScrollBar(List<MySprite> frame, float scale, float initialY, float viewportHeight,
@@ -219,12 +216,15 @@ namespace Graph.Data.Scripts.Graph
             float barXCenter = ViewBox.X + ViewBox.Width - (SCROLLER_WIDTH / 2f) * scale;
             int barWidth = (int)(SCROLLER_WIDTH * scale);
 
-            var trackCenter = new Vector2(barXCenter, (float)Math.Round(initialY + viewportHeight / 2f, MidpointRounding.ToEven));
-            DrawCapsule(frame, trackCenter, barWidth, viewportHeight, 
-                new Color(Surface.ScriptForegroundColor.R, Surface.ScriptForegroundColor.G, Surface.ScriptForegroundColor.B, 127));
+            var trackCenter = new Vector2(barXCenter,
+                (float)Math.Round(initialY + viewportHeight / 2f, MidpointRounding.ToEven));
+            DrawCapsule(frame, trackCenter, barWidth, viewportHeight,
+                new Color(Surface.ScriptForegroundColor.R, Surface.ScriptForegroundColor.G,
+                    Surface.ScriptForegroundColor.B, 127));
 
-            var thumbCenter = new Vector2(barXCenter, (float)Math.Round(initialY + scrollBarCenter, MidpointRounding.ToEven));
-            DrawCapsule(frame, thumbCenter, barWidth, scrollBarHeight, 
+            var thumbCenter = new Vector2(barXCenter,
+                (float)Math.Round(initialY + scrollBarCenter, MidpointRounding.ToEven));
+            DrawCapsule(frame, thumbCenter, barWidth, scrollBarHeight,
                 new Color(Config.HeaderColor.R, Config.HeaderColor.G, Config.HeaderColor.B, 250));
         }
 
@@ -246,7 +246,7 @@ namespace Graph.Data.Scripts.Graph
             });
 
             var capsSize = new Vector2(width);
-            
+
             // Top cap (semicircle pointing down, rotation = 0)
             frame.Add(new MySprite
             {
@@ -273,7 +273,7 @@ namespace Graph.Data.Scripts.Graph
         }
 
 
-        protected override void DrawTitle(List<MySprite> frame, float scale)
+        protected override void DrawTitle(List<MySprite> frame)
         {
             var margin = ViewBox.Size.X * Margin;
 
@@ -287,8 +287,8 @@ namespace Graph.Data.Scripts.Graph
             {
                 Type = SpriteType.TEXTURE,
                 Data = "Textures\\FactionLogo\\Others\\OtherIcon_18.dds",
-                Position = position + new Vector2(10f, 20) * scale,
-                Size = new Vector2(40 * scale),
+                Position = position + new Vector2(10f, 20) * Scale,
+                Size = new Vector2(40 * Scale),
                 Color = Config.HeaderColor,
                 Alignment = TextAlignment.CENTER
             });
@@ -296,11 +296,11 @@ namespace Graph.Data.Scripts.Graph
 
             var stockText = MyTexts.Get(MyStringId.GetOrCompute("BlockPropertyTitle_Stockpile"));
 
-            var endSize = Surface.MeasureStringInPixels(stockText, "White", scale * 1.3f);
+            var endSize = Surface.MeasureStringInPixels(stockText, "White", Scale * 1.3f);
 
             var availableSize = new Rectangle((int)position.X, (int)position.Y,
                 (int)(ViewBox.Width - position.X + (ViewBox.X) - endSize.X - (2 * margin)),
-                (int)(position.Y + TITLE_HEIGHT * scale));
+                (int)(position.Y + TITLE_HEIGHT * Scale));
             frame.Add(MySprite.CreateClipRect(availableSize));
 
             StringBuilder displayNameSb = new StringBuilder();
@@ -316,33 +316,16 @@ namespace Graph.Data.Scripts.Graph
                 displayNameSb.Length--;
                 displayNameSb.Length--;
 
-                if (!TitleCache.TryGetValue(displayNameSb.ToString() + scale, out displayName))
+                if (!TitleCache.TryGetValue(displayNameSb.ToString() + Scale, out displayName))
                 {
                     TitleCache.Clear();
 
                     StringBuilder trimmedSb = new StringBuilder(displayNameSb.ToString());
-                    Vector2 textSize = Surface.MeasureStringInPixels(trimmedSb, "White", scale * 1.3f);
 
-                    if (textSize.X > availableSize.Width)
-                    {
-                        const string ELLIPSIS = "...";
-
-                        // Trim until it fits
-                        for (int i = trimmedSb.Length - 1; i > 0; i--)
-                        {
-                            trimmedSb.Length = i; // cut characters at the end
-                            trimmedSb.Append(ELLIPSIS); // append "..."
-                            textSize = Surface.MeasureStringInPixels(trimmedSb, "White", scale * 1.3f);
-
-                            if (textSize.X <= availableSize.Width)
-                                break;
-
-                            trimmedSb.Length = i; // reset before next loop
-                        }
-                    }
+                    TrimText(ref trimmedSb, availableSize.Width, 1.3f);
 
                     displayName = trimmedSb.ToString();
-                    TitleCache[displayNameSb.ToString() + scale] = displayName;
+                    TitleCache[displayNameSb.ToString() + Scale] = displayName;
                 }
             }
 
@@ -351,7 +334,7 @@ namespace Graph.Data.Scripts.Graph
                 Type = SpriteType.TEXT,
                 Data = displayName,
                 Position = position,
-                RotationOrScale = scale * 1.3f,
+                RotationOrScale = Scale * 1.3f,
                 Color = Config.HeaderColor,
                 Alignment = TextAlignment.LEFT,
                 FontId = "White"
@@ -365,15 +348,14 @@ namespace Graph.Data.Scripts.Graph
                 Type = SpriteType.TEXT,
                 Data = stockText.ToString(),
                 Position = position,
-                RotationOrScale = scale * 1.3f,
+                RotationOrScale = Scale * 1.3f,
                 Color = Config.HeaderColor,
                 Alignment = TextAlignment.RIGHT,
                 FontId = "White"
             });
 
-            CaretY += 40 * scale;
+            CaretY += 40 * Scale;
         }
-
         protected static string FormatItemQty(double input)
         {
             if (input >= 1000000000)

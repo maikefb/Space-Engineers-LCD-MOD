@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-
+using Graph.Data.Scripts.Graph.Panels;
 using Sandbox.Definitions;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
@@ -13,7 +13,6 @@ using VRageMath;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
 using VRage.Utils;
-
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
 namespace Graph.Data.Scripts.Graph
@@ -21,80 +20,184 @@ namespace Graph.Data.Scripts.Graph
     [MyTextSurfaceScript("BlueprintDiagram", "Blueprints")]
     public class BlueprintDiagram : ItemCharts
     {
-        public override string Title { get; protected set; } = "Blueprints";
+        public override string Title
+        {
+            get
+            {
+                if (_projector != null && !string.IsNullOrEmpty(_projector.CustomName))
+                    return _projector.CustomName;
 
-        
+                return _defaultTitle;
+            }
+            protected set { _defaultTitle = value; }
+        }
+
+        string _defaultTitle = "Blueprints";
+
+        IMyProjector _projector;
+
         public override Dictionary<MyItemType, double> ItemSource => _shortage;
 
-        private readonly Dictionary<MyItemType, double> _shortage = new Dictionary<MyItemType, double>();
+        readonly Dictionary<MyItemType, double> _shortage = new Dictionary<MyItemType, double>();
 
-        private int _totalBlocks = 1;
-        private int _remainingBlocks = 0;
+        int _totalBlocks = 1;
+        int _remainingBlocks = 0;
 
-        private int _totalComponents = 0;  
-        private int _missingComponents = 0;
+        int _totalComponents = 0;
+        int _missingComponents = 0;
 
-        private static readonly Regex RxProjToken = new Regex(@"\(\s*(.+?)\s*\)", RegexOptions.IgnoreCase);
-        private static readonly Regex RxMissA = new Regex(@"^\s*([\p{L}0-9][\p{L}0-9 _\.\-]+?)\s*[x×]\s*([0-9][0-9\.\, ]*)\s*$", RegexOptions.IgnoreCase);
-        private static readonly Regex RxMissB = new Regex(@"^\s*([0-9][0-9\.\, ]*)\s*[x×]\s*([\p{L}0-9][\p{L}0-9 _\.\-]+?)\s*$", RegexOptions.IgnoreCase);
-        private static readonly Regex RxMissC = new Regex(@"^\s*([\p{L}0-9][\p{L}0-9 _\.\-]+?)\s*:\s*([0-9][0-9\.\, ]*)\s*$", RegexOptions.IgnoreCase);
+        readonly Vector2 _piePosition = new Vector2(10 + PIE_RADIUS / 2, -5);
+        const float PIE_RADIUS = 40;
+        PieDualChartPanel _pieBlueprint;
 
-        private static Dictionary<string, MyItemType> _componentLookup;              
-        private static Dictionary<string, MyItemType> _componentLookupNormalized;   
-        private static List<KeyValuePair<string, MyItemType>> _componentListNormalized; 
-        
-        private static Dictionary<string, Dictionary<MyItemType,int>> _blockToCompsRaw;   
-        private static Dictionary<string, Dictionary<MyItemType,int>> _blockToCompsNorm;  
-        private static List<KeyValuePair<string, Dictionary<MyItemType,int>>> _blockListNormalized;
+        static readonly Regex RxMissA = new Regex(@"^\s*([\p{L}0-9][\p{L}0-9 _\.\-]+?)\s*[x×]\s*([0-9][0-9\.\, ]*)\s*$",
+            RegexOptions.IgnoreCase);
+
+        static readonly Regex RxMissB = new Regex(@"^\s*([0-9][0-9\.\, ]*)\s*[x×]\s*([\p{L}0-9][\p{L}0-9 _\.\-]+?)\s*$",
+            RegexOptions.IgnoreCase);
+
+        static readonly Regex RxMissC = new Regex(@"^\s*([\p{L}0-9][\p{L}0-9 _\.\-]+?)\s*:\s*([0-9][0-9\.\, ]*)\s*$",
+            RegexOptions.IgnoreCase);
+
+        static Dictionary<string, MyItemType> _componentLookup;
+        static Dictionary<string, MyItemType> _componentLookupNormalized;
+        static List<KeyValuePair<string, MyItemType>> _componentListNormalized;
+
+        static Dictionary<string, Dictionary<MyItemType, int>> _blockToCompsRaw;
+        static Dictionary<string, Dictionary<MyItemType, int>> _blockToCompsNorm;
+        static List<KeyValuePair<string, Dictionary<MyItemType, int>>> _blockListNormalized;
 
         public BlueprintDiagram(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
             : base(surface, block, size)
         {
-            Surface.ContentType = ContentType.SCRIPT;
+            _pieBlueprint = new PieDualChartPanel(
+                "",
+                (IMyTextSurface)Surface,
+                ToScreenMargin(new Vector2(ViewBox.Position.X, ViewBox.Bottom) + _piePosition * Scale),
+                new Vector2(PIE_RADIUS * Scale),
+                false
+            );
         }
 
-        protected override void DrawTitle(List<MySprite> frame, float scale)
+        protected override void LayoutChanged()
+        {
+            base.LayoutChanged();
+            _pieBlueprint.SetMargin(
+                ToScreenMargin(new Vector2(ViewBox.Position.X, ViewBox.Bottom) + _piePosition * Scale),
+                new Vector2(PIE_RADIUS * Scale));
+        }
+
+        protected override void DrawFooter(List<MySprite> frame)
         {
             EnsureData();
 
-            base.DrawTitle(frame, scale);
+            if (_projector == null)
+                return;
+
+            if (_totalBlocks == 0 || _totalComponents == 0)
+                return;
 
             var margin = ViewBox.Size.X * 0.02f;
             var pos = ViewBox.Position;
             pos.X += margin;
-            pos.Y = CaretY;
 
             int built = Math.Max(_totalBlocks - _remainingBlocks, 0);
-            int pct = (_totalBlocks > 0) ? (int)Math.Round(100f * (float)built / (float)_totalBlocks) : 0;
 
+            FooterHeight = (25f * 2) * Scale;
+            pos.X += (25f * 2) * Scale;
+
+            pos.Y = ViewBox.Bottom - FooterHeight;
+
+            var legendSize = new Vector2(8, 8) * Scale;
+
+            var currentString = MyTexts.GetString("BlockPropertyProperties_CurrentProgress");
+            var blocksString = MyTexts.GetString("TerminalTab_Info_BlocksLower");
+
+            pos.X += legendSize.X;
+
+            var lineSpacer = 25f * Scale;
+
+            var blocksPct = built / (float)_totalBlocks;
+            var componentsPct = (float)_missingComponents / _totalComponents;
+
+            StringBuilder sb = new StringBuilder($"{currentString} {blocksPct:P2}  ({built}/{_totalBlocks} {blocksString})");
+            
+            TrimText(ref sb, ViewBox.Width - pos.X - ViewBox.X ,0.9f);
+            
             frame.Add(new MySprite
             {
                 Type = SpriteType.TEXT,
-                Data = $"Progresso: {pct}%  ({built}/{_totalBlocks} blocos)",
+                Data = sb.ToString(),
                 Position = pos,
-                RotationOrScale = scale * 0.9f,
+                RotationOrScale = Scale * 0.9f,
                 Color = Surface.ScriptForegroundColor,
                 Alignment = TextAlignment.LEFT,
                 FontId = "White"
             });
-            pos.Y += 22f * scale;
 
+            pos.Y += lineSpacer;
+
+            var components = MyTexts.GetString("DisplayName_InventoryConstraint_Components");
+            var requiredAvailable = MyTexts.GetString("ScreenTerminalProduction_RequiredAndAvailable").Split('/');
+
+            sb.Clear();
+            
+            if (requiredAvailable.Length == 2) // This should always be the case, but I don't trust the game localization
+            {
+                sb.Append(
+                    $"{components}: {componentsPct:P2}  ({_missingComponents.ToString(CultureInfo.CurrentUICulture)}{requiredAvailable[1]}" +
+                    $"/{_totalComponents.ToString(CultureInfo.CurrentUICulture)} {requiredAvailable[0]})");
+            }
+            else // fallback if NOT both keys are found
+            {
+                sb.Append(
+                    $"{components}: {componentsPct:P2}  ({_missingComponents.ToString(CultureInfo.CurrentUICulture)}" +
+                    $"/{_totalComponents.ToString(CultureInfo.CurrentUICulture)})");
+            }
+
+            TrimText(ref sb, ViewBox.Width - pos.X - ViewBox.X ,0.9f);
+            
             frame.Add(new MySprite
             {
                 Type = SpriteType.TEXT,
-                Data = $"Componentes: faltam {_missingComponents.ToString("#,0", CultureInfo.CurrentUICulture)} " +
-                       $"de {_totalComponents.ToString("#,0", CultureInfo.CurrentUICulture)}",
+                Data = sb.ToString(),
                 Position = pos,
-                RotationOrScale = scale * 0.9f,
+                RotationOrScale = Scale * 0.9f,
                 Color = Surface.ScriptForegroundColor,
                 Alignment = TextAlignment.LEFT,
                 FontId = "White"
             });
 
-            CaretY += (22f * 2) * scale;
+            pos.X -= legendSize.X;
+
+            pos.Y -= lineSpacer - (legendSize.Y + legendSize.Y / 2);
+
+            frame.Add(new MySprite
+            {
+                Type = SpriteType.TEXTURE,
+                Data = "Circle",
+                Position = pos,
+                Size = legendSize,
+                Color = Config.HeaderColor,
+                Alignment = TextAlignment.CENTER,
+            });
+
+            pos.Y += lineSpacer;
+
+            frame.Add(new MySprite
+            {
+                Type = SpriteType.TEXTURE,
+                Data = "Circle",
+                Position = pos,
+                Size = legendSize,
+                Color = Surface.ScriptForegroundColor,
+                Alignment = TextAlignment.CENTER,
+            });
+
+            frame.AddRange(_pieBlueprint.GetSprites(componentsPct, blocksPct, Config.HeaderColor, true));
         }
 
-        private void EnsureData()
+        void EnsureData()
         {
             _shortage.Clear();
             _totalBlocks = 1;
@@ -103,19 +206,21 @@ namespace Graph.Data.Scripts.Graph
             _missingComponents = 0;
 
             var lcd = Block as IMyTerminalBlock;
-            string token = ParseToken(lcd);
 
-            IMyCubeGrid grid = null;
-            try { grid = (IMyCubeGrid)Block?.CubeGrid; } catch { grid = null; }
+            IMyCubeGrid grid = Block?.CubeGrid as IMyCubeGrid;
 
-            var projector = FindProjectorByConfigOrToken(grid, token, lcd);
-            if (projector == null)
+            if (grid == null)
+                return;
+
+            _projector = FindProjector(grid);
+
+            if (_projector == null)
                 return;
 
             try
             {
-                _totalBlocks = Math.Max(projector.TotalBlocks, 1);
-                _remainingBlocks = Math.Max(projector.RemainingBlocks, 0);
+                _totalBlocks = Math.Max(_projector.TotalBlocks, 1);
+                _remainingBlocks = Math.Max(_projector.RemainingBlocks, 0);
             }
             catch
             {
@@ -126,7 +231,7 @@ namespace Graph.Data.Scripts.Graph
             var needByType = new Dictionary<MyItemType, long>();
             try
             {
-                var term = projector as IMyTerminalBlock;
+                var term = _projector as IMyTerminalBlock;
                 var info = term != null ? (term.DetailedInfo ?? "") : "";
                 var missingPairs = ParseMissing(info);
 
@@ -145,14 +250,13 @@ namespace Graph.Data.Scripts.Graph
                         continue;
                     }
 
-                    Dictionary<MyItemType,int> blockComps;
+                    Dictionary<MyItemType, int> blockComps;
                     if (TryResolveBlockComponents(kv.Key, out blockComps))
                     {
                         foreach (var bc in blockComps)
                             AddAmount(needByType, bc.Key, (long)bc.Value * qty);
                         continue;
                     }
-
                 }
             }
             catch (Exception e)
@@ -184,14 +288,14 @@ namespace Graph.Data.Scripts.Graph
             _missingComponents = (int)Math.Max(0, totalShort);
         }
 
-        private static void AddAmount(Dictionary<MyItemType,long> dict, MyItemType type, long amount)
+        static void AddAmount(Dictionary<MyItemType, long> dict, MyItemType type, long amount)
         {
             long acc;
             if (dict.TryGetValue(type, out acc)) dict[type] = acc + amount;
             else dict[type] = amount;
         }
 
-        private Dictionary<MyItemType, double> GetAvailableComponents(IMyTerminalBlock referenceBlock)
+        Dictionary<MyItemType, double> GetAvailableComponents(IMyTerminalBlock referenceBlock)
         {
             var have = new Dictionary<MyItemType, double>();
 
@@ -217,7 +321,8 @@ namespace Graph.Data.Scripts.Graph
                             catch
                             {
                                 var s = kv.Key.ToString();
-                                if (!string.IsNullOrEmpty(s) && s.IndexOf("MyObjectBuilder_Component", StringComparison.OrdinalIgnoreCase) >= 0)
+                                if (!string.IsNullOrEmpty(s) && s.IndexOf("MyObjectBuilder_Component",
+                                        StringComparison.OrdinalIgnoreCase) >= 0)
                                     isComponent = true;
                             }
 
@@ -246,49 +351,20 @@ namespace Graph.Data.Scripts.Graph
             return have;
         }
 
-        private string ParseToken(IMyTerminalBlock lcd)
+        IMyProjector FindProjector(IMyCubeGrid grid)
         {
-            if (lcd == null) return null;
-            var m = RxProjToken.Match(lcd.CustomName ?? "");
-            return m.Success ? m.Groups[1].Value.Trim() : null;
+            if (Config.ReferenceBlock == 0)
+                return null;
+            var entity = MyAPIGateway.Entities.GetEntityById(Config.ReferenceBlock);
+
+            var projector = entity as IMyProjector;
+            if (projector == null)
+                return null;
+
+            return projector.CubeGrid.IsInSameLogicalGroupAs(grid) ? projector : null;
         }
 
-        private Sandbox.ModAPI.IMyProjector FindProjectorByConfigOrToken(
-            IMyCubeGrid grid,
-            string token,
-            IMyTerminalBlock lcd)
-        {
-            var found = FindProjector(grid, token);
-            if (found != null) return found;
-            return FindProjector(grid, null);
-        }
-
-        private Sandbox.ModAPI.IMyProjector FindProjector(IMyCubeGrid grid, string token)
-        {
-            if (grid == null) return null;
-
-            var slims = new List<IMySlimBlock>();
-            grid.GetBlocks(slims);
-
-            for (int i = 0; i < slims.Count; i++)
-            {
-                var fat = slims[i].FatBlock as IMyTerminalBlock;
-                if (fat == null) continue;
-
-                var proj = fat as Sandbox.ModAPI.IMyProjector;
-                if (proj == null) continue;
-
-                if (!string.IsNullOrEmpty(token))
-                {
-                    var name = fat.CustomName ?? "";
-                    if (name.IndexOf(token, StringComparison.OrdinalIgnoreCase) < 0) continue;
-                }
-                return proj;
-            }
-            return null;
-        }
-
-        private static string NormalizeDetailedInfoToList(string detailedInfo)
+        static string NormalizeDetailedInfoToList(string detailedInfo)
         {
             if (string.IsNullOrWhiteSpace(detailedInfo))
                 return string.Empty;
@@ -309,10 +385,11 @@ namespace Graph.Data.Scripts.Graph
                         listLines.Add(part);
                 }
             }
+
             return string.Join("\n", listLines);
         }
 
-        private List<KeyValuePair<string, int>> ParseMissing(string detailedInfo)
+        List<KeyValuePair<string, int>> ParseMissing(string detailedInfo)
         {
             var list = new List<KeyValuePair<string, int>>();
             if (string.IsNullOrEmpty(detailedInfo)) return list;
@@ -326,13 +403,25 @@ namespace Graph.Data.Scripts.Graph
                 if (line.Length == 0) continue;
 
                 var m = RxMissA.Match(line);
-                if (m.Success) { AddMissing(list, m.Groups[1].Value, m.Groups[2].Value); continue; }
+                if (m.Success)
+                {
+                    AddMissing(list, m.Groups[1].Value, m.Groups[2].Value);
+                    continue;
+                }
 
                 m = RxMissB.Match(line);
-                if (m.Success) { AddMissing(list, m.Groups[2].Value, m.Groups[1].Value); continue; }
+                if (m.Success)
+                {
+                    AddMissing(list, m.Groups[2].Value, m.Groups[1].Value);
+                    continue;
+                }
 
                 m = RxMissC.Match(line);
-                if (m.Success) { AddMissing(list, m.Groups[1].Value, m.Groups[2].Value); continue; }
+                if (m.Success)
+                {
+                    AddMissing(list, m.Groups[1].Value, m.Groups[2].Value);
+                    continue;
+                }
 
                 var mfallback = Regex.Match(line, @"^\s*([\p{L}0-9][\p{L}0-9 _\.\-]+?)\s+([0-9][0-9\.\,\s]*)\s*$",
                     RegexOptions.IgnoreCase);
@@ -357,7 +446,7 @@ namespace Graph.Data.Scripts.Graph
             return result;
         }
 
-        private void AddMissing(List<KeyValuePair<string, int>> dst, string rawName, string rawQty)
+        void AddMissing(List<KeyValuePair<string, int>> dst, string rawName, string rawQty)
         {
             var name = (rawName ?? "").Trim();
             if (string.IsNullOrEmpty(name)) return;
@@ -377,7 +466,7 @@ namespace Graph.Data.Scripts.Graph
             dst.Add(new KeyValuePair<string, int>(name, qty));
         }
 
-        private static string NormalizeKey(string s)
+        static string NormalizeKey(string s)
         {
             if (string.IsNullOrEmpty(s)) return string.Empty;
 
@@ -389,6 +478,7 @@ namespace Graph.Data.Scripts.Graph
                 if (uc != UnicodeCategory.NonSpacingMark)
                     sb.Append(formD[i]);
             }
+
             var noDiacritics = sb.ToString().Normalize(NormalizationForm.FormC);
 
             var sb2 = new StringBuilder(noDiacritics.Length);
@@ -398,10 +488,12 @@ namespace Graph.Data.Scripts.Graph
                 if (char.IsLetterOrDigit(c))
                     sb2.Append(char.ToLowerInvariant(c));
             }
+
             return sb2.ToString();
         }
 
-        private static void AddCompKey(Dictionary<string, MyItemType> dict, Dictionary<string, MyItemType> dictNorm, string key, MyItemType type)
+        static void AddCompKey(Dictionary<string, MyItemType> dict, Dictionary<string, MyItemType> dictNorm, string key,
+            MyItemType type)
         {
             if (string.IsNullOrEmpty(key)) return;
 
@@ -413,7 +505,7 @@ namespace Graph.Data.Scripts.Graph
                 dictNorm[nk] = type;
         }
 
-        private void EnsureComponentLookup()
+        void EnsureComponentLookup()
         {
             if (_componentLookup != null && _componentLookupNormalized != null && _componentListNormalized != null)
                 return;
@@ -444,7 +536,9 @@ namespace Graph.Data.Scripts.Graph
                                 AddCompKey(raw, norm, loc, type);
                         }
                     }
-                    catch { }
+                    catch
+                    {
+                    }
 
                     if (!string.IsNullOrEmpty(subtype))
                     {
@@ -465,7 +559,7 @@ namespace Graph.Data.Scripts.Graph
             _componentListNormalized = new List<KeyValuePair<string, MyItemType>>(norm);
         }
 
-        private bool TryResolveComponentType(string displayOrSubtype, out MyItemType type)
+        bool TryResolveComponentType(string displayOrSubtype, out MyItemType type)
         {
             type = default(MyItemType);
             if (_componentLookup == null || _componentLookupNormalized == null) return false;
@@ -500,10 +594,10 @@ namespace Graph.Data.Scripts.Graph
             return false;
         }
 
-        private static void AddBlockKey(string key,
-            Dictionary<MyItemType,int> compMap,
-            Dictionary<string, Dictionary<MyItemType,int>> raw,
-            Dictionary<string, Dictionary<MyItemType,int>> norm)
+        static void AddBlockKey(string key,
+            Dictionary<MyItemType, int> compMap,
+            Dictionary<string, Dictionary<MyItemType, int>> raw,
+            Dictionary<string, Dictionary<MyItemType, int>> norm)
         {
             if (string.IsNullOrEmpty(key) || compMap == null || compMap.Count == 0) return;
 
@@ -515,20 +609,20 @@ namespace Graph.Data.Scripts.Graph
                 norm[nk] = compMap;
         }
 
-        private static void AccumulateComp(Dictionary<MyItemType,int> dst, MyItemType t, int count)
+        static void AccumulateComp(Dictionary<MyItemType, int> dst, MyItemType t, int count)
         {
             int acc;
             if (dst.TryGetValue(t, out acc)) dst[t] = acc + count;
             else dst[t] = count;
         }
 
-        private void EnsureBlockLookup()
+        void EnsureBlockLookup()
         {
             if (_blockToCompsRaw != null && _blockToCompsNorm != null && _blockListNormalized != null)
                 return;
 
-            var raw = new Dictionary<string, Dictionary<MyItemType,int>>(StringComparer.OrdinalIgnoreCase);
-            var norm = new Dictionary<string, Dictionary<MyItemType,int>>();
+            var raw = new Dictionary<string, Dictionary<MyItemType, int>>(StringComparer.OrdinalIgnoreCase);
+            var norm = new Dictionary<string, Dictionary<MyItemType, int>>();
 
             try
             {
@@ -538,7 +632,7 @@ namespace Graph.Data.Scripts.Graph
                     var cbd = d as MyCubeBlockDefinition;
                     if (cbd == null) continue;
 
-                    var map = new Dictionary<MyItemType,int>();
+                    var map = new Dictionary<MyItemType, int>();
                     try
                     {
                         var comps = cbd.Components;
@@ -558,7 +652,9 @@ namespace Graph.Data.Scripts.Graph
                             }
                         }
                     }
-                    catch { }
+                    catch
+                    {
+                    }
 
                     if (map.Count == 0) continue;
 
@@ -574,7 +670,9 @@ namespace Graph.Data.Scripts.Graph
                                 AddBlockKey(loc, map, raw, norm);
                         }
                     }
-                    catch { }
+                    catch
+                    {
+                    }
 
                     var sub = cbd.Id.SubtypeName ?? "";
                     if (!string.IsNullOrEmpty(sub))
@@ -593,19 +691,27 @@ namespace Graph.Data.Scripts.Graph
 
             _blockToCompsRaw = raw;
             _blockToCompsNorm = norm;
-            _blockListNormalized = new List<KeyValuePair<string, Dictionary<MyItemType,int>>>(norm);
+            _blockListNormalized = new List<KeyValuePair<string, Dictionary<MyItemType, int>>>(norm);
         }
 
-        private bool TryResolveBlockComponents(string name, out Dictionary<MyItemType,int> compMap)
+        bool TryResolveBlockComponents(string name, out Dictionary<MyItemType, int> compMap)
         {
             compMap = null;
             if (_blockToCompsRaw == null || _blockToCompsNorm == null) return false;
 
-            Dictionary<MyItemType,int> m;
-            if (_blockToCompsRaw.TryGetValue(name, out m)) { compMap = m; return true; }
+            Dictionary<MyItemType, int> m;
+            if (_blockToCompsRaw.TryGetValue(name, out m))
+            {
+                compMap = m;
+                return true;
+            }
 
             var nk = NormalizeKey(name);
-            if (!string.IsNullOrEmpty(nk) && _blockToCompsNorm.TryGetValue(nk, out m)) { compMap = m; return true; }
+            if (!string.IsNullOrEmpty(nk) && _blockToCompsNorm.TryGetValue(nk, out m))
+            {
+                compMap = m;
+                return true;
+            }
 
             if (!string.IsNullOrEmpty(nk))
             {
@@ -619,6 +725,7 @@ namespace Graph.Data.Scripts.Graph
                     }
                 }
             }
+
             return false;
         }
     }

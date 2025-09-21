@@ -44,7 +44,7 @@ namespace Space_Engineers_LCD_MOD.Controls.Generic
                 return;
 
             settings.Item2.Screens[index].ReferenceBlock = selection.First().UserData as long? ?? 0;
-
+            settings.Item2.Dirty = true;
         }
 
         void Getter(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> blockList,

@@ -67,7 +67,7 @@ namespace Graph.Data.Scripts.Graph
                 if (cap > 1e-6) frac = (float)Math.Max(0.0, Math.Min(1.0, used / cap));
 
                 // Pizza
-                sprites.AddRange(_pie.GetSprites(frac, true));
+                sprites.AddRange(_pie.GetSprites(frac, null ,true));
 
                 // Texto
                 var pos = INFO_POS;

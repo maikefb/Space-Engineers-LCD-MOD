@@ -39,11 +39,14 @@ namespace Graph.Data.Scripts.Graph
         protected float CurrentTextPadding;
 
         protected float CaretY;
+        protected float FooterHeight;
 
         protected float Margin = 0.02f;
         public abstract Dictionary<MyItemType, double> ItemSource { get; }
         public abstract string Title { get; protected set; }
 
+        protected float Scale = 1;
+        
         public override ScriptUpdate NeedsUpdate => ScriptUpdate.Update10;
 
         public ScreenConfig Config { get; protected set; }
@@ -107,8 +110,8 @@ namespace Graph.Data.Scripts.Graph
                 return;
             }
 
-            if (Math.Abs(CurrentTextPadding - Surface.TextPadding) > .1f)
-                UpdateViewBox();
+            if (Math.Abs(CurrentTextPadding - Surface.TextPadding) > .01f || Math.Abs(Scale - Config.Scale) > .001f)
+                LayoutChanged();
 
             if (GridLogic == null)
                 GridLogicSession.Components.TryGetValue(Block.CubeGrid.EntityId, out GridLogic);
@@ -146,7 +149,7 @@ namespace Graph.Data.Scripts.Graph
             return _itemsCache;
         }
 
-        protected virtual void DrawTitle(List<MySprite> frame, float scale)
+        protected virtual void DrawTitle(List<MySprite> frame)
         {
             var margin = ViewBox.Size.X * Margin;
 
@@ -160,8 +163,8 @@ namespace Graph.Data.Scripts.Graph
             {
                 Type = SpriteType.TEXTURE,
                 Data = "Textures\\FactionLogo\\Others\\OtherIcon_18.dds",
-                Position = position + new Vector2(10f, 20) * scale,
-                Size = new Vector2(40 * scale),
+                Position = position + new Vector2(10f, 20) * Scale,
+                Size = new Vector2(40 * Scale),
                 Color = Config.HeaderColor,
                 Alignment = TextAlignment.CENTER
             });
@@ -169,14 +172,14 @@ namespace Graph.Data.Scripts.Graph
 
             frame.Add(MySprite.CreateClipRect(new Rectangle((int)position.X, (int)position.Y,
                 (int)(ViewBox.Width - position.X + ViewBox.X),
-                (int)(position.Y + 35 * scale))));
+                (int)(position.Y + 35 * Scale))));
 
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
                 Data = MyTexts.GetString(Title),
                 Position = position,
-                RotationOrScale = scale * 1.3f,
+                RotationOrScale = Scale * 1.3f,
                 Color = Config.HeaderColor,
                 Alignment = TextAlignment.LEFT,
                 FontId = "White"
@@ -184,7 +187,11 @@ namespace Graph.Data.Scripts.Graph
 
             frame.Add(MySprite.CreateClearClipRect());
 
-            CaretY += 40 * scale;
+            CaretY += 40 * Scale;
+        }
+
+        protected virtual void DrawFooter(List<MySprite> frame)
+        {
         }
 
         protected static readonly Regex RxGroup = new Regex(@"\(\s*G\s*:\s*(.+?)\s*\)", RegexOptions.IgnoreCase);
@@ -258,6 +265,28 @@ namespace Graph.Data.Scripts.Graph
             }
         }
         
+        protected void TrimText(ref StringBuilder sb,  float availableWidth, float fontSize = 1)
+        {
+            Vector2 textSize = Surface.MeasureStringInPixels(sb, "White", fontSize * Scale);
+            
+            if (textSize.X > availableWidth)
+            {
+                const string ELLIPSIS = "...";
+
+                // Trim until it fits
+                for (int i = sb.Length - 1; i > 0; i--)
+                {
+                    sb.Length = i; // cut characters at the end
+                    sb.Append(ELLIPSIS); // append "..."
+                    textSize = Surface.MeasureStringInPixels(sb, "White", fontSize * Scale);
+
+                    if (textSize.X <= availableWidth)
+                        break;
+
+                    sb.Length = i; // reset before next loop
+                }
+            }
+        }
 
         protected static string FormatQty(double v)
         {
@@ -379,6 +408,9 @@ namespace Graph.Data.Scripts.Graph
                             _providerConfig.ParentGrid = block.CubeGrid.EntityId;
                         
                         Config = _providerConfig.Screens[index];
+                        
+                        if(Math.Abs(Config.Scale - 1) > .001)
+                            LayoutChanged();
                     }
                     catch (Exception e)
                     {
@@ -430,6 +462,13 @@ namespace Graph.Data.Scripts.Graph
         {
             var s = GetAutoScale2D(logicalWidth, logicalHeight);
             return Math.Min(s.X, s.Y) * Config.Scale;
+        }
+
+        protected virtual void LayoutChanged()
+        {
+            _dirty = true;
+            Scale = GetAutoScaleUniform();
+            UpdateViewBox();
         }
     }
 }
