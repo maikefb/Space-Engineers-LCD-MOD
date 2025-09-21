@@ -57,14 +57,13 @@ namespace Graph.Data.Scripts.Graph.Sys
             try
             {
                 var grid = ent as IMyCubeGrid;
+                if (grid == null || _grids.ContainsKey(grid.EntityId))
+                    return;
 
-                if (grid != null)
-                {
-                    var logic = new GridLogic(grid);
-                    _grids.Add(grid.EntityId, new MyTuple<IMyCubeGrid, GridLogic>(grid, logic));
-                    Components.Add(grid.EntityId, logic);
-                    grid.OnMarkForClose += GridMarkedForClose;
-                }
+                var logic = new GridLogic(grid);
+                _grids[grid.EntityId] = new MyTuple<IMyCubeGrid, GridLogic>(grid, logic);
+                Components[grid.EntityId] = logic;
+                grid.OnMarkForClose += GridMarkedForClose;
             }
             catch (Exception e)
             {
