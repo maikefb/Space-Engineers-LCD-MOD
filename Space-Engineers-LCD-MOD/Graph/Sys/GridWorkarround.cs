@@ -46,8 +46,6 @@ namespace Graph.Data.Scripts.Graph.Sys
             Components.Clear();
             Components = null;
 
-            ItemCharts.LocKeysCache?.Clear();
-            ItemCharts.LocKeysCache = null;
             ItemCharts.SpriteCache?.Clear();
             ItemCharts.SpriteCache = null;
         }

@@ -46,9 +46,8 @@ namespace Graph.Data.Scripts.Graph
         public virtual string Title => DefaultTitle;
         protected virtual string DefaultTitle {get; set;} = "";
 
-
         protected float Scale = 1;
-        
+        string _languageWord;
         public override ScriptUpdate NeedsUpdate => ScriptUpdate.Update10;
 
         public ScreenConfig Config { get; protected set; }
@@ -112,7 +111,10 @@ namespace Graph.Data.Scripts.Graph
                 return;
             }
 
-            if (Math.Abs(CurrentTextPadding - Surface.TextPadding) > .01f || Math.Abs(Scale - Config.Scale) > .001f)
+            if (Math.Abs(CurrentTextPadding - Surface.TextPadding) > .01f || 
+                Math.Abs(Scale - Config.Scale) > .001f ||
+                _languageWord != MyTexts.GetString("Language"))
+
                 LayoutChanged();
 
             if (GridLogic == null)
@@ -469,6 +471,7 @@ namespace Graph.Data.Scripts.Graph
         protected virtual void LayoutChanged()
         {
             _dirty = true;
+            _languageWord = MyTexts.GetString("Language"); // hack Get the Language by comparing translation of the word Language
             Scale = GetAutoScaleUniform();
             UpdateViewBox();
         }

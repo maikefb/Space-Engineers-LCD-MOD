@@ -20,26 +20,44 @@ namespace Graph.Data.Scripts.Graph
         public static Dictionary<MyItemType, string> SpriteCache =
             new Dictionary<MyItemType, string>();
 
-        public static Dictionary<MyItemType, MyStringId> LocKeysCache =
-            new Dictionary<MyItemType, MyStringId>();
+        protected string LocalizedTitleCache = string.Empty;
+
+        readonly Dictionary<MyItemType, string> _locKeysCache =
+            new Dictionary<MyItemType, string>();
+
+        string[] _selectedCategories;
 
         public override string Title
         {
             get
             {
-                StringBuilder sb = new StringBuilder();
+                if (_selectedCategories != Config?.SelectedCategories)
+                    LocalizedTitleCache = string.Empty;
 
-                foreach (var item in Config.SelectedCategories)
-                    sb.Append(ItemCategoryHelper.GetGroupDisplayName(item) + ", ");
+                if (!string.IsNullOrEmpty(LocalizedTitleCache))
+                    return LocalizedTitleCache;
 
-                if(sb.Length == 0)
-                    return MyTexts.GetString(DefaultTitle);
+                if (Config?.SelectedCategories != null)
+                {
+                    _selectedCategories = Config.SelectedCategories;
+                    var sb = new StringBuilder();
+                    foreach (var item in Config.SelectedCategories)
+                        sb.Append(ItemCategoryHelper.GetGroupDisplayName(item) + ", ");
+
+                    if (sb.Length != 0)
+                    {
+                        sb.Length -= 2;
+                        LocalizedTitleCache = sb.ToString();
+                    }
+                }
+
+                if (string.IsNullOrEmpty(LocalizedTitleCache))
+                    LocalizedTitleCache = MyTexts.GetString(DefaultTitle);
                 
-                sb.Length -= 2;
-                return sb.ToString();
+                return LocalizedTitleCache;
             }
         }
-        
+
         public Dictionary<string, string> TitleCache =
             new Dictionary<string, string>();
 
@@ -73,6 +91,13 @@ namespace Graph.Data.Scripts.Graph
             {
                 ErrorHandlerHelper.LogError(e, this);
             }
+        }
+
+        protected override void LayoutChanged()
+        {
+            base.LayoutChanged();
+            _locKeysCache.Clear();
+            LocalizedTitleCache = string.Empty;
         }
 
         public void DrawItems()
@@ -154,7 +179,7 @@ namespace Graph.Data.Scripts.Graph
             KeyValuePair<MyItemType, double> item, bool showScrollBar)
         {
             string sprite;
-            MyStringId locKey;
+            string localizedName;
 
             if (!SpriteCache.TryGetValue(item.Key, out sprite))
             {
@@ -170,13 +195,6 @@ namespace Graph.Data.Scripts.Graph
                 else sprite = NOT_FOUND;
 
                 SpriteCache[item.Key] = sprite;
-            }
-
-            if (!LocKeysCache.TryGetValue(item.Key, out locKey))
-            {
-                locKey = MyDefinitionManager.Static.TryGetPhysicalItemDefinition(item.Key).DisplayNameEnum ??
-                         MyStringId.GetOrCompute(item.Key.TypeId);
-                LocKeysCache[item.Key] = locKey;
             }
 
             var margin = ViewBox.Size.X * Margin;
@@ -195,14 +213,27 @@ namespace Graph.Data.Scripts.Graph
             });
             position.X += ViewBox.Width / 8f;
 
-            frame.Add(MySprite.CreateClipRect(new Rectangle((int)position.X, (int)position.Y,
+            var clip = new Rectangle((int)position.X, (int)position.Y,
                 (int)(ViewBox.Width - position.X + (ViewBox.X) - 105 * Scale),
-                (int)(position.Y + (LINE_HEIGHT + 5) * Scale))));
+                (int)(position.Y + (LINE_HEIGHT + 5) * Scale));
+
+            frame.Add(MySprite.CreateClipRect(clip));
+
+            if (!_locKeysCache.TryGetValue(item.Key, out localizedName))
+            {
+                var key =
+                    MyDefinitionManager.Static.TryGetPhysicalItemDefinition(item.Key).DisplayNameEnum?.ToString() ??
+                    item.Key.TypeId;
+                var sb = new StringBuilder(MyTexts.GetString(key));
+                TrimText(ref sb, clip.Width);
+                localizedName = sb.ToString();
+                _locKeysCache[item.Key] = sb.ToString();
+            }
 
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
-                Data = MyTexts.GetString(locKey),
+                Data = localizedName,
                 Position = position,
                 RotationOrScale = Scale,
                 Color = Surface.ScriptForegroundColor,
@@ -320,10 +351,10 @@ namespace Graph.Data.Scripts.Graph
                 (int)(position.Y + TITLE_HEIGHT * Scale));
             frame.Add(MySprite.CreateClipRect(availableSize));
 
-            
+
             StringBuilder displayNameSb = new StringBuilder(Title);
             string displayName;
-            
+
             if (!TitleCache.TryGetValue(Title + Scale, out displayName))
             {
                 TitleCache.Clear();
@@ -363,6 +394,7 @@ namespace Graph.Data.Scripts.Graph
 
             CaretY += 40 * Scale;
         }
+
         protected static string FormatItemQty(double input)
         {
             if (input >= 1000000000)
