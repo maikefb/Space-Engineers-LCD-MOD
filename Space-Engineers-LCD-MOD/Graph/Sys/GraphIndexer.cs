@@ -161,7 +161,10 @@ namespace Graph.Data.Scripts.Graph.Sys
                         return def.DisplayNameText; // localizado na língua do jogo
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                ErrorHandlerHelper.LogError(e, GetType());
+            }
             return null;
         }
 
@@ -266,7 +269,10 @@ namespace Graph.Data.Scripts.Graph.Sys
                         }
                     }
                 }
-                catch { }
+                catch (Exception e)
+                {
+                    ErrorHandlerHelper.LogError(e, GetType());
+                }
 
                 // fallback por nome do bloco
                 if (gasKind == null)
@@ -475,7 +481,10 @@ namespace Graph.Data.Scripts.Graph.Sys
                 var info = term != null ? (term.DetailedInfo ?? "") : "";
                 ParseMissingFromText(info, missing);
             }
-            catch { }
+            catch (Exception e)
+            {
+                ErrorHandlerHelper.LogError(e, GetType());
+            }
         }
 
         void ParseMissingFromText(string text, Dictionary<string,int> missing)
