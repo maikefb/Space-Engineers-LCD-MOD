@@ -35,8 +35,9 @@ namespace Graph.Data.Scripts.Graph.Sys
         {
             get
             {
-                if (!_compCache.Any()) 
-                    AggregateItems(GetAllInventories(), _compCache, new[] { "Component" }, Array.Empty<MyDefinitionId>());
+                if (!_compCache.Any())
+                    AggregateItems(GetAllInventories(), _compCache, new[] { "Component" },
+                        Array.Empty<MyDefinitionId>());
 
                 return _compCache;
             }
@@ -117,9 +118,10 @@ namespace Graph.Data.Scripts.Graph.Sys
 
                         if (filter)
                         {
-                            var match = 
-                                categories.Any(category => typeIdStr.EndsWith(category, StringComparison.OrdinalIgnoreCase)) ||
-                                        idWhiteList.Any(definition => definition.Equals(it.Type));
+                            var match =
+                                categories.Any(category =>
+                                    typeIdStr.EndsWith(category, StringComparison.OrdinalIgnoreCase)) ||
+                                idWhiteList.Any(definition => definition.Equals(it.Type));
 
                             if (!match)
                                 continue;
@@ -155,20 +157,26 @@ namespace Graph.Data.Scripts.Graph.Sys
                             ? GetAllInventories()
                             : new List<IMyTerminalBlock>();
 
-                    foreach (var groupName in config.SelectedGroups)
-                    {
-                        GridTerminalSystem.GetBlockGroupWithName(groupName)?
-                            .GetBlocks(blocks, b => b.HasInventory &&
-                                                    b.GetUserRelationToOwner(referenceBlock.OwnerId)
-                                                    <= MyRelationsBetweenPlayerAndBlock.FactionShare &&
-                                                    !blocks.Contains(b));
-                    }
-
                     blocks.AddRange(config.SelectedBlocks.Select(id => MyAPIGateway.Entities.GetEntityById(id))
                         .Select(entity => entity as IMyTerminalBlock)
                         .Where(block =>
                             block != null && block.HasInventory &&
                             block.CubeGrid.IsInSameLogicalGroupAs(referenceBlock.CubeGrid)));
+
+                    if (config.SelectedGroups.Any())
+                    {
+                        List<IMyTerminalBlock> blockFromGroups = new List<IMyTerminalBlock>();
+                        foreach (var groupName in config.SelectedGroups)
+                        {
+                            blockFromGroups.Clear();
+                            GridTerminalSystem.GetBlockGroupWithName(groupName)?
+                                .GetBlocks(blockFromGroups, b => b.HasInventory &&
+                                                                 b.GetUserRelationToOwner(referenceBlock.OwnerId)
+                                                                 <= MyRelationsBetweenPlayerAndBlock.FactionShare &&
+                                                                 !blocks.Contains(b));
+                            blocks.AddRange(blockFromGroups);
+                        }
+                    }
 
                     AggregateItems(blocks, dictionary, config.SelectedCategories, config.SelectedItems);
 
@@ -186,7 +194,7 @@ namespace Graph.Data.Scripts.Graph.Sys
 
         public List<IMyTerminalBlock> GetAllInventories()
         {
-            if (_invBlocks.Any()) 
+            if (_invBlocks.Any())
                 return _invBlocks;
 
             Grid.GetBlocks(_blocks, a => a.FatBlock?.InventoryCount != 0 && a.FatBlock is IMyTerminalBlock);
