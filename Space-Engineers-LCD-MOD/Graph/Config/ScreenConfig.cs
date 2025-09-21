@@ -35,10 +35,10 @@ namespace Graph.Data.Scripts.Graph.Sys
         [ProtoMember(5)] public string[] SelectedDefinition { get; set; } = Array.Empty<string>();
 
         [ProtoMember(6)] public string[] SelectedCategories { get; set; } = Array.Empty<string>();
-        
+
 
         [ProtoMember(7)] public float InternalScale { get; set; } = 1;
-        
+
         public MyDefinitionId[] SelectedItems
         {
             get
@@ -59,15 +59,11 @@ namespace Graph.Data.Scripts.Graph.Sys
 
         public float Scale
         {
-            get
-            {
-                return MathHelper.Clamp(InternalScale, 0.1f, 2.5f);
-            }
-            set
-            {
-                InternalScale = MathHelper.Clamp(value, 0.1f, 2.5f);
-            }
-        } 
+            get { return MathHelper.Clamp(InternalScale, 0.1f, 2.5f); }
+            set { InternalScale = MathHelper.Clamp(value, 0.1f, 2.5f); }
+        }
+
+        [ProtoMember(8)] public long ReferenceBlock { get; set; }
 
         public void CopyFrom(ScreenConfig newValue)
         {

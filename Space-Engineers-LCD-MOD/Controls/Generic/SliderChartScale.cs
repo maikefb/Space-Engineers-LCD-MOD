@@ -8,14 +8,13 @@ using VRage.Utils;
 
 namespace Space_Engineers_LCD_MOD.Controls
 {
-    public class SliderChartScale : TerminalControlsCharts
+    public sealed class SliderChartScale : TerminalControlsWrapper
     {
         public override IMyTerminalControl TerminalControl { get; }
 
         public SliderChartScale()
         {
-            var slider = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlSlider, IMyTerminalBlock>(
-                "ItemChartScaleSlider");
+            var slider = CreateControl<IMyTerminalControlSlider>("ScaleSlider");
             slider.Getter = Getter;
             slider.Setter = Setter;
             slider.Visible = Visible;
@@ -57,7 +56,7 @@ namespace Space_Engineers_LCD_MOD.Controls
             MyTuple<int, ScreenProviderConfig> settings;
             if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
                 return settings.Item2.Screens[index].Scale;
-            
+
             return 1;
         }
     }

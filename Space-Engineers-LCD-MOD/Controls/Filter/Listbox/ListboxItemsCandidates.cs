@@ -3,49 +3,31 @@ using System.Collections.Generic;
 using System.Linq;
 using Graph.Data.Scripts.Graph;
 using Sandbox.Definitions;
-using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
-using Sandbox.ModAPI.Interfaces.Terminal;
 using Space_Engineers_LCD_MOD.Graph.Config;
 using Space_Engineers_LCD_MOD.Helpers;
-using SpaceEngineers.Game.EntityComponents.Blocks.Events;
 using VRage;
 using VRage.Game;
-using VRage.Game.Entity;
-using VRage.Game.GUI.TextPanel;
-using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.Utils;
-using VRageMath;
 
-
-namespace Space_Engineers_LCD_MOD.Controls
+namespace Space_Engineers_LCD_MOD.Controls.Filter.Listbox
 {
-    public class ListboxItemsSelection : TerminalControlsListboxCharts
+    public sealed class ListboxItemsCandidates : TerminalControlsListbox
     {
-        public override IMyTerminalControl TerminalControl => _itemsListbox;
-        IMyTerminalControlListbox _itemsListbox;
-        
-        public ListboxItemsSelection()
+        public ListboxItemsCandidates()
         {
-            _itemsListbox = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlListbox, IMyTerminalBlock>(
-                    "ItemChartItemsPanel");
-            _itemsListbox.ListContent = Getter;
-            _itemsListbox.ItemSelected = Setter;
-            _itemsListbox.Visible = Visible;
-            _itemsListbox.VisibleRowsCount = 8;
-            _itemsListbox.Multiselect = true;
-            _itemsListbox.Title = MyStringId.GetOrCompute("BlockPropertyTitle_ConveyorSorterCandidatesList");
+            CreateListbox("CandidatesItems", "BlockPropertyTitle_ConveyorSorterCandidatesList");
         }
 
-        public void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> blockList,
+        protected override void Getter(IMyTerminalBlock blocks, List<MyTerminalControlListBoxItem> blockList,
             List<MyTerminalControlListBoxItem> _)
         {
-            var index = GetThisSurfaceIndex(b);
+            var index = GetThisSurfaceIndex(blocks);
             MyTuple<int, ScreenProviderConfig> settings;
 
             if (ChartBase.ActiveScreens == null ||
-                !ChartBase.ActiveScreens.TryGetValue(b, out settings)
+                !ChartBase.ActiveScreens.TryGetValue(blocks, out settings)
                 || settings.Item2?.Screens == null
                 || settings.Item2.Screens.Count <= index
                 || index < 0)

@@ -1,43 +1,23 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Graph.Data.Scripts.Graph;
-using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
-using Sandbox.ModAPI.Interfaces.Terminal;
 using Space_Engineers_LCD_MOD.Graph.Config;
-using SpaceEngineers.Game.EntityComponents.Blocks.Events;
 using VRage;
-using VRage.Game;
-using VRage.Game.Entity;
-using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.Utils;
-using VRageMath;
 
-
-namespace Space_Engineers_LCD_MOD.Controls
+namespace Space_Engineers_LCD_MOD.Controls.Filter.Listbox
 {
-    public class ListboxBlockSelected : TerminalControlsListboxCharts
+    public sealed class ListboxBlockSelected : TerminalControlsListbox
     {
-        public override IMyTerminalControl TerminalControl => _selectedListbox;
-        IMyTerminalControlListbox _selectedListbox;
-
         public ListboxBlockSelected()
         {
-            _selectedListbox =
-                MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlListbox, IMyTerminalBlock>(
-                    "ItemChartSelectedPanel");
-            _selectedListbox.ListContent = Getter;
-            _selectedListbox.ItemSelected = Setter;
-            _selectedListbox.Visible = Visible;
-            _selectedListbox.VisibleRowsCount = 8;
-            _selectedListbox.Multiselect = true;
-            _selectedListbox.Title = MyStringId.GetOrCompute("EventControllerBlock_SelectedBlocks_Title");
+            CreateListbox("SelectedBlocks", "EventControllerBlock_SelectedBlocks_Title");
         }
 
-        public void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> blockList,
+        protected override void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> blockList,
             List<MyTerminalControlListBoxItem> _)
         {
             var index = GetThisSurfaceIndex(b);
@@ -82,8 +62,10 @@ namespace Space_Engineers_LCD_MOD.Controls
                     else
                     {
                         blockList.Add(new MyTerminalControlListBoxItem(
-                            MyStringId.GetOrCompute(MyTexts.GetString(MyStringId.Get("EventControllerBlock_UnknownBlock"))),
-                            MyStringId.GetOrCompute(string.Format(MyTexts.GetString(MyStringId.Get("EventControllerBlock_UnknownBlockTooltip")), 
+                            MyStringId.GetOrCompute(
+                                MyTexts.GetString(MyStringId.Get("EventControllerBlock_UnknownBlock"))),
+                            MyStringId.GetOrCompute(string.Format(
+                                MyTexts.GetString(MyStringId.Get("EventControllerBlock_UnknownBlockTooltip")),
                                 block.EntityId)),
                             block.EntityId));
                     }

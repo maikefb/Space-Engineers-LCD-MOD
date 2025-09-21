@@ -6,6 +6,11 @@ using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
 using Space_Engineers_LCD_MOD.Controls;
+using Space_Engineers_LCD_MOD.Controls.Blueprint;
+using Space_Engineers_LCD_MOD.Controls.Filter;
+using Space_Engineers_LCD_MOD.Controls.Filter.Buttons;
+using Space_Engineers_LCD_MOD.Controls.Filter.Listbox;
+using Space_Engineers_LCD_MOD.Controls.Generic;
 using Space_Engineers_LCD_MOD.Graph.Config;
 using Space_Engineers_LCD_MOD.Helpers;
 using Space_Engineers_LCD_MOD.Networking;
@@ -36,12 +41,13 @@ namespace Graph.Data.Scripts.Graph.Sys
                 _networkManager.OnReceivedPacket += OnReceivedPacket;
                 MyAPIGateway.TerminalControls.CustomControlGetter += CustomControlGetter;
 
-                TerminalControlsListboxCharts source = new ListboxBlockSelection();
-                TerminalControlsListboxCharts target = new ListboxBlockSelected();
+                TerminalControlsListbox source = new ListboxBlockCandidates();
+                TerminalControlsListbox target = new ListboxBlockSelected();
 
                 _controls.Add(new ColorPickerHeader());
-                
                 _controls.Add(new SliderChartScale());
+                
+                _controls.Add(new ListboxProjectorSelection());
                 
                 _controls.Add(new SeparatorFilter());
                 _controls.Add(new LabelSeparator());
@@ -50,7 +56,7 @@ namespace Graph.Data.Scripts.Graph.Sys
                 _controls.Add(target);
                 _controls.Add(new ButtonBlockRemoveFromSelection(source, target));
                 
-                source = new ListboxItemsSelection();
+                source = new ListboxItemsCandidates();
                 target = new ListboxItemsSelected();
                 
                 _controls.Add(target);
@@ -64,7 +70,7 @@ namespace Graph.Data.Scripts.Graph.Sys
             }
         }
 
-        readonly List<TerminalControlsCharts> _controls = new List<TerminalControlsCharts>();
+        readonly List<TerminalControlsWrapper> _controls = new List<TerminalControlsWrapper>();
 
         void OnReceivedPacket(MyEasyNetworkManager.PacketIn packetRaw)
         {

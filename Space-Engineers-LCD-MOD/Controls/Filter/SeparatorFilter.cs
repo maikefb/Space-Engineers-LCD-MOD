@@ -1,15 +1,14 @@
-using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
 
-namespace Space_Engineers_LCD_MOD.Controls
+namespace Space_Engineers_LCD_MOD.Controls.Filter
 {
-    public class SeparatorFilter : TerminalControlsCharts
+    public class SeparatorFilter : TerminalControlFilter
     {
         public override IMyTerminalControl TerminalControl { get; }
         
         public SeparatorFilter()
         {
-            var separator = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlSeparator, IMyTerminalBlock>("ChartFilterSeparator");
+            var separator = CreateControl<IMyTerminalControlSeparator>("ChartFilterSeparator");
             separator.Visible = Visible;
             TerminalControl = separator;
         }
