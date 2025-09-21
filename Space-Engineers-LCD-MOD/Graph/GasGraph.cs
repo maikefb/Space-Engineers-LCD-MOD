@@ -1,147 +1,323 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-
+using Graph.Data.Scripts.Graph.Panels;
+using Sandbox.Definitions;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
-using Sandbox.Game.Entities.Cube;
 using Sandbox.ModAPI;
+using Space_Engineers_LCD_MOD.Helpers;
+using VRage;
+using VRage.Game;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
+using VRage.Game.ObjectBuilders.Definitions;
 using VRageMath;
+using IMyTerminalBlock = Sandbox.ModAPI.IMyTerminalBlock;
+using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
 namespace Graph.Data.Scripts.Graph
 {
-    [MyTextSurfaceScript("GasGraph", "Hidrogênio & Oxigênio")]
-    public class GasGraph : MyTextSurfaceScriptBase
+    [MyTextSurfaceScript("GasGraph", "Gas Graph")]
+    public class GasGraph : ChartBase
     {
-        private static readonly Vector2 TITLE_POS = new Vector2(16, 20);
-        private static readonly Vector2 INFO_POS  = new Vector2(16, 56);
-        private const float LINE = 20f;
+        private const float LINE = 35f;
+        private static readonly Vector2 INFO_POS = new Vector2(16f, 56f);
 
-        private static readonly CultureInfo Pt = new CultureInfo("pt-BR");
+        private bool _first = true;
+        private double _lastH2, _lastO2, _lastW;
+        private double _lastSec;
 
-        double _lastH2, _lastO2;
-        double _lastSec;
-        bool _first = true;
-
-        public new IMyTextSurface Surface { get; set; }
-        public new IMyCubeBlock Block { get; set; }
-        public override ScriptUpdate NeedsUpdate { get { return ScriptUpdate.Update10; } }
+        private string _nameH2;
+        private string _nameO2;
+        private string _nameW;
 
         public GasGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
-            Surface = surface;
-            Block = block;
             Surface.ContentType = ContentType.SCRIPT;
+            SetLocalizedTitleFromGame();
         }
+
+        public override Dictionary<MyItemType, double> ItemSource => null;
+
+        protected override string DefaultTitle { get; set; }
 
         public override void Run()
         {
+            base.Run();
+            if (Config == null) return;
+
+            if (_nameH2 == null) SetLocalizedTitleFromGame();
+
+            var scale = GetAutoScaleUniform();
+
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
+                DrawTitle(sprites);
 
-                sprites.Add(Text("Hidrogênio & Oxigênio", TITLE_POS, 1.0f));
+                string mode, token;
+                ParseFilter(Block as IMyTerminalBlock, out mode, out token);
 
-                double capH=0, amtH=0, capO=0, amtO=0;
-                SumGas(Block.CubeGrid, ref capH, ref amtH, ref capO, ref amtO);
+                double capH = 0, amtH = 0, capO = 0, amtO = 0, capW = 0, amtW = 0;
+                SumFluids((IMyCubeGrid)Block.CubeGrid, token, ref capH, ref amtH, ref capO, ref amtO, ref capW,
+                    ref amtW);
 
                 double sec = 0;
-                try { sec = MyAPIGateway.Session.ElapsedPlayTime.TotalSeconds; } catch { }
-                double inH=0, outH=0, inO=0, outO=0;
+                try
+                {
+                    sec = MyAPIGateway.Session.ElapsedPlayTime.TotalSeconds;
+                }
+                catch
+                {
+                }
+
+                double inH = 0, outH = 0, inO = 0, outO = 0, inW = 0, outW = 0;
                 if (!_first && sec > _lastSec)
                 {
-                    double dt = Math.Max(0.001, sec - _lastSec);
-                    double rH = (amtH - _lastH2) / dt;
-                    double rO = (amtO - _lastO2) / dt;
-                    if (rH >= 0) inH = rH; else outH = -rH;
-                    if (rO >= 0) inO = rO; else outO = -rO;
+                    var dt = Math.Max(0.001, sec - _lastSec);
+                    var rH = (amtH - _lastH2) / dt;
+                    var rO = (amtO - _lastO2) / dt;
+                    var rW = (amtW - _lastW) / dt;
+                    if (rH >= 0) inH = rH;
+                    else outH = -rH;
+                    if (rO >= 0) inO = rO;
+                    else outO = -rO;
+                    if (rW >= 0) inW = rW;
+                    else outW = -rW;
                 }
-                _lastH2 = amtH; _lastO2 = amtO; _lastSec = sec; _first = false;
 
-                var p = INFO_POS;
+                _lastH2 = amtH;
+                _lastO2 = amtO;
+                _lastW = amtW;
+                _lastSec = sec;
+                _first = false;
 
-                sprites.Add(Text("Hidrogênio", p, 0.95f)); p += new Vector2(0, LINE);
-                DrawBar(ref sprites, p, Fill(capH, amtH)); p += new Vector2(0, LINE + 4);
-                sprites.Add(Text("Atual/Total: " + Gas(amtH) + " / " + Gas(capH), p, 0.9f)); p += new Vector2(0, LINE);
-                sprites.Add(Text("Entrada: " + GasRate(inH) + "   Saída: " + GasRate(outH), p, 0.9f)); p += new Vector2(0, LINE);
+                var p = ViewBox.Position + INFO_POS * scale;
+                var lh = LINE * scale;
 
-                p += new Vector2(0, LINE * 0.8f);
+                var barW = Math.Max(40f, ViewBox.Width * 0.625f * scale);
+                var barH = 10f * scale;
 
-                sprites.Add(Text("Oxigênio", p, 0.95f)); p += new Vector2(0, LINE);
-                DrawBar(ref sprites, p, Fill(capO, amtO)); p += new Vector2(0, LINE + 4);
-                sprites.Add(Text("Atual/Total: " + Gas(amtO) + " / " + Gas(capO), p, 0.9f)); p += new Vector2(0, LINE);
-                sprites.Add(Text("Entrada: " + GasRate(inO) + "   Saída: " + GasRate(outO), p, 0.9f)); p += new Vector2(0, LINE);
+                var bg = new Color(50, 50, 50, 200);
+                var fg = Surface.ScriptForegroundColor;
+
+                sprites.Add(Text(_nameH2, p, 0.95f * scale));
+                p += new Vector2(0, lh);
+                var hBar = new BarPanel(p, new Vector2(barW, barH), fg, bg);
+                sprites.AddRange(hBar.GetSprites(Fill(capH, amtH), Config.HeaderColor));
+                p += new Vector2(0, 15f * scale);
+                sprites.Add(Text("Atual/Total: " + Gas(amtH) + " / " + Gas(capH), p, 0.9f * scale));
+                p += new Vector2(0, lh);
+                sprites.Add(Text("Entrada: " + GasRate(inH) + "   Saída: " + GasRate(outH), p, 0.9f * scale));
+                p += new Vector2(0, lh * 1.5f);
+
+                sprites.Add(Text(_nameO2, p, 0.95f * scale));
+                p += new Vector2(0, lh);
+                var oBar = new BarPanel(p, new Vector2(barW, barH), fg, bg);
+                sprites.AddRange(oBar.GetSprites(Fill(capO, amtO), Config.HeaderColor));
+                p += new Vector2(0, 15f * scale);
+                sprites.Add(Text("Atual/Total: " + Gas(amtO) + " / " + Gas(capO), p, 0.9f * scale));
+                p += new Vector2(0, lh);
+                sprites.Add(Text("Entrada: " + GasRate(inO) + "   Saída: " + GasRate(outO), p, 0.9f * scale));
+                p += new Vector2(0, lh * 1.5f);
+
+                sprites.Add(Text(_nameW, p, 0.95f * scale));
+                p += new Vector2(0, lh);
+                var wBar = new BarPanel(p, new Vector2(barW, barH), fg, bg);
+                sprites.AddRange(wBar.GetSprites(Fill(capW, amtW), Config.HeaderColor));
+                p += new Vector2(0, 15f * scale);
+                sprites.Add(Text("Atual/Total: " + Gas(amtW) + " / " + Gas(capW), p, 0.9f * scale));
+                p += new Vector2(0, lh);
+                sprites.Add(Text("Entrada: " + GasRate(inW) + "   Saída: " + GasRate(outW), p, 0.9f * scale));
 
                 frame.AddRange(sprites);
             }
         }
 
+        private void SetLocalizedTitleFromGame()
+        {
+            _nameH2 = GetGasDisplayName("Hydrogen");
+            _nameO2 = GetGasDisplayName("Oxygen");
+            _nameW = GetGasDisplayName("Water");
+
+            var localizedTitle = _nameH2 + " / " + _nameO2 + " / " + _nameW;
+            DefaultTitle = localizedTitle;
+        }
+
+        private string GetGasDisplayName(string subtype)
+        {
+            try
+            {
+                var id = new MyDefinitionId(typeof(MyObjectBuilder_GasProperties), subtype);
+
+                MyGasProperties def;
+                if (MyDefinitionManager.Static.TryGetDefinition(id, out def))
+                {
+                    var s = def.DisplayNameString;
+                    if (!string.IsNullOrEmpty(s))
+                        return s;
+
+                    if (def.DisplayNameEnum.HasValue)
+                    {
+                        var sb = MyTexts.Get(def.DisplayNameEnum.Value);
+                        if (sb != null)
+                        {
+                            s = sb.ToString();
+                            if (!string.IsNullOrEmpty(s))
+                                return s;
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(def.DisplayNameText))
+                        return def.DisplayNameText;
+                }
+            }
+            catch (Exception e)
+            {
+                ErrorHandlerHelper.LogError(e, GetType());
+            }
+
+            return subtype;
+        }
+
         private float Fill(double cap, double amt)
         {
             if (cap <= 0) return 0f;
-            double f = amt / cap;
-            if (f < 0) f = 0; if (f > 1) f = 1;
+            var f = amt / cap;
+            if (f < 0) f = 0;
+            if (f > 1) f = 1;
             return (float)f;
         }
 
-        private void SumGas(IMyCubeGrid grid, ref double capH, ref double amtH, ref double capO, ref double amtO)
+        private string Gas(double liters)
         {
+            var a = Math.Abs(liters);
+            var sign = liters < 0 ? "-" : "";
+            if (a >= 1000000.0) return sign + (a / 1000000.0).ToString("0.##", Pt) + " ML";
+            if (a >= 1000.0) return sign + (a / 1000.0).ToString("0.##", Pt) + " kL";
+            return sign + a.ToString("0.#", Pt) + " L";
+        }
+
+        private string GasRate(double lps)
+        {
+            var a = Math.Abs(lps);
+            var sign = lps < 0 ? "-" : "";
+            if (a >= 1000000.0) return sign + (a / 1000000.0).ToString("0.##", Pt) + " ML/s";
+            if (a >= 1000.0) return sign + (a / 1000.0).ToString("0.##", Pt) + " kL/s";
+            return sign + a.ToString("0.#", Pt) + " L/s";
+        }
+
+        private void SumFluids(
+            IMyCubeGrid grid, string token,
+            ref double capH, ref double amtH,
+            ref double capO, ref double amtO,
+            ref double capW, ref double amtW)
+        {
+            capH = capO = capW = 0.0;
+            amtH = amtO = amtW = 0.0;
             if (grid == null) return;
 
             var slims = new List<IMySlimBlock>();
             grid.GetBlocks(slims);
 
-            for (int i = 0; i < slims.Count; i++)
+            for (var i = 0; i < slims.Count; i++)
             {
-                var tank = slims[i].FatBlock as Sandbox.ModAPI.IMyGasTank;
+                var fat = slims[i].FatBlock as IMyTerminalBlock;
+                if (fat == null) continue;
+
+                if (!string.IsNullOrEmpty(token))
+                {
+                    var nm = fat.CustomName ?? "";
+                    if (nm.IndexOf(token, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                }
+
+                var tank = fat as IMyGasTank;
                 if (tank == null) continue;
 
-                double cap = 0, ratio = 0;
-                try { cap = tank.Capacity; } catch { }
-                try { ratio = tank.FilledRatio; } catch { }
-                double amt = cap * ratio;
+                double cap = 0.0, ratio = 0.0;
+                try
+                {
+                    cap = tank.Capacity;
+                }
+                catch (Exception e)
+                {
+                    ErrorHandlerHelper.LogError(e, GetType());
+                }
 
-                string sub = "";
-                try { sub = tank.BlockDefinition.SubtypeName ?? ""; } catch { }
+                try
+                {
+                    ratio = tank.FilledRatio;
+                }
+                catch (Exception e)
+                {
+                    ErrorHandlerHelper.LogError(e, GetType());
+                }
 
-                bool isHydrogen = sub.IndexOf("hydrogen", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                  sub.IndexOf("H2",       StringComparison.OrdinalIgnoreCase) >= 0;
-                if (isHydrogen) { capH += cap; amtH += amt; }
-                else            { capO += cap; amtO += amt; }
+                var amt = cap * ratio;
+
+                string gasSub = null;
+                try
+                {
+                    var defBase = MyDefinitionManager.Static.GetCubeBlockDefinition(fat.BlockDefinition);
+                    var gasDef = defBase as MyGasTankDefinition;
+                    if (gasDef != null) gasSub = gasDef.StoredGasId.SubtypeName;
+                }
+                catch (Exception e)
+                {
+                    ErrorHandlerHelper.LogError(e, GetType());
+                }
+
+                if (!string.IsNullOrEmpty(gasSub))
+                {
+                    var s = gasSub.ToLowerInvariant();
+                    if (s == "hydrogen")
+                    {
+                        capH += cap;
+                        amtH += amt;
+                        continue;
+                    }
+
+                    if (s == "oxygen")
+                    {
+                        capO += cap;
+                        amtO += amt;
+                        continue;
+                    }
+
+                    if (s == "water")
+                    {
+                        capW += cap;
+                        amtW += amt;
+                    }
+                }
+                else
+                {
+                    var subTypeID = "";
+                    try
+                    {
+                        subTypeID = fat.BlockDefinition.SubtypeName ?? "";
+                    }
+                    catch
+                    {
+                    }
+
+
+                    if (subTypeID.IndexOf("Hydrogen", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        capH += cap;
+                        amtH += amt;
+                    }
+                    else if (subTypeID.IndexOf("Oxygen", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        capO += cap;
+                        amtO += amt;
+                    }
+                    else if (subTypeID.IndexOf("Water", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        capW += cap;
+                        amtW += amt;
+                    }
+                }
             }
         }
-
-        private void DrawBar(ref List<MySprite> list, Vector2 pos, float frac)
-        {
-            float w = 320f, h = 10f;
-            var bg = new MySprite { Type = SpriteType.TEXTURE, Data = "SquareSimple", Position = pos, Size = new Vector2(w, h),
-                Color = new Color(50, 50, 50, 200), Alignment = TextAlignment.LEFT };
-            list.Add(bg);
-
-            var fg = new MySprite { Type = SpriteType.TEXTURE, Data = "SquareSimple", Position = pos, Size = new Vector2(w * frac, h),
-                Color = Surface.ScriptForegroundColor, Alignment = TextAlignment.LEFT };
-            list.Add(fg);
-        }
-
-                private MySprite Text(string s, Vector2 p, float scale)
-                {
-                    return new MySprite { Type = SpriteType.TEXT, Data = s, Position = p,
-                        Color = Surface.ScriptForegroundColor, Alignment = TextAlignment.LEFT, RotationOrScale = scale };
-                }
-
-                private string Gas(double u)
-                {
-                    if (u >= 1000000.0) return (u/1000000.0).ToString("0.##", Pt) + " ML";
-                    if (u >= 1000.0)     return (u/1000.0).ToString("0.##", Pt) + " kL";
-                    return u.ToString("0.#", Pt) + " L";
-                }
-                private string GasRate(double ups)
-                {
-                    if (ups >= 1000000.0) return (ups/1000000.0).ToString("0.##", Pt) + " ML/s";
-                    if (ups >= 1000.0)     return (ups/1000.0).ToString("0.##", Pt) + " kL/s";
-                    return ups.ToString("0.#", Pt) + " L/s";
-                }
-            }
-        }
-        
+    }
+}
