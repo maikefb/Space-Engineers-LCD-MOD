@@ -12,8 +12,8 @@ namespace Space_Engineers_LCD_MOD.Controls
         {
            var label = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlLabel, IMyTerminalBlock>("ChartFilterLabel");
            TerminalControl = label;
+           label.Visible = Visible;
            label.Label = MyStringId.GetOrCompute("ScenarioSelectionScreen_Filter");
-            
         }
     }
 }
