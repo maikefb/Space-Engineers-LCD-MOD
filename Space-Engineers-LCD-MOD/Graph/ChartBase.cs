@@ -43,7 +43,9 @@ namespace Graph.Data.Scripts.Graph
 
         protected float Margin = 0.02f;
         public abstract Dictionary<MyItemType, double> ItemSource { get; }
-        public abstract string Title { get; protected set; }
+        public virtual string Title => DefaultTitle;
+        protected virtual string DefaultTitle {get; set;} = "";
+
 
         protected float Scale = 1;
         

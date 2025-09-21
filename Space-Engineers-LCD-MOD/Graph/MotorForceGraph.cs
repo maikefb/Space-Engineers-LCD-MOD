@@ -22,7 +22,7 @@ namespace Graph.Data.Scripts.Graph
         private const float PCT_FONT   = 1.5f;  
 
         public override Dictionary<VRage.Game.ModAPI.Ingame.MyItemType, double> ItemSource => null;
-        public override string Title { get; protected set; } = "Força dos Motores (solo)";
+        protected override string DefaultTitle { get; set; } = "Força dos Motores (solo)";
 
         PieChartPanel pie;
         

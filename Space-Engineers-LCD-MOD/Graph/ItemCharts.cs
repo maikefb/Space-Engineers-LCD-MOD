@@ -23,6 +23,23 @@ namespace Graph.Data.Scripts.Graph
         public static Dictionary<MyItemType, MyStringId> LocKeysCache =
             new Dictionary<MyItemType, MyStringId>();
 
+        public override string Title
+        {
+            get
+            {
+                StringBuilder sb = new StringBuilder();
+
+                foreach (var item in Config.SelectedCategories)
+                    sb.Append(ItemCategoryHelper.GetGroupDisplayName(item) + ", ");
+
+                if(sb.Length == 0)
+                    return MyTexts.GetString(DefaultTitle);
+                
+                sb.Length -= 2;
+                return sb.ToString();
+            }
+        }
+        
         public Dictionary<string, string> TitleCache =
             new Dictionary<string, string>();
 
@@ -303,30 +320,20 @@ namespace Graph.Data.Scripts.Graph
                 (int)(position.Y + TITLE_HEIGHT * Scale));
             frame.Add(MySprite.CreateClipRect(availableSize));
 
-            StringBuilder displayNameSb = new StringBuilder();
+            
+            StringBuilder displayNameSb = new StringBuilder(Title);
             string displayName;
-
-            foreach (var item in Config.SelectedCategories)
-                displayNameSb.Append(ItemCategoryHelper.GetGroupDisplayName(item) + ", ");
-
-            if (displayNameSb.Length == 0)
-                displayName = MyTexts.GetString(Title);
-            else
+            
+            if (!TitleCache.TryGetValue(Title + Scale, out displayName))
             {
-                displayNameSb.Length--;
-                displayNameSb.Length--;
+                TitleCache.Clear();
 
-                if (!TitleCache.TryGetValue(displayNameSb.ToString() + Scale, out displayName))
-                {
-                    TitleCache.Clear();
+                StringBuilder trimmedSb = new StringBuilder(displayNameSb.ToString());
 
-                    StringBuilder trimmedSb = new StringBuilder(displayNameSb.ToString());
+                TrimText(ref trimmedSb, availableSize.Width, 1.3f);
 
-                    TrimText(ref trimmedSb, availableSize.Width, 1.3f);
-
-                    displayName = trimmedSb.ToString();
-                    TitleCache[displayNameSb.ToString() + Scale] = displayName;
-                }
+                displayName = trimmedSb.ToString();
+                TitleCache[displayNameSb.ToString() + Scale] = displayName;
             }
 
             frame.Add(new MySprite()

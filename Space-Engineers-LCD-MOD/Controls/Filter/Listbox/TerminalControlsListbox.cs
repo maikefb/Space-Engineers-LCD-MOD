@@ -6,7 +6,7 @@ using VRage.Utils;
 
 namespace Space_Engineers_LCD_MOD.Controls.Filter.Listbox
 {
-    public abstract class TerminalControlsListbox : TerminalControlsWrapper
+    public abstract class TerminalControlsListbox : TerminalControlFilter
     {
         public override IMyTerminalControl TerminalControl => _terminalControl;
         IMyTerminalControl _terminalControl;

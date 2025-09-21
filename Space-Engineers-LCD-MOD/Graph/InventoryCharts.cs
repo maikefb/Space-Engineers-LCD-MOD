@@ -12,7 +12,7 @@ namespace Graph.Data.Scripts.Graph
     {
         public override Dictionary<MyItemType, double> ItemSource => Config == null ? null : GridLogic?.GetItems(Config, Block as IMyTerminalBlock);
 
-        public override string Title { get; protected set; } = "Inventory";
+        protected override string DefaultTitle { get; set; } = "Inventory";
 
         public InventoryCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {

@@ -27,12 +27,11 @@ namespace Graph.Data.Scripts.Graph
                 if (_projector != null && !string.IsNullOrEmpty(_projector.CustomName))
                     return _projector.CustomName;
 
-                return _defaultTitle;
+                return DefaultTitle;
             }
-            protected set { _defaultTitle = value; }
         }
 
-        string _defaultTitle = "Blueprints";
+        protected override string DefaultTitle { get; set; } = "Blueprints";
 
         IMyProjector _projector;
 
@@ -109,21 +108,21 @@ namespace Graph.Data.Scripts.Graph
             pos.Y = ViewBox.Bottom - FooterHeight;
 
             var legendSize = new Vector2(8, 8) * Scale;
-
-            var currentString = MyTexts.GetString("BlockPropertyProperties_CurrentProgress");
-            var blocksString = MyTexts.GetString("TerminalTab_Info_BlocksLower");
+            
+            var blocksString = MyTexts.GetString("TerminalTab_Info_Blocks");
 
             pos.X += legendSize.X;
 
             var lineSpacer = 25f * Scale;
 
             var blocksPct = built / (float)_totalBlocks;
-            var componentsPct = (float)_missingComponents / _totalComponents;
+            var componentsPct = 1 - (float)_missingComponents / _totalComponents;
 
-            StringBuilder sb = new StringBuilder($"{currentString} {blocksPct:P2}  ({built}/{_totalBlocks} {blocksString})");
-            
-            TrimText(ref sb, ViewBox.Width - pos.X - ViewBox.X ,0.9f);
-            
+            StringBuilder sb =
+                new StringBuilder($"{blocksString}{blocksPct:P2}  ({built}/{_totalBlocks} )");
+
+            TrimText(ref sb, ViewBox.Width - pos.X - ViewBox.X, 0.9f);
+
             frame.Add(new MySprite
             {
                 Type = SpriteType.TEXT,
@@ -138,25 +137,15 @@ namespace Graph.Data.Scripts.Graph
             pos.Y += lineSpacer;
 
             var components = MyTexts.GetString("DisplayName_InventoryConstraint_Components");
-            var requiredAvailable = MyTexts.GetString("ScreenTerminalProduction_RequiredAndAvailable").Split('/');
 
             sb.Clear();
-            
-            if (requiredAvailable.Length == 2) // This should always be the case, but I don't trust the game localization
-            {
-                sb.Append(
-                    $"{components}: {componentsPct:P2}  ({_missingComponents.ToString(CultureInfo.CurrentUICulture)}{requiredAvailable[1]}" +
-                    $"/{_totalComponents.ToString(CultureInfo.CurrentUICulture)} {requiredAvailable[0]})");
-            }
-            else // fallback if NOT both keys are found
-            {
-                sb.Append(
-                    $"{components}: {componentsPct:P2}  ({_missingComponents.ToString(CultureInfo.CurrentUICulture)}" +
-                    $"/{_totalComponents.ToString(CultureInfo.CurrentUICulture)})");
-            }
+            sb.Append(
+                $"{components}: {componentsPct:P2}  ({(_totalComponents - _missingComponents).ToString(CultureInfo.CurrentUICulture)}" +
+                $"/{_totalComponents.ToString(CultureInfo.CurrentUICulture)})");
 
-            TrimText(ref sb, ViewBox.Width - pos.X - ViewBox.X ,0.9f);
-            
+
+            TrimText(ref sb, ViewBox.Width - pos.X - ViewBox.X, 0.9f);
+
             frame.Add(new MySprite
             {
                 Type = SpriteType.TEXT,

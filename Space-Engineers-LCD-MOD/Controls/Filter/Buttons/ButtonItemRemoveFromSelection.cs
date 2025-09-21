@@ -11,6 +11,8 @@ namespace Space_Engineers_LCD_MOD.Controls.Filter.Buttons
 {
     public sealed class ButtonItemRemoveFromSelection : TerminalControlFilterButton
     {
+        protected override string[] VisibleForScripts => InventoryOnlyVisibility;
+        
         public ButtonItemRemoveFromSelection(TerminalControlsListbox sourceList, TerminalControlsListbox targetList) :
             base(sourceList, targetList)
         {

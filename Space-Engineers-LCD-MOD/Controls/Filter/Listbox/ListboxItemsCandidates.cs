@@ -15,6 +15,9 @@ namespace Space_Engineers_LCD_MOD.Controls.Filter.Listbox
 {
     public sealed class ListboxItemsCandidates : TerminalControlsListbox
     {
+
+        protected override string[] VisibleForScripts => InventoryOnlyVisibility;
+        
         public ListboxItemsCandidates()
         {
             CreateListbox("CandidatesItems", "BlockPropertyTitle_ConveyorSorterCandidatesList");

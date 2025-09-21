@@ -11,6 +11,8 @@ namespace Space_Engineers_LCD_MOD.Controls.Filter.Buttons
 {
     public sealed class ButtonItemAddToSelection : TerminalControlFilterButton
     {
+        protected override string[] VisibleForScripts => InventoryOnlyVisibility;
+        
         public ButtonItemAddToSelection(TerminalControlsListbox sourceList,
             TerminalControlsListbox targetList) : base(sourceList, targetList)
         {

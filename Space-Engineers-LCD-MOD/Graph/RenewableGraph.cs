@@ -24,7 +24,7 @@ namespace Graph.Data.Scripts.Graph
         private const float LINE = 25f;
 
         public override Dictionary<MyItemType, double> ItemSource => null;
-        public override string Title { get; protected set; } = "Turbina & Painel Solar";
+        protected override string DefaultTitle { get; set; } = "Turbina & Painel Solar";
         
         PieChartPanel pieSolar;
         PieChartPanel pieWind;
