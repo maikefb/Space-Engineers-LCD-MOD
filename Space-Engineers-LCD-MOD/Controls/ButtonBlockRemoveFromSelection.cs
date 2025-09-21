@@ -57,18 +57,18 @@ namespace Space_Engineers_LCD_MOD.Controls
                 .Where(a => a.UserData is string)
                 .Select(a => (string)a.UserData);
 
-            if (config.SelectedCategories.Length > 0) 
-                config.SelectedCategories = config.SelectedCategories.Where(a => !groups.Contains(a)).ToArray();
+            if (config.SelectedGroups.Length > 0) 
+                config.SelectedGroups = config.SelectedGroups.Where(a => !groups.Contains(a)).ToArray();
         }
 
         public void RemoveItems(ScreenConfig config)
         {
             var ids = _targetList.Selection
-                .Where(a => a.UserData is MyDefinitionId)
-                .Select(a => (MyDefinitionId)a.UserData);
+                .Where(a => a.UserData is long)
+                .Select(a => (long)a.UserData);
 
-            if (config.SelectedItems.Length > 0) 
-                config.SelectedItems = config.SelectedItems.Where(a => !ids.Contains(a)).ToArray();
+            if (config.SelectedBlocks.Length > 0) 
+                config.SelectedBlocks = config.SelectedBlocks.Where(a => !ids.Contains(a)).ToArray();
         }
     }
 }

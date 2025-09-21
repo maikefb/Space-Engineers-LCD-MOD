@@ -48,8 +48,10 @@ namespace Graph.Data.Scripts.Graph
 
         public ScreenConfig Config { get; protected set; }
         
-        public bool Dirty => _providerConfig?.Dirty ?? false;
+        public bool Dirty => _dirty || (_providerConfig?.Dirty ?? false);
 
+        bool _dirty = true;
+        
         protected ScreenProviderConfig _providerConfig;
 
         protected ChartBase(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
@@ -112,6 +114,8 @@ namespace Graph.Data.Scripts.Graph
                 GridLogicSession.Components.TryGetValue(Block.CubeGrid.EntityId, out GridLogic);
 
             base.Run();
+            
+            _dirty = false;
         }
 
         void GetSettings(IMyTextSurface surface, IMyCubeBlock block)
@@ -155,7 +159,7 @@ namespace Graph.Data.Scripts.Graph
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXTURE,
-                Data = "Textures\\FactionLogo\\Others\\OtherIcon_5.dds",
+                Data = "Textures\\FactionLogo\\Others\\OtherIcon_18.dds",
                 Position = position + new Vector2(10f, 20) * scale,
                 Size = new Vector2(40 * scale),
                 Color = Config.HeaderColor,
