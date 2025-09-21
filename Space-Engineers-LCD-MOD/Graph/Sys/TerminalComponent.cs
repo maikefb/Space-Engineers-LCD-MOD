@@ -29,9 +29,14 @@ namespace Graph.Data.Scripts.Graph.Sys
     {
         MyEasyNetworkManager _networkManager;
 
+        public override void UpdatingStopped()
+        { 
+            SaveData();
+            base.UpdatingStopped();
+        }
+
         public override void BeforeStart()
         {
-
             DebuggerHelper.Break();
 
             try
@@ -46,19 +51,19 @@ namespace Graph.Data.Scripts.Graph.Sys
 
                 _controls.Add(new ColorPickerHeader());
                 _controls.Add(new SliderChartScale());
-                
+
                 _controls.Add(new ListboxProjectorSelection());
-                
+
                 _controls.Add(new SeparatorFilter());
                 _controls.Add(new LabelSeparator());
                 _controls.Add(source);
                 _controls.Add(new ButtonBlockAddToSelection(source, target));
                 _controls.Add(target);
                 _controls.Add(new ButtonBlockRemoveFromSelection(source, target));
-                
+
                 source = new ListboxItemsCandidates();
                 target = new ListboxItemsSelected();
-                
+
                 _controls.Add(target);
                 _controls.Add(new ButtonItemRemoveFromSelection(source, target));
                 _controls.Add(source);
@@ -107,9 +112,9 @@ namespace Graph.Data.Scripts.Graph.Sys
         protected override void UnloadData()
         {
             MyAPIGateway.TerminalControls.CustomControlGetter -= CustomControlGetter;
-            foreach (var blockPair in ChartBase.ActiveScreens) 
+            foreach (var blockPair in ChartBase.ActiveScreens)
                 ChartBase.Save(blockPair.Key, blockPair.Value.Item2);
-            
+
             ChartBase.ActiveScreens.Clear();
             ChartBase.ActiveScreens = null;
             _controls.Clear();
