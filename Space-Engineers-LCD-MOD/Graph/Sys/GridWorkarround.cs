@@ -15,6 +15,7 @@ using VRage.Game.Components;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.Utils;
+using VRageMath;
 
 namespace Graph.Data.Scripts.Graph.Sys
 {
@@ -27,6 +28,9 @@ namespace Graph.Data.Scripts.Graph.Sys
             new Dictionary<long, MyTuple<IMyCubeGrid, GridLogic>>();
 
         public static Dictionary<long, GridLogic> Components = new Dictionary<long, GridLogic>();
+        
+        public static Action<IMyCubeGrid> PendingTextAction;
+        public static Action ActiveAction;
 
         public override void LoadData()
         {
@@ -57,6 +61,15 @@ namespace Graph.Data.Scripts.Graph.Sys
                 var grid = ent as IMyCubeGrid;
                 if (grid == null || _grids.ContainsKey(grid.EntityId))
                     return;
+                
+                if (grid.CustomName == "Space_Engineers_LCD_MOD_FakeGrid")
+                {
+                    grid.Visible = false;
+                    grid.Physics = null;
+                    if(PendingTextAction != null)
+                        PendingTextAction.Invoke(grid);
+                    return;
+                }
 
                 var logic = new GridLogic(grid);
                 _grids[grid.EntityId] = new MyTuple<IMyCubeGrid, GridLogic>(grid, logic);
@@ -95,6 +108,11 @@ namespace Graph.Data.Scripts.Graph.Sys
                         continue;
 
                     grid.Item2.Update();
+                }
+
+                if (ActiveAction != null)
+                {
+                    ActiveAction.Invoke();
                 }
             }
             catch (Exception e)

@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Sandbox.Common.ObjectBuilders;
+using Sandbox.Definitions;
+using Sandbox.Game;
 using Sandbox.Game.Entities;
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
@@ -18,6 +21,7 @@ using VRage;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.GUI.TextPanel;
+using VRage.ObjectBuilders;
 using VRage.Utils;
 using VRageMath;
 
@@ -29,8 +33,13 @@ namespace Graph.Data.Scripts.Graph.Sys
     {
         MyEasyNetworkManager _networkManager;
 
+        /// <summary>
+        /// Captured Terminal Action for Open Text Edit on the Screen
+        /// </summary>
+        public static Action<IMyTerminalBlock> ShowTextPanelAction;
+
         public override void UpdatingStopped()
-        { 
+        {
             SaveData();
             base.UpdatingStopped();
         }
@@ -68,6 +77,8 @@ namespace Graph.Data.Scripts.Graph.Sys
                 _controls.Add(new ButtonItemRemoveFromSelection(source, target));
                 _controls.Add(source);
                 _controls.Add(new ButtonItemAddToSelection(source, target));
+
+                _assemblerControls.Add(new QuotaButton());
             }
             catch (Exception e)
             {
@@ -76,6 +87,7 @@ namespace Graph.Data.Scripts.Graph.Sys
         }
 
         readonly List<TerminalControlsWrapper> _controls = new List<TerminalControlsWrapper>();
+        readonly List<TerminalControlsWrapper> _assemblerControls = new List<TerminalControlsWrapper>();
 
         void OnReceivedPacket(MyEasyNetworkManager.PacketIn packetRaw)
         {
@@ -118,6 +130,7 @@ namespace Graph.Data.Scripts.Graph.Sys
             ChartBase.ActiveScreens.Clear();
             ChartBase.ActiveScreens = null;
             _controls.Clear();
+            _assemblerControls.Clear();
         }
 
         public override void SaveData()
@@ -164,6 +177,15 @@ namespace Graph.Data.Scripts.Graph.Sys
             if (controls == null)
                 return;
 
+            if (ShowTextPanelAction == null)
+            {
+                var button =
+                    controls.FirstOrDefault(a => a is IMyTerminalControlButton && a.Id == "ShowTextPanel") as
+                        IMyTerminalControlButton;
+                if (button != null)
+                    ShowTextPanelAction = button.Action;
+            }
+
             try
             {
                 SetupProviderTerminal(block, controls);
@@ -176,26 +198,30 @@ namespace Graph.Data.Scripts.Graph.Sys
 
         void SetupProviderTerminal(IMyTerminalBlock block, List<IMyTerminalControl> controls)
         {
-            var provider = block as IMyTextSurfaceProvider;
-
-            if (provider == null)
-                return;
-
-            if (block is IMyTextPanel)
+            if (block is IMyAssembler)
             {
-                foreach (var control in _controls)
+                foreach (var control in _assemblerControls)
                 {
                     controls.Add(control.TerminalControl);
                 }
             }
-            else if (provider.SurfaceCount > 0)
+            else if (block is IMyTextSurfaceProvider)
             {
-                var index = controls.FindIndex(p => p.Id == "Script") + 3;
-
-                foreach (var control in _controls)
+                var provider = block as IMyTextSurfaceProvider;
+                
+                if (block is IMyTextPanel)
                 {
-                    controls.AddOrInsert(control.TerminalControl, index);
-                    index++;
+                    controls.AddRange(_controls.Select(control => control.TerminalControl));
+                }
+                else if (provider.SurfaceCount > 0)
+                {
+                    var index = controls.FindIndex(p => p.Id == "Script") + 3;
+
+                    foreach (var control in _controls)
+                    {
+                        controls.AddOrInsert(control.TerminalControl, index);
+                        index++;
+                    }
                 }
             }
         }
