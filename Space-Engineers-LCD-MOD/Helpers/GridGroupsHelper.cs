@@ -11,7 +11,7 @@ namespace Space_Engineers_LCD_MOD.Helpers
             IMyCubeGrid rootGrid,
             List<T> results,
             GridLinkTypeEnum linkType)
-            where T : class
+            where T : class, IMyTerminalBlock
         {
             GetAllLogicBlocksOfType(rootGrid, results, linkType, null);
         }
@@ -22,7 +22,7 @@ namespace Space_Engineers_LCD_MOD.Helpers
             List<T> results,
             GridLinkTypeEnum linkType,
             Func<IMySlimBlock, bool> slimFilter)
-            where T : class
+            where T : class, IMyTerminalBlock
         {
             if (results == null) return;
             results.Clear();
