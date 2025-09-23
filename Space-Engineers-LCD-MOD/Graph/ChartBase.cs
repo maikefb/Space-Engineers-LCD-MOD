@@ -22,9 +22,9 @@ namespace Space_Engineers_LCD_MOD.Graph
     {
         public static List<ChartBase> Instances = new List<ChartBase>();
 
-        IMyFaction _faction;
-        protected string Logo => FactionHelper.GetIcon(_faction);
-        
+        public IMyFaction Faction { get; protected set; }
+        protected string Icon { get; set; }
+
         List<KeyValuePair<MyItemType, double>> _itemsCache = new List<KeyValuePair<MyItemType, double>>();
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace Space_Engineers_LCD_MOD.Graph
         protected virtual string DefaultTitle => "|";
 
         protected float Scale = 1;
-        
+
         float _userScale;
         float _userPadding;
         string _languageWord;
@@ -60,6 +60,7 @@ namespace Space_Engineers_LCD_MOD.Graph
         {
             Instances.Add(this);
             UpdateViewBox();
+            UpdateFaction(FactionHelper.GetOwnerFaction(Block as IMyTerminalBlock));
         }
 
         public void RequestRedraw()
@@ -74,7 +75,7 @@ namespace Space_Engineers_LCD_MOD.Graph
         {
             try
             {
-                if(ProviderConfig != null)
+                if (ProviderConfig != null)
                     ConfigManager.Save((IMyEntity)Block, ProviderConfig);
             }
             catch (Exception e)
@@ -97,8 +98,6 @@ namespace Space_Engineers_LCD_MOD.Graph
 
             ViewBox = new RectangleF(sizeOffset.X, sizeOffset.Y, Surface.SurfaceSize.X - padding.X,
                 Surface.SurfaceSize.Y - padding.Y);
-            
-            _faction = FactionHelper.GetOwnerFaction(Block as IMyTerminalBlock);
         }
 
         public override void Run()
@@ -164,7 +163,7 @@ namespace Space_Engineers_LCD_MOD.Graph
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXTURE,
-                Data = Logo,
+                Data = Icon,
                 Position = position + new Vector2(10f, 20) * Scale,
                 Size = new Vector2(40 * Scale),
                 Color = Config.HeaderColor,
@@ -408,6 +407,13 @@ namespace Space_Engineers_LCD_MOD.Graph
             _languageWord = MyTexts.GetString("Language");
             Scale = GetAutoScaleUniform();
             UpdateViewBox();
+        }
+
+        public void UpdateFaction(IMyFaction faction)
+        {
+            Faction = faction;
+            Icon = FactionHelper.GetIcon(faction);
+            FactionHelper.GetIcon(faction);
         }
     }
 }
