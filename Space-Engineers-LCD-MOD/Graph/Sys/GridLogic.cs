@@ -1,21 +1,16 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Sandbox.ModAPI;
-using Space_Engineers_LCD_MOD.Graph.Sys;
+using Space_Engineers_LCD_MOD.Graph.Config;
 using Space_Engineers_LCD_MOD.Helpers;
-using VRage;
 using VRage.Game;
-using VRage.Game.Components;
 using VRage.Game.ModAPI.Ingame;
-using VRage.ModAPI;
-using VRage.Utils;
 using IMyCubeGrid = VRage.Game.ModAPI.IMyCubeGrid;
 using IMySlimBlock = VRage.Game.ModAPI.IMySlimBlock;
 using IngameItem = VRage.Game.ModAPI.Ingame.MyInventoryItem;
 
-namespace Graph.Data.Scripts.Graph.Sys
+namespace Space_Engineers_LCD_MOD.Graph.Sys
 {
     /// <summary>
     /// Logic attached to <see cref="Grid"/>

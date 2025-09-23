@@ -1,9 +1,9 @@
 using System.Linq;
-using Graph.Data.Scripts.Graph;
-using Graph.Data.Scripts.Graph.Sys;
 using Sandbox.ModAPI;
 using Space_Engineers_LCD_MOD.Controls.Filter.Listbox;
+using Space_Engineers_LCD_MOD.Graph;
 using Space_Engineers_LCD_MOD.Graph.Config;
+using Space_Engineers_LCD_MOD.Graph.Sys;
 using VRage;
 
 namespace Space_Engineers_LCD_MOD.Controls.Filter.Buttons
@@ -17,22 +17,22 @@ namespace Space_Engineers_LCD_MOD.Controls.Filter.Buttons
         }
 
 
-        protected override void Action(IMyTerminalBlock b)
+        protected override void Action(IMyTerminalBlock block)
         {
             if (SourceList.Selection == null || SourceList.Selection.Count <= 0)
                 return;
 
-            var index = GetThisSurfaceIndex(b);
-            MyTuple<int, ScreenProviderConfig> settings;
+            var index = GetThisSurfaceIndex(block);
+            var settings = ConfigManager.GetConfigForBlock(block);
 
-            if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
+            if (settings != null && settings.Screens.Count > index)
             {
-                AddBlocks(settings.Item2.Screens[index]);
-                AddGroups(settings.Item2.Screens[index]);
-
-                settings.Item2.Dirty = true;
+                AddBlocks(settings.Screens[index]);
+                AddGroups(settings.Screens[index]);
+                
                 SourceList.TerminalControl.UpdateVisual();
                 TargetList.TerminalControl.UpdateVisual();
+                ConfigManager.Sync(block, settings);
             }
 
             SourceList.Selection.Clear();

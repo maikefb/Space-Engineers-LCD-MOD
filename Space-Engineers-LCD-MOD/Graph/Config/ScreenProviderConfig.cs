@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Graph.Data.Scripts.Graph.Sys;
 using ProtoBuf;
 
 namespace Space_Engineers_LCD_MOD.Graph.Config
@@ -8,8 +7,6 @@ namespace Space_Engineers_LCD_MOD.Graph.Config
     [ProtoContract]
     public class ScreenProviderConfig
     {
-        public bool Dirty = false;
-
         // ReSharper disable once UnusedMember.Global
         public ScreenProviderConfig() // Needed for Protobuf
         {
@@ -39,10 +36,19 @@ namespace Space_Engineers_LCD_MOD.Graph.Config
             set
             {
                 Parent = value;
-             
+                
                 // todo: Some Extra logic is Required to properly migrate blocks ids when creating Blueprints
-                Screens.ForEach(s => s.SelectedBlocks = Array.Empty<long>()); // fail-safe deleting outdated ID's
+                Screens?.ForEach(s => s.SelectedBlocks = Array.Empty<long>()); // fail-safe deleting outdated ID's
             }
+        }
+
+        public void CopyFrom(ScreenProviderConfig other)
+        {
+            if (Screens.Count != other.Screens.Count)
+                return;
+                        
+            for (var index = 0; index < Screens.Count; index++)
+                Screens[index].CopyFrom(other.Screens[index]);
         }
     }
 }

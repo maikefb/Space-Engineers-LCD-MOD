@@ -1,12 +1,12 @@
 using System.Text;
-using Graph.Data.Scripts.Graph;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
 using Space_Engineers_LCD_MOD.Graph.Config;
+using Space_Engineers_LCD_MOD.Graph.Sys;
 using VRage;
 using VRage.Utils;
 
-namespace Space_Engineers_LCD_MOD.Controls
+namespace Space_Engineers_LCD_MOD.Controls.Generic
 {
     public sealed class SliderChartScale : TerminalControlsWrapper
     {
@@ -27,37 +27,26 @@ namespace Space_Engineers_LCD_MOD.Controls
 
         void Writer(IMyTerminalBlock b, StringBuilder arg2)
         {
-            var index = GetThisSurfaceIndex(b);
-            if (index == -1) return;
-            MyTuple<int, ScreenProviderConfig> settings;
-            if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
-            {
-                arg2.Clear();
-                arg2.Append(settings.Item2.Screens[index].Scale.ToString("0.000"));
-            }
+            arg2.Append(Getter(b).ToString("0.000"));
         }
 
-        void Setter(IMyTerminalBlock b, float c)
+        void Setter(IMyTerminalBlock block, float value)
         {
-            var index = GetThisSurfaceIndex(b);
-            if (index == -1) return;
-            MyTuple<int, ScreenProviderConfig> settings;
-            if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
-            {
-                settings.Item2.Screens[index].Scale = c;
-                settings.Item2.Dirty = true;
-            }
+            var config = ConfigManager.GetConfigForCurrentScreen(block);
+            if (config == null)
+                return;
+
+            config.Scale = value;
+            ConfigManager.Sync(block);
         }
 
-        float Getter(IMyTerminalBlock b)
+        float Getter(IMyTerminalBlock block)
         {
-            var index = GetThisSurfaceIndex(b);
+            var config = ConfigManager.GetConfigForCurrentScreen(block);
+            if (config == null)
+                return 1;
 
-            MyTuple<int, ScreenProviderConfig> settings;
-            if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
-                return settings.Item2.Screens[index].Scale;
-
-            return 1;
+            return config.Scale;
         }
     }
 }

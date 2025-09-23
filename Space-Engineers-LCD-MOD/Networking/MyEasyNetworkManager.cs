@@ -29,6 +29,12 @@ namespace Space_Engineers_LCD_MOD.Networking
         {
             MyAPIGateway.Multiplayer.UnregisterSecureMessageHandler(CommsId, ReceivedPacket);
         }
+        
+        public void Clear()
+        {
+            OnReceivedPacket = null;
+            ProcessPacket = null;
+        }
 
         public void TransmitToServer(IPacket data, bool SendToAllPlayers = true, bool SendToSender = false)
         {

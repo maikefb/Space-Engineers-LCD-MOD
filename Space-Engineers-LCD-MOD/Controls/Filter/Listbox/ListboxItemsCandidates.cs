@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Graph.Data.Scripts.Graph;
 using Sandbox.Definitions;
 using Sandbox.ModAPI;
 using Space_Engineers_LCD_MOD.Graph.Config;
+using Space_Engineers_LCD_MOD.Graph.Sys;
 using Space_Engineers_LCD_MOD.Helpers;
 using VRage;
 using VRage.Game;
@@ -23,20 +23,13 @@ namespace Space_Engineers_LCD_MOD.Controls.Filter.Listbox
             CreateListbox("CandidatesItems", "BlockPropertyTitle_ConveyorSorterCandidatesList");
         }
 
-        protected override void Getter(IMyTerminalBlock blocks, List<MyTerminalControlListBoxItem> blockList,
+        protected override void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> blockList,
             List<MyTerminalControlListBoxItem> _)
         {
-            var index = GetThisSurfaceIndex(blocks);
-            MyTuple<int, ScreenProviderConfig> settings;
+            var screenSettings = ConfigManager.GetConfigForCurrentScreen(b);
 
-            if (ChartBase.ActiveScreens == null ||
-                !ChartBase.ActiveScreens.TryGetValue(blocks, out settings)
-                || settings.Item2?.Screens == null
-                || settings.Item2.Screens.Count <= index
-                || index < 0)
+            if (screenSettings == null)
                 return;
-
-            var screenSettings = settings.Item2.Screens[index];
             
             blockList.AddRange(ItemCategoryHelper.Groups.Where(g => !screenSettings.SelectedCategories.Contains(g))
                 .Select(g => new MyTerminalControlListBoxItem(
@@ -52,7 +45,7 @@ namespace Space_Engineers_LCD_MOD.Controls.Filter.Listbox
                 a.Id)));
         }
 
-        public bool WhiteList(MyDefinitionBase a)
+        public bool WhiteList(object a)
         {
             var item = a as MyPhysicalItemDefinition;
             
@@ -62,9 +55,6 @@ namespace Space_Engineers_LCD_MOD.Controls.Filter.Listbox
             var id = item.Id.ToString();
             if(id.Contains("_TreeObject/") || id.Contains("GunObject/GoodAIReward") || id.Contains("GunObject/CubePlacerItem") )
                 return false;
-
-            if(item.ToString().Contains("Tree"))
-                DebuggerHelper.Break();
             
             return true;
 

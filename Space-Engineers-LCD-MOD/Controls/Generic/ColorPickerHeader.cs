@@ -1,8 +1,7 @@
-using Graph.Data.Scripts.Graph;
-using Graph.Data.Scripts.Graph.Sys;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
 using Space_Engineers_LCD_MOD.Graph.Config;
+using Space_Engineers_LCD_MOD.Graph.Sys;
 using VRage;
 using VRage.Utils;
 using VRageMath;
@@ -28,25 +27,19 @@ namespace Space_Engineers_LCD_MOD.Controls.Generic
 
         void Setter(IMyTerminalBlock block, Color color)
         {
-            var index = GetThisSurfaceIndex(block);
-            if (index == -1) return;
-            MyTuple<int, ScreenProviderConfig> settings;
-            if (ChartBase.ActiveScreens.TryGetValue(block, out settings) && settings.Item2.Screens.Count > index)
-            {
-                settings.Item2.Screens[index].HeaderColor = color;
-                settings.Item2.Dirty = true;
-            }
+            var config = ConfigManager.GetConfigForCurrentScreen(block);
+            if(config == null)
+                return;
+            config.HeaderColor = color;
+            ConfigManager.Sync(block);
         }
 
         Color Getter(IMyTerminalBlock block)
         {
-            var index = GetThisSurfaceIndex(block);
-
-            MyTuple<int, ScreenProviderConfig> settings;
-            if (ChartBase.ActiveScreens.TryGetValue(block, out settings) && settings.Item2.Screens.Count > index)
-                return settings.Item2.Screens[index].HeaderColor;
-
-
+            var config = ConfigManager.GetConfigForCurrentScreen(block);
+            if (config != null)
+                return config.HeaderColor;
+            
             return Color.White;
         }
     }

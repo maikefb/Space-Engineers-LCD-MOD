@@ -3,19 +3,18 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using Graph.Data.Scripts.Graph.Panels;
 using Sandbox.Definitions;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
+using Space_Engineers_LCD_MOD.Graph.Panels;
 using Space_Engineers_LCD_MOD.Helpers;
 using VRage;
-using VRageMath;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
-using VRage.Utils;
+using VRageMath;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
-namespace Graph.Data.Scripts.Graph
+namespace Space_Engineers_LCD_MOD.Graph
 {
     [MyTextSurfaceScript("BlueprintDiagram", "Blueprints")]
     public class BlueprintDiagram : ItemCharts
@@ -344,6 +343,7 @@ namespace Graph.Data.Scripts.Graph
         {
             if (Config.ReferenceBlock == 0)
                 return null;
+
             var entity = MyAPIGateway.Entities.GetEntityById(Config.ReferenceBlock);
 
             var projector = entity as IMyProjector;

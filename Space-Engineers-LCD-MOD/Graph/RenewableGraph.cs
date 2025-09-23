@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Graph.Data.Scripts.Graph.Panels;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
+using Space_Engineers_LCD_MOD.Graph.Panels;
 using Space_Engineers_LCD_MOD.Helpers;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
@@ -10,7 +10,7 @@ using VRageMath;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 using IMyCubeGrid = VRage.Game.ModAPI.IMyCubeGrid;
 
-namespace Graph.Data.Scripts.Graph
+namespace Space_Engineers_LCD_MOD.Graph
 {
     [MyTextSurfaceScript("RenewableGraph", "Turbina & Painel Solar")]
     public class RenewableGraph : ChartBase

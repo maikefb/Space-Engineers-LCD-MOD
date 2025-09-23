@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Graph.Data.Scripts.Graph.Panels;
 using Sandbox.Definitions;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
+using Space_Engineers_LCD_MOD.Graph.Panels;
 using Space_Engineers_LCD_MOD.Helpers;
 using VRage;
 using VRage.Game;
@@ -14,7 +14,7 @@ using VRageMath;
 using IMyTerminalBlock = Sandbox.ModAPI.IMyTerminalBlock;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
-namespace Graph.Data.Scripts.Graph
+namespace Space_Engineers_LCD_MOD.Graph
 {
     [MyTextSurfaceScript("GasGraph", "Gas Graph")]
     public class GasGraph : ChartBase

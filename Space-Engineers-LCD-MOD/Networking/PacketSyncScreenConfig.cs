@@ -1,7 +1,5 @@
-using Graph.Data.Scripts.Graph.Sys;
 using ProtoBuf;
 using Space_Engineers_LCD_MOD.Graph.Config;
-using VRageMath;
 
 namespace Space_Engineers_LCD_MOD.Networking
 {

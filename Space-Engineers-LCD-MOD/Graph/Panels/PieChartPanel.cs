@@ -3,7 +3,7 @@ using Sandbox.ModAPI;
 using VRage.Game.GUI.TextPanel;
 using VRageMath;
 
-namespace Graph.Data.Scripts.Graph.Panels
+namespace Space_Engineers_LCD_MOD.Graph.Panels
 {
     public class PieChartPanel
     {

@@ -3,31 +3,26 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using Graph.Data.Scripts.Graph.Sys;
-using Sandbox.Game.EntityComponents;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
-using Space_Engineers_LCD_MOD;
 using Space_Engineers_LCD_MOD.Graph.Config;
+using Space_Engineers_LCD_MOD.Graph.Sys;
 using Space_Engineers_LCD_MOD.Helpers;
 using VRage;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
-using VRage.Utils;
 using VRageMath;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 using IMyTextSurfaceProvider = Sandbox.ModAPI.Ingame.IMyTextSurfaceProvider;
 
-namespace Graph.Data.Scripts.Graph
+namespace Space_Engineers_LCD_MOD.Graph
 {
     public abstract class ChartBase : MyTextSurfaceScriptBase
     {
-        public static Dictionary<IMyTerminalBlock, MyTuple<int, ScreenProviderConfig>> ActiveScreens =
-            new Dictionary<IMyTerminalBlock, MyTuple<int, ScreenProviderConfig>>();
-
-        List<KeyValuePair<MyItemType, double>> _itemsCache =
-            new List<KeyValuePair<MyItemType, double>>();
+        public static List<ChartBase> Instances = new List<ChartBase>();
+        
+        List<KeyValuePair<MyItemType, double>> _itemsCache = new List<KeyValuePair<MyItemType, double>>();
 
         /// <summary>
         /// Relative area of the <see cref="Sandbox.ModAPI.IMyTextSurface.TextureSize"/> That is Visible
@@ -44,50 +39,42 @@ namespace Graph.Data.Scripts.Graph
         protected float Margin = 0.02f;
         public abstract Dictionary<MyItemType, double> ItemSource { get; }
         public virtual string Title => DefaultTitle;
-        protected virtual string DefaultTitle {get; set;} = "";
+        protected virtual string DefaultTitle { get; set; } = "";
 
         protected float Scale = 1;
         string _languageWord;
         public override ScriptUpdate NeedsUpdate => ScriptUpdate.Update10;
 
         public ScreenConfig Config { get; protected set; }
-        
-        public bool Dirty => _dirty || (_providerConfig?.Dirty ?? false);
+
+        public bool Dirty => _dirty;
 
         bool _dirty = true;
-        
-        protected ScreenProviderConfig _providerConfig;
+
+        public ScreenProviderConfig ProviderConfig;
 
         protected ChartBase(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
+            Instances.Add(this);
             UpdateViewBox();
         }
 
+        public void RequestRedraw() => Run();
+
         public override void Dispose()
         {
-            if (_providerConfig != null)
+            try
             {
-                MyTuple<int, ScreenProviderConfig> config;
-                if (ActiveScreens.TryGetValue((IMyTerminalBlock)Block, out config))
-                {
-                    config.Item1++;
-                    if (config.Item1 == 0)
-                    {
-                        ActiveScreens.Remove((IMyTerminalBlock)Block);
-                        Save((IMyEntity)Block, _providerConfig);
-                    }
-                }
+                if(ProviderConfig != null)
+                    ConfigManager.Save((IMyEntity)Block, ProviderConfig);
+            }
+            catch (Exception e)
+            {
+                ErrorHandlerHelper.LogError(e, this);
             }
 
+            Instances.Remove(this);
             base.Dispose();
-        }
-
-        public static void Save(IMyEntity storageEntity, ScreenProviderConfig providerConfig)
-        {
-            if (storageEntity.Storage != null)
-                storageEntity.Storage[Constants.STORAGE_GUID] = Convert
-                    .ToBase64String(MyAPIGateway.Utilities
-                        .SerializeToBinary(providerConfig));
         }
 
         protected void UpdateViewBox()
@@ -111,17 +98,17 @@ namespace Graph.Data.Scripts.Graph
                 return;
             }
 
-            if (Math.Abs(CurrentTextPadding - Surface.TextPadding) > .01f || 
+            if (Math.Abs(CurrentTextPadding - Surface.TextPadding) > .01f ||
                 Math.Abs(Scale - Config.Scale) > .001f ||
                 _languageWord != MyTexts.GetString("Language"))
 
                 LayoutChanged();
 
             if (GridLogic == null)
-                GridLogicSession.Components.TryGetValue(Block.CubeGrid.EntityId, out GridLogic);
+                LcdModSessionComponent.Components.TryGetValue(Block.CubeGrid.EntityId, out GridLogic);
 
             base.Run();
-            
+
             _dirty = false;
         }
 
@@ -133,9 +120,12 @@ namespace Graph.Data.Scripts.Graph
             {
                 if (surface.Equals(surfaceProvider.GetSurface(index)))
                 {
-                    LoadSettings(block, index);
+                    ScreenConfig config;
+                    ConfigManager.LoadSettings(block, index, ref ProviderConfig, out config);
+                    Config = config;
                     return;
                 }
+
                 index++;
             }
         }
@@ -201,7 +191,8 @@ namespace Graph.Data.Scripts.Graph
         protected static readonly Regex RxGroup = new Regex(@"\(\s*G\s*:\s*(.+?)\s*\)", RegexOptions.IgnoreCase);
         protected static readonly Regex RxContainer = new Regex(@"\(\s*(?!G\s*:)(.+?)\s*\)", RegexOptions.IgnoreCase);
 
-        protected static MySprite MakeText(IMyTextSurface surf, string s, Vector2 p, float scale, TextAlignment alignment = TextAlignment.LEFT)
+        protected static MySprite MakeText(IMyTextSurface surf, string s, Vector2 p, float scale,
+            TextAlignment alignment = TextAlignment.LEFT)
         {
             return new MySprite
             {
@@ -268,11 +259,11 @@ namespace Graph.Data.Scripts.Graph
                 token = mc.Groups[1].Value.Trim();
             }
         }
-        
-        protected void TrimText(ref StringBuilder sb,  float availableWidth, float fontSize = 1)
+
+        protected void TrimText(ref StringBuilder sb, float availableWidth, float fontSize = 1)
         {
             Vector2 textSize = Surface.MeasureStringInPixels(sb, "White", fontSize * Scale);
-            
+
             if (textSize.X > availableWidth)
             {
                 const string ELLIPSIS = "...";
@@ -306,20 +297,28 @@ namespace Graph.Data.Scripts.Graph
             list.Sort((a, b) => b.Value.CompareTo(a.Value));
             return list;
         }
-        
+
         protected Vector2 ToScreenMargin(Vector2 absoluteCenterInViewBox)
         {
             return new Vector2(absoluteCenterInViewBox.X, 512f - absoluteCenterInViewBox.Y);
         }
+
         protected MySprite Text(string s, Vector2 p, float scale)
         {
-            return new MySprite { Type = SpriteType.TEXT, Data = s, Position = p,
-                Color = Surface.ScriptForegroundColor, Alignment = TextAlignment.LEFT, RotationOrScale = scale };
+            return new MySprite
+            {
+                Type = SpriteType.TEXT, Data = s, Position = p,
+                Color = Surface.ScriptForegroundColor, Alignment = TextAlignment.LEFT, RotationOrScale = scale
+            };
         }
+
         protected MySprite Centered(string s, Vector2 p, float scale)
         {
-            return new MySprite { Type = SpriteType.TEXT, Data = s, Position = p,
-                Color = Surface.ScriptForegroundColor, Alignment = TextAlignment.CENTER, RotationOrScale = scale };
+            return new MySprite
+            {
+                Type = SpriteType.TEXT, Data = s, Position = p,
+                Color = Surface.ScriptForegroundColor, Alignment = TextAlignment.CENTER, RotationOrScale = scale
+            };
         }
 
         protected static readonly CultureInfo Pt = new CultureInfo("pt-BR");
@@ -339,20 +338,17 @@ namespace Graph.Data.Scripts.Graph
             if (a >= 1e18) return sign + (a / 1e18).ToString("0.##", culture) + " EW";
             if (a >= 1e15) return sign + (a / 1e15).ToString("0.##", culture) + " PW";
             if (a >= 1e12) return sign + (a / 1e12).ToString("0.##", culture) + " TW";
-            if (a >= 1e9 ) return sign + (a / 1e9 ).ToString("0.##", culture) + " GW";
-            if (a >= 1e6 ) return sign + (a / 1e6 ).ToString("0.##", culture) + " MW";
-            if (a >= 1e3 ) return sign + (a / 1e3 ).ToString("0.##", culture) + " kW";
-            if (a >= 1.0 )  return sign + a.ToString("0.##", culture)       + " W";
-            if (a >= 1e-3 ) return sign + (a / 1e-3 ).ToString("0.##", culture) + " mW";
-            if (a >= 1e-6 ) return sign + (a / 1e-6 ).ToString("0.##", culture) + " uW";
-            if (a >= 1e-9 ) return sign + (a / 1e-9 ).ToString("0.##", culture) + " nW";
+            if (a >= 1e9) return sign + (a / 1e9).ToString("0.##", culture) + " GW";
+            if (a >= 1e6) return sign + (a / 1e6).ToString("0.##", culture) + " MW";
+            if (a >= 1e3) return sign + (a / 1e3).ToString("0.##", culture) + " kW";
+            if (a >= 1.0) return sign + a.ToString("0.##", culture) + " W";
+            if (a >= 1e-3) return sign + (a / 1e-3).ToString("0.##", culture) + " mW";
+            if (a >= 1e-6) return sign + (a / 1e-6).ToString("0.##", culture) + " uW";
+            if (a >= 1e-9) return sign + (a / 1e-9).ToString("0.##", culture) + " nW";
             if (a >= 1e-12) return sign + (a / 1e-12).ToString("0.##", culture) + " pW";
             return sign + a.ToString("0.##", culture) + " W";
         }
-        
-        
-        
-        
+
 
         protected string PowForce(double newtons)
         {
@@ -364,100 +360,29 @@ namespace Graph.Data.Scripts.Graph
             if (a < 1e-12)
                 return "0 N";
 
-            if (a >= 1e24) return sign + (a / 1e24).ToString("0.##", culture) + " YN"; 
-            if (a >= 1e21) return sign + (a / 1e21).ToString("0.##", culture) + " ZN"; 
-            if (a >= 1e18) return sign + (a / 1e18).ToString("0.##", culture) + " EN"; 
-            if (a >= 1e15) return sign + (a / 1e15).ToString("0.##", culture) + " PN"; 
-            if (a >= 1e12) return sign + (a / 1e12).ToString("0.##", culture) + " TN"; 
-            if (a >= 1e9)  return sign + (a / 1e9 ).ToString("0.##", culture) + " GN"; 
-            if (a >= 1e6)  return sign + (a / 1e6 ).ToString("0.##", culture) + " MN"; 
-            if (a >= 1e3)  return sign + (a / 1e3 ).ToString("0.##", culture) + " kN"; 
-            if (a >= 1e-3) return sign + (a / 1e-3).ToString("0.##", culture) + " mN";  
-            if (a >= 1e-6) return sign + (a / 1e-6).ToString("0.##", culture) + " uN";  
-            if (a >= 1e-9) return sign + (a / 1e-9).ToString("0.##", culture) + " nN";  
+            if (a >= 1e24) return sign + (a / 1e24).ToString("0.##", culture) + " YN";
+            if (a >= 1e21) return sign + (a / 1e21).ToString("0.##", culture) + " ZN";
+            if (a >= 1e18) return sign + (a / 1e18).ToString("0.##", culture) + " EN";
+            if (a >= 1e15) return sign + (a / 1e15).ToString("0.##", culture) + " PN";
+            if (a >= 1e12) return sign + (a / 1e12).ToString("0.##", culture) + " TN";
+            if (a >= 1e9) return sign + (a / 1e9).ToString("0.##", culture) + " GN";
+            if (a >= 1e6) return sign + (a / 1e6).ToString("0.##", culture) + " MN";
+            if (a >= 1e3) return sign + (a / 1e3).ToString("0.##", culture) + " kN";
+            if (a >= 1e-3) return sign + (a / 1e-3).ToString("0.##", culture) + " mN";
+            if (a >= 1e-6) return sign + (a / 1e-6).ToString("0.##", culture) + " uN";
+            if (a >= 1e-9) return sign + (a / 1e-9).ToString("0.##", culture) + " nN";
             return sign + a.ToString("0.##", culture) + " N";
         }
 
 
-
-        
-        protected string Pct(float f) { return ((int)Math.Round(f * 100f)).ToString(Pt) + "%"; }
-
-        private void LoadSettings(IMyCubeBlock block, int index)
+        protected string Pct(float f)
         {
-            MyTuple<int, ScreenProviderConfig> config;
-
-            if (ActiveScreens.TryGetValue((IMyTerminalBlock)block, out config))
-            {
-                _providerConfig = config.Item2;
-                config.Item1++;
-                Config = _providerConfig.Screens[index];
-            }
-            else
-            {
-                var storageEntity = (IMyEntity)block;
-                if (storageEntity.Storage == null)
-                    storageEntity.Storage = new MyModStorageComponent();
-
-                string value;
-                if (storageEntity.Storage.TryGetValue(Constants.STORAGE_GUID, out value))
-                {
-                    try
-                    {
-                        _providerConfig =
-                            MyAPIGateway.Utilities.SerializeFromBinary<ScreenProviderConfig>(
-                                Convert.FromBase64String(value));
-                        
-                        if(_providerConfig.ParentGrid != block.CubeGrid.EntityId)
-                            _providerConfig.ParentGrid = block.CubeGrid.EntityId;
-                        
-                        Config = _providerConfig.Screens[index];
-                        
-                        if(Math.Abs(Config.Scale - 1) > .001)
-                            LayoutChanged();
-                    }
-                    catch (Exception e)
-                    {
-                        MyAPIGateway.Utilities.ShowNotification($"Fail to Load Settings for block {block.DisplayNameText}\n{e.Message}");
-                        ErrorHandlerHelper.LogError(e, this);
-                        CreateSettings(block, index);
-                    }
-                }
-                else
-                {
-                    CreateSettings(block, index);
-                }
-
-                if (_providerConfig != null)
-                {
-                    if (!ActiveScreens.TryGetValue((IMyTerminalBlock)block, out config))
-                    {
-                        ActiveScreens[(IMyTerminalBlock)block] =
-                            new MyTuple<int, ScreenProviderConfig>(0, _providerConfig);
-                    }
-
-                    config.Item1++;
-                }
-            }
+            return ((int)Math.Round(f * 100f)).ToString(Pt) + "%";
         }
 
-        private void CreateSettings(IMyCubeBlock block, int index)
-        {
-            var lcd = block as IMyTextPanel;
-            if (lcd != null)
-            {
-                _providerConfig = new ScreenProviderConfig(1, block.CubeGrid.EntityId);
-                Config = _providerConfig.Screens[0];
-                return;
-            }
-
-            _providerConfig = new ScreenProviderConfig(((IMyTextSurfaceProvider)block).SurfaceCount, block.CubeGrid.EntityId);
-            Config = _providerConfig.Screens[index];
-        }
-        
         protected Vector2 GetAutoScale2D(float logicalWidth = 512f, float logicalHeight = 512f)
         {
-            if (logicalWidth  <= 0f) logicalWidth  = 512f;
+            if (logicalWidth <= 0f) logicalWidth = 512f;
             if (logicalHeight <= 0f) logicalHeight = 512f;
             return new Vector2(ViewBox.Size.X / logicalWidth, ViewBox.Size.Y / logicalHeight);
         }
@@ -471,7 +396,8 @@ namespace Graph.Data.Scripts.Graph
         protected virtual void LayoutChanged()
         {
             _dirty = true;
-            _languageWord = MyTexts.GetString("Language"); // hack Get the Language by comparing translation of the word Language
+            _languageWord =
+                MyTexts.GetString("Language"); // hack Get the Language by comparing translation of the word Language
             Scale = GetAutoScaleUniform();
             UpdateViewBox();
         }

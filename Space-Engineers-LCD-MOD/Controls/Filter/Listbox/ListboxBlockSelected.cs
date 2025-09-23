@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using Graph.Data.Scripts.Graph;
 using Sandbox.ModAPI;
+using Space_Engineers_LCD_MOD.Graph;
 using Space_Engineers_LCD_MOD.Graph.Config;
+using Space_Engineers_LCD_MOD.Graph.Sys;
 using VRage;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
@@ -20,17 +21,10 @@ namespace Space_Engineers_LCD_MOD.Controls.Filter.Listbox
         protected override void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> blockList,
             List<MyTerminalControlListBoxItem> _)
         {
-            var index = GetThisSurfaceIndex(b);
-            MyTuple<int, ScreenProviderConfig> settings;
+            var screenSettings = ConfigManager.GetConfigForCurrentScreen(b);
 
-            if (ChartBase.ActiveScreens == null ||
-                !ChartBase.ActiveScreens.TryGetValue(b, out settings)
-                || settings.Item2?.Screens == null
-                || settings.Item2.Screens.Count <= index
-                || index < 0)
+            if (screenSettings == null)
                 return;
-
-            var screenSettings = settings.Item2.Screens[index];
 
             blockList.AddRange(screenSettings.SelectedGroups.Select(a => new MyTerminalControlListBoxItem(
                 MyStringId.GetOrCompute($"*{a}*"),

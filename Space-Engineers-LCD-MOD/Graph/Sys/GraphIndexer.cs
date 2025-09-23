@@ -1,18 +1,17 @@
-using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
-
-using VRage.ModAPI;
-using VRage.Game.ModAPI;
-using VRage.Game;
 using Sandbox.Definitions;
+using Sandbox.ModAPI;
 using Space_Engineers_LCD_MOD.Helpers;
+using VRage.Game;
 using VRage.Game.Components;
+using VRage.Game.ModAPI;
+using VRage.ModAPI;
 using IngameItem = VRage.Game.ModAPI.Ingame.MyInventoryItem;
 
-namespace Graph.Data.Scripts.Graph.Sys
+namespace Space_Engineers_LCD_MOD.Graph.Sys
 {
     // Todo: move all logic to Client side
     

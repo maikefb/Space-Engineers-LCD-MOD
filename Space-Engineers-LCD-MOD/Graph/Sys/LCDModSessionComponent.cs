@@ -1,38 +1,33 @@
-﻿/*
- * ExampleWorkaround_GridLogicHook.cs
- * https://github.com/THDigi/SE-ModScript-Examples/blob/master/Data/Scripts/Examples/ExampleWorkaround_GridLogicHook.cs
- * Workaround to Grid-Logic Client side
- * By THDigi
- */
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Sandbox.ModAPI;
+using Space_Engineers_LCD_MOD.Graph.Config;
 using Space_Engineers_LCD_MOD.Helpers;
 using VRage;
-using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
-using VRage.Utils;
 
-namespace Graph.Data.Scripts.Graph.Sys
+namespace Space_Engineers_LCD_MOD.Graph.Sys
 {
-    // This shows how to find all grids and execute code on them as if it was a gamelogic component.
-    // This is needed because attaching gamelogic to grids does not work reliably, like not working at all for clients in MP.
     [MySessionComponentDescriptor(MyUpdateOrder.BeforeSimulation)]
-    public class GridLogicSession : MySessionComponentBase
+    // ReSharper disable once ClassNeverInstantiated.Global
+    public class LcdModSessionComponent : MySessionComponentBase
     {
         readonly Dictionary<long, MyTuple<IMyCubeGrid, GridLogic>> _grids =
             new Dictionary<long, MyTuple<IMyCubeGrid, GridLogic>>();
 
         public static Dictionary<long, GridLogic> Components = new Dictionary<long, GridLogic>();
 
+        public static Action<IMyCubeGrid> PendingTextAction;
+        public static Action ActiveAction;
+
         public override void LoadData()
         {
             if (MyAPIGateway.Utilities.IsDedicated && MyAPIGateway.Session.IsServer)
                 return;
 
+            DebuggerHelper.Break();
             MyAPIGateway.Entities.OnEntityAdd += EntityAdded;
         }
 
@@ -48,15 +43,25 @@ namespace Graph.Data.Scripts.Graph.Sys
 
             ItemCharts.SpriteCache?.Clear();
             ItemCharts.SpriteCache = null;
+            ConfigManager.Close();
         }
 
-        private void EntityAdded(IMyEntity ent)
+        void EntityAdded(IMyEntity ent)
         {
             try
             {
                 var grid = ent as IMyCubeGrid;
                 if (grid == null || _grids.ContainsKey(grid.EntityId))
                     return;
+
+                if (grid.CustomName == "Space_Engineers_LCD_MOD_FakeGrid")
+                {
+                    grid.Visible = false;
+                    grid.Physics = null;
+                    if (PendingTextAction != null)
+                        PendingTextAction.Invoke(grid);
+                    return;
+                }
 
                 var logic = new GridLogic(grid);
                 _grids[grid.EntityId] = new MyTuple<IMyCubeGrid, GridLogic>(grid, logic);
@@ -69,7 +74,7 @@ namespace Graph.Data.Scripts.Graph.Sys
             }
         }
 
-        private void GridMarkedForClose(IMyEntity ent)
+        void GridMarkedForClose(IMyEntity ent)
         {
             try
             {
@@ -95,6 +100,11 @@ namespace Graph.Data.Scripts.Graph.Sys
                         continue;
 
                     grid.Item2.Update();
+                }
+
+                if (ActiveAction != null)
+                {
+                    ActiveAction.Invoke();
                 }
             }
             catch (Exception e)

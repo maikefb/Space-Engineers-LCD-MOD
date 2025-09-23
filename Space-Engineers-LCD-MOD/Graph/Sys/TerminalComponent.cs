@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sandbox.Game.Entities;
-using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
 using Space_Engineers_LCD_MOD.Controls;
@@ -15,35 +14,30 @@ using Space_Engineers_LCD_MOD.Graph.Config;
 using Space_Engineers_LCD_MOD.Helpers;
 using Space_Engineers_LCD_MOD.Networking;
 using VRage;
-using VRage.Game;
 using VRage.Game.Components;
-using VRage.Game.GUI.TextPanel;
 using VRage.Utils;
-using VRageMath;
 
-
-namespace Graph.Data.Scripts.Graph.Sys
+namespace Space_Engineers_LCD_MOD.Graph.Sys
 {
     [MySessionComponentDescriptor(MyUpdateOrder.AfterSimulation)]
     public class TerminalSessionComponent : MySessionComponentBase
     {
-        MyEasyNetworkManager _networkManager;
-
         public override void UpdatingStopped()
-        { 
+        {
             SaveData();
             base.UpdatingStopped();
         }
 
         public override void BeforeStart()
         {
-            DebuggerHelper.Break();
-
             try
             {
-                _networkManager = new MyEasyNetworkManager(46541);
+                ConfigManager.Init();
+                ConfigManager.NetworkManager.OnReceivedPacket += OnReceivedPacket;
 
-                _networkManager.OnReceivedPacket += OnReceivedPacket;
+                if (MyAPIGateway.Utilities.IsDedicated && MyAPIGateway.Session.IsServer)
+                    return;
+
                 MyAPIGateway.TerminalControls.CustomControlGetter += CustomControlGetter;
 
                 TerminalControlsListbox source = new ListboxBlockCandidates();
@@ -89,18 +83,23 @@ namespace Graph.Data.Scripts.Graph.Sys
                     if (block == null)
                         return;
 
-                    MyTuple<int, ScreenProviderConfig> settings;
-                    if (ChartBase.ActiveScreens.TryGetValue(block, out settings))
+                    ScreenProviderConfig settings;
+                    if (MyAPIGateway.Utilities.IsDedicated && MyAPIGateway.Session.IsServer)
                     {
-                        if (settings.Item2.Screens.Count != packet.Config.Screens.Count)
-                            return;
-
-                        settings.Item2.Dirty = false;
-                        for (var index = 0; index < settings.Item2.Screens.Count; index++)
-                            settings.Item2.Screens[index].CopyFrom(packet.Config.Screens[index]);
-
-                        ChartBase.Save(block, settings.Item2);
+                        settings = ConfigManager.TryLoad(block) ?? ConfigManager.CreateSettings(block); 
+                        // Server doesn't need to keep track of the setting,
+                        // only save/load it from blocks
                     }
+                    else
+                    {
+                        settings = ChartBase.Instances.FirstOrDefault(a => a.Block.Equals(block))?.ProviderConfig;
+                    }
+
+                    if (settings == null)
+                        return;
+
+                    settings.CopyFrom(packet.Config);
+                    ConfigManager.Save(block, settings);
                 }
             }
             catch (Exception e)
@@ -112,58 +111,14 @@ namespace Graph.Data.Scripts.Graph.Sys
         protected override void UnloadData()
         {
             MyAPIGateway.TerminalControls.CustomControlGetter -= CustomControlGetter;
-            foreach (var blockPair in ChartBase.ActiveScreens)
-                ChartBase.Save(blockPair.Key, blockPair.Value.Item2);
-
-            ChartBase.ActiveScreens.Clear();
-            ChartBase.ActiveScreens = null;
             _controls.Clear();
-        }
-
-        public override void SaveData()
-        {
-            try
-            {
-                foreach (var screen in ChartBase.ActiveScreens)
-                    ChartBase.Save(screen.Key, screen.Value.Item2);
-            }
-            catch (Exception e)
-            {
-                ErrorHandlerHelper.LogError(e, this);
-            }
-
-            base.SaveData();
-        }
-
-        public override void UpdateAfterSimulation()
-        {
-            base.UpdateAfterSimulation();
-
-            try
-            {
-                foreach (var screen in ChartBase.ActiveScreens)
-                {
-                    if (!screen.Value.Item2.Dirty)
-                        return;
-
-                    _networkManager.TransmitToServer(
-                        new PacketSyncScreenConfig(screen.Key.EntityId, screen.Value.Item2));
-                    screen.Value.Item2.Dirty = false;
-
-                    ChartBase.Save(screen.Key, screen.Value.Item2);
-                }
-            }
-            catch (Exception e)
-            {
-                ErrorHandlerHelper.LogError(e, this);
-            }
         }
 
         void CustomControlGetter(IMyTerminalBlock block, List<IMyTerminalControl> controls)
         {
             if (controls == null)
                 return;
-
+            
             try
             {
                 SetupProviderTerminal(block, controls);
@@ -177,16 +132,12 @@ namespace Graph.Data.Scripts.Graph.Sys
         void SetupProviderTerminal(IMyTerminalBlock block, List<IMyTerminalControl> controls)
         {
             var provider = block as IMyTextSurfaceProvider;
-
             if (provider == null)
                 return;
 
-            if (block is IMyTextPanel)
+            if (provider is IMyTextPanel)
             {
-                foreach (var control in _controls)
-                {
-                    controls.Add(control.TerminalControl);
-                }
+                controls.AddRange(_controls.Select(control => control.TerminalControl));
             }
             else if (provider.SurfaceCount > 0)
             {

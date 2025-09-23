@@ -2,18 +2,17 @@ using System;
 using System.Linq;
 using ProtoBuf;
 using Space_Engineers_LCD_MOD.Helpers;
-using VRage;
 using VRage.Game;
-using VRage.Utils;
 using VRageMath;
 
-namespace Graph.Data.Scripts.Graph.Sys
+namespace Space_Engineers_LCD_MOD.Graph.Config
 {
     [ProtoContract]
     public class ScreenConfig
     {
-        MyDefinitionId[] _selectedItems;
-
+        const float MAX_SCALE = 2.5f;
+        const float MIN_SCALE = 0.1f;
+        
         // ReSharper disable once UnusedMember.Global
         public ScreenConfig() // Needed for Protobuf
         {
@@ -54,13 +53,16 @@ namespace Graph.Data.Scripts.Graph.Sys
 
                 return Array.Empty<MyDefinitionId>();
             }
-            set { SelectedDefinition = value.Select(a => a.ToString()).ToArray(); }
+            set
+            {
+                SelectedDefinition = value.Select(a => a.ToString()).ToArray();
+            }
         }
 
         public float Scale
         {
-            get { return MathHelper.Clamp(InternalScale, 0.1f, 2.5f); }
-            set { InternalScale = MathHelper.Clamp(value, 0.1f, 2.5f); }
+            get { return MathHelper.Clamp(InternalScale, MIN_SCALE, MAX_SCALE); }
+            set { InternalScale = MathHelper.Clamp(value, MIN_SCALE, MAX_SCALE); }
         }
 
         [ProtoMember(8)] public long ReferenceBlock { get; set; }
@@ -70,8 +72,10 @@ namespace Graph.Data.Scripts.Graph.Sys
             HeaderColor = newValue.HeaderColor;
             SelectedBlocks = newValue.SelectedBlocks;
             SelectedGroups = newValue.SelectedGroups;
-            SelectedItems = newValue.SelectedItems;
+            SelectedDefinition = newValue.SelectedDefinition;
             SelectedCategories = newValue.SelectedCategories;
+            InternalScale = newValue.InternalScale;
+            ReferenceBlock = newValue.ReferenceBlock;
         }
     }
 }

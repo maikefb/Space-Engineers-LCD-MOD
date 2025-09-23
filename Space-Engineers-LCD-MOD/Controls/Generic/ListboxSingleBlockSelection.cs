@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using Graph.Data.Scripts.Graph;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
 using Space_Engineers_LCD_MOD.Graph.Config;
+using Space_Engineers_LCD_MOD.Graph.Sys;
 using VRage;
 using VRage.ModAPI;
 using VRage.Utils;
@@ -31,38 +31,23 @@ namespace Space_Engineers_LCD_MOD.Controls.Generic
 
         void Setter(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> selection)
         {
-            var index = GetThisSurfaceIndex(block);
-            MyTuple<int, ScreenProviderConfig> settings;
-
-            if (ChartBase.ActiveScreens == null ||
-                !ChartBase.ActiveScreens.TryGetValue(block, out settings)
-                || settings.Item2?.Screens == null
-                || settings.Item2.Screens.Count <= index
-                || index < 0
-                || selection == null
-                || selection.Count != 1)
+            var config = ConfigManager.GetConfigForCurrentScreen(block);
+            if(config == null)
                 return;
 
-            settings.Item2.Screens[index].ReferenceBlock = selection.First().UserData as long? ?? 0;
-            settings.Item2.Dirty = true;
+            config.ReferenceBlock = selection.First().UserData as long? ?? 0;
+            ConfigManager.Sync(block);
         }
 
         void Getter(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> blockList,
             List<MyTerminalControlListBoxItem> selected)
         {
-            var index = GetThisSurfaceIndex(block);
-            MyTuple<int, ScreenProviderConfig> settings;
-
-            if (ChartBase.ActiveScreens == null ||
-                !ChartBase.ActiveScreens.TryGetValue(block, out settings)
-                || settings.Item2?.Screens == null
-                || settings.Item2.Screens.Count <= index
-                || index < 0)
+            var config = ConfigManager.GetConfigForCurrentScreen(block);
+            if(config == null)
                 return;
             
             _reference.Clear();
             MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(block.CubeGrid)?.GetBlocksOfType(_reference);
-
             if (!_reference.Any())
                 return;
 
@@ -71,10 +56,7 @@ namespace Space_Engineers_LCD_MOD.Controls.Generic
                 MyStringId.GetOrCompute(a.CubeGrid.DisplayName),
                 a.EntityId)));
             
-            selected.Clear();
-            
-            var selection = blockList.FirstOrDefault(a => 
-                (a.UserData as long? ?? 0) == settings.Item2.Screens[index].ReferenceBlock);
+            var selection = blockList.FirstOrDefault(a => (a.UserData as long? ?? 0) == config.ReferenceBlock);
             
             if(selection != null)
                 selected.Add(selection);

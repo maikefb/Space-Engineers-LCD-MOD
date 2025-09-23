@@ -6,14 +6,13 @@ using Sandbox.Definitions;
 using Sandbox.ModAPI;
 using Space_Engineers_LCD_MOD.Helpers;
 using VRage;
-using VRage.Game;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
 using VRage.Utils;
 using VRageMath;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
-namespace Graph.Data.Scripts.Graph
+namespace Space_Engineers_LCD_MOD.Graph
 {
     public abstract class ItemCharts : ChartBase
     {

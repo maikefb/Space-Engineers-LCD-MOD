@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using Graph.Data.Scripts.Graph.Sys;
+using Space_Engineers_LCD_MOD.Graph.Config;
 using VRage.Game;
 
 namespace Space_Engineers_LCD_MOD.Graph.Sys

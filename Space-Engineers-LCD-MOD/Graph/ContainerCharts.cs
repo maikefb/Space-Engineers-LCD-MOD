@@ -2,17 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
-
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
-using Sandbox.Game.Entities.Cube;
+using Sandbox.ModAPI;
+using Space_Engineers_LCD_MOD.Graph.Panels;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
 using VRageMath;
 
-using Graph.Data.Scripts.Graph.Panels;
-using Sandbox.ModAPI;
-
-namespace Graph.Data.Scripts.Graph
+namespace Space_Engineers_LCD_MOD.Graph
 {
     [MyTextSurfaceScript("ContainerCharts", "Contêineres")]
     public class ContainerCharts : MyTextSurfaceScriptBase

@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using Graph.Data.Scripts.Graph;
 using Sandbox.Definitions;
 using Sandbox.ModAPI;
 using Space_Engineers_LCD_MOD.Graph.Config;
+using Space_Engineers_LCD_MOD.Graph.Sys;
 using Space_Engineers_LCD_MOD.Helpers;
 using VRage;
 using VRage.ModAPI;
@@ -20,20 +20,13 @@ namespace Space_Engineers_LCD_MOD.Controls.Filter.Listbox
             CreateListbox("SelectedItems", "BlockPropertyTitle_ConveyorSorterFilterItemsList");
         }
 
-        protected override void Getter(IMyTerminalBlock blocks, List<MyTerminalControlListBoxItem> itemsList,
+        protected override void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> itemsList,
             List<MyTerminalControlListBoxItem> _)
         {
-            var index = GetThisSurfaceIndex(blocks);
-            MyTuple<int, ScreenProviderConfig> settings;
+            var screenSettings = ConfigManager.GetConfigForCurrentScreen(b);
 
-            if (ChartBase.ActiveScreens == null ||
-                !ChartBase.ActiveScreens.TryGetValue(blocks, out settings)
-                || settings.Item2?.Screens == null
-                || settings.Item2.Screens.Count <= index
-                || index < 0)
+            if (screenSettings == null)
                 return;
-
-            var screenSettings = settings.Item2.Screens[index];
 
             itemsList.AddRange(screenSettings.SelectedCategories
                 .Select(g => new MyTerminalControlListBoxItem(

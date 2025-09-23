@@ -1,9 +1,9 @@
 using System.Linq;
-using Graph.Data.Scripts.Graph;
-using Graph.Data.Scripts.Graph.Sys;
 using Sandbox.ModAPI;
 using Space_Engineers_LCD_MOD.Controls.Filter.Listbox;
+using Space_Engineers_LCD_MOD.Graph;
 using Space_Engineers_LCD_MOD.Graph.Config;
+using Space_Engineers_LCD_MOD.Graph.Sys;
 using VRage;
 
 namespace Space_Engineers_LCD_MOD.Controls.Filter.Buttons
@@ -16,21 +16,22 @@ namespace Space_Engineers_LCD_MOD.Controls.Filter.Buttons
             CreateButton("ItemChartRemoveBlockFromSelection","EventControllerBlock_RemoveBlocks_Title" );
         }
 
-        protected override void Action(IMyTerminalBlock b)
+        protected override void Action(IMyTerminalBlock block)
         {
             if (TargetList.Selection == null || TargetList.Selection.Count <= 0) 
                 return;
             
-            var index = GetThisSurfaceIndex(b);
-            MyTuple<int, ScreenProviderConfig> settings;
-            if (ChartBase.ActiveScreens.TryGetValue(b, out settings) && settings.Item2.Screens.Count > index)
+            var index = GetThisSurfaceIndex(block);
+            var settings = ConfigManager.GetConfigForBlock(block);
+            
+            if (settings != null && settings.Screens.Count > index)
             {
-                var config = settings.Item2.Screens[index];
+                var config = settings.Screens[index];
                 RemoveGroups(config);
                 RemoveItems(config);
-                settings.Item2.Dirty = true;
                 SourceList.TerminalControl.UpdateVisual();
                 TargetList.TerminalControl.UpdateVisual();
+                ConfigManager.Sync(block, settings);
             }
 
             TargetList.Selection.Clear();

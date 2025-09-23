@@ -24,7 +24,7 @@ namespace Space_Engineers_LCD_MOD.Controls.Filter.Listbox
             _terminalControl = listbox;
         }
 
-        protected abstract void Getter(IMyTerminalBlock blocks, List<MyTerminalControlListBoxItem> items, List<MyTerminalControlListBoxItem> selected);
+        protected abstract void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> items, List<MyTerminalControlListBoxItem> selected);
         void Setter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> selection) => Selection =  selection;
     }
 }

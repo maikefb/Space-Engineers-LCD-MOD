@@ -28,6 +28,6 @@ namespace Space_Engineers_LCD_MOD.Controls.Filter.Buttons
             _terminalControl = button;
         }
 
-        protected abstract void Action(IMyTerminalBlock obj);
+        protected abstract void Action(IMyTerminalBlock block);
     }
 }

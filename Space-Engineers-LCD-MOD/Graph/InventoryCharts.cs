@@ -5,7 +5,7 @@ using VRage.Game.ModAPI;
 using VRageMath;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
-namespace Graph.Data.Scripts.Graph
+namespace Space_Engineers_LCD_MOD.Graph
 {
     [MyTextSurfaceScript("InventoryCharts", "Inventory")]
     public class InventoryCharts : ItemCharts

@@ -1,15 +1,13 @@
 using System;
 using System.Collections.Generic;
-
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
+using Space_Engineers_LCD_MOD.Graph.Panels;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
 using VRageMath;
 
-using Graph.Data.Scripts.Graph.Panels;
-
-namespace Graph.Data.Scripts.Graph
+namespace Space_Engineers_LCD_MOD.Graph
 {
     [MyTextSurfaceScript("MotorForceGraph", "Força dos Motores (solo)")]
     public class MotorForceGraph : ChartBase
