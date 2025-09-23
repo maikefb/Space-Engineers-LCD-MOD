@@ -145,24 +145,8 @@ namespace Space_Engineers_LCD_MOD.Graph
                 var isWind = typeId.EndsWith("WindTurbine", StringComparison.OrdinalIgnoreCase);
                 if (!isSolar && !isWind) continue;
 
-                double cur = 0.0, max = 0.0;
-                try
-                {
-                    cur = prod.CurrentOutput;
-                }
-                catch (Exception e)
-                {
-                    ErrorHandlerHelper.LogError(e, GetType());
-                }
-
-                try
-                {
-                    max = prod.MaxOutput;
-                }
-                catch (Exception e)
-                {
-                    ErrorHandlerHelper.LogError(e, GetType());
-                }
+                double cur = ToWatts(prod?.CurrentOutput ?? 0);
+                double max = ToWatts(prod?.MaxOutput ?? 0);
 
                 if (isSolar)
                 {
@@ -175,6 +159,10 @@ namespace Space_Engineers_LCD_MOD.Graph
                     maxWind += max;
                 }
             }
+        }
+        public double ToWatts(float powerUnit)
+        {
+            return powerUnit * 1000000;
         }
     }
 }
