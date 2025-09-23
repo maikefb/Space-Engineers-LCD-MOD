@@ -20,7 +20,7 @@ namespace Space_Engineers_LCD_MOD.Graph
         private const float PCT_FONT   = 1.5f;  
 
         public override Dictionary<VRage.Game.ModAPI.Ingame.MyItemType, double> ItemSource => null;
-        protected override string DefaultTitle { get; set; } = "Força dos Motores (solo)";
+        protected override string DefaultTitle => "Força dos Motores (solo)";
 
         PieChartPanel pie;
         

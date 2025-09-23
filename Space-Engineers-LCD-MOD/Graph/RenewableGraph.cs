@@ -48,7 +48,7 @@ namespace Space_Engineers_LCD_MOD.Graph
         }
 
         public override Dictionary<MyItemType, double> ItemSource => null;
-        protected override string DefaultTitle { get; set; } = "Turbina & Painel Solar";
+        protected override string DefaultTitle => "Turbina & Painel Solar";
 
         protected override void LayoutChanged()
         {
@@ -64,10 +64,6 @@ namespace Space_Engineers_LCD_MOD.Graph
 
             if (Config == null)
                 return;
-
-            if (Math.Abs(CurrentTextPadding - Surface.TextPadding) > 0.1f)
-                UpdateViewBox();
-
 
             using (var frame = Surface.DrawFrame())
             {

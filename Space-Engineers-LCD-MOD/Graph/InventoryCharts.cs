@@ -12,7 +12,7 @@ namespace Space_Engineers_LCD_MOD.Graph
     {
         public override Dictionary<MyItemType, double> ItemSource => Config == null ? null : GridLogic?.GetItems(Config, Block as IMyTerminalBlock);
 
-        protected override string DefaultTitle { get; set; } = "Inventory";
+        protected override string DefaultTitle => "Inventory";
 
         public InventoryCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {

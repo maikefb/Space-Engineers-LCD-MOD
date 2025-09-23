@@ -144,10 +144,11 @@ namespace Space_Engineers_LCD_MOD.Graph.Config
         public static void CreateSettings(IMyCubeBlock block, int index, out ScreenProviderConfig provider, out ScreenConfig screen)
         {
             provider = CreateSettings(block);
+            Save(block, provider);
             screen = provider.Screens[index];
         }
 
-        public static ScreenProviderConfig CreateSettings(IMyCubeBlock block) => new ScreenProviderConfig(block is IMyTextPanel ? 1 : ((IMyTextSurfaceProvider)block).SurfaceCount, block.CubeGrid.EntityId);
+        public static ScreenProviderConfig CreateSettings(IMyCubeBlock block) => new ScreenProviderConfig(block is IMyTextPanel ? 1 : ((IMyTextSurfaceProvider)block).SurfaceCount, block as IMyTerminalBlock);
 
         public static ChartBase GetAppForBlock(IMyTerminalBlock block) =>
             ChartBase.Instances.FirstOrDefault(a => a.Block.Equals(block));

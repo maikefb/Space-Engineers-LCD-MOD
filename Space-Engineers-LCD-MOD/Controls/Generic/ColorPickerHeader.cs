@@ -37,7 +37,7 @@ namespace Space_Engineers_LCD_MOD.Controls.Generic
         Color Getter(IMyTerminalBlock block)
         {
             var config = ConfigManager.GetConfigForCurrentScreen(block);
-            if (config != null)
+            if (config?.HeaderColor != null)
                 return config.HeaderColor;
             
             return Color.White;

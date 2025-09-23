@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using ProtoBuf;
+using Sandbox.ModAPI;
 using Space_Engineers_LCD_MOD.Helpers;
 using VRage.Game;
 using VRageMath;
@@ -18,14 +19,15 @@ namespace Space_Engineers_LCD_MOD.Graph.Config
         {
         }
 
-        public ScreenConfig(int i)
+        public ScreenConfig(int i, IMyTerminalBlock parent)
         {
             ScreenIndex = 1;
+            HeaderColor = FactionHelper.GetIconColor(parent);
         }
 
         [ProtoMember(1)] public int ScreenIndex { get; set; }
 
-        [ProtoMember(2)] public Color HeaderColor { get; set; } = new Color(54, 0, 63);
+        [ProtoMember(2)] public Color HeaderColor { get; set; }
 
         [ProtoMember(3)] public long[] SelectedBlocks { get; set; } = Array.Empty<long>();
 

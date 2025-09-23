@@ -333,7 +333,7 @@ namespace Space_Engineers_LCD_MOD.Graph
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXTURE,
-                Data = "Textures\\FactionLogo\\Others\\OtherIcon_18.dds",
+                Data = Logo,
                 Position = position + new Vector2(10f, 20) * Scale,
                 Size = new Vector2(40 * Scale),
                 Color = Config.HeaderColor,

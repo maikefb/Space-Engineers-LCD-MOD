@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ProtoBuf;
+using Sandbox.ModAPI;
 
 namespace Space_Engineers_LCD_MOD.Graph.Config
 {
@@ -12,14 +13,14 @@ namespace Space_Engineers_LCD_MOD.Graph.Config
         {
         }
 
-        public ScreenProviderConfig(int surfaceCount, long parent)
+        public ScreenProviderConfig(int surfaceCount, IMyTerminalBlock parent)
         {
             Screens = new List<ScreenConfig>();
 
             for (int i = 0; i < surfaceCount; i++)
-                Screens.Add(new ScreenConfig(i));
+                Screens.Add(new ScreenConfig(i, parent));
 
-            Parent = parent;
+            Parent = parent.CubeGrid.EntityId;
         }
 
         [ProtoMember(1)] public List<ScreenConfig> Screens { get; set; }

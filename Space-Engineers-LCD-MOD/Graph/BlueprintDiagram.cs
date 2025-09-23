@@ -30,7 +30,7 @@ namespace Space_Engineers_LCD_MOD.Graph
             }
         }
 
-        protected override string DefaultTitle { get; set; } = "Blueprints";
+        protected override string DefaultTitle => "Blueprints";
 
         IMyProjector _projector;
 

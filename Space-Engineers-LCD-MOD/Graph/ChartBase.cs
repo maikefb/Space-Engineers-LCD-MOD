@@ -21,6 +21,9 @@ namespace Space_Engineers_LCD_MOD.Graph
     public abstract class ChartBase : MyTextSurfaceScriptBase
     {
         public static List<ChartBase> Instances = new List<ChartBase>();
+
+        IMyFaction _faction;
+        protected string Logo => FactionHelper.GetIcon(_faction);
         
         List<KeyValuePair<MyItemType, double>> _itemsCache = new List<KeyValuePair<MyItemType, double>>();
 
@@ -31,24 +34,24 @@ namespace Space_Engineers_LCD_MOD.Graph
 
         protected GridLogic GridLogic;
 
-        protected float CurrentTextPadding;
-
         protected float CaretY;
         protected float FooterHeight;
 
         protected float Margin = 0.02f;
         public abstract Dictionary<MyItemType, double> ItemSource { get; }
         public virtual string Title => DefaultTitle;
-        protected virtual string DefaultTitle { get; set; } = "";
+        protected virtual string DefaultTitle => "|";
 
         protected float Scale = 1;
+        
+        float _userScale;
+        float _userPadding;
         string _languageWord;
         public override ScriptUpdate NeedsUpdate => ScriptUpdate.Update10;
 
         public ScreenConfig Config { get; protected set; }
 
         public bool Dirty => _dirty;
-
         bool _dirty = true;
 
         public ScreenProviderConfig ProviderConfig;
@@ -59,7 +62,13 @@ namespace Space_Engineers_LCD_MOD.Graph
             UpdateViewBox();
         }
 
-        public void RequestRedraw() => Run();
+        public void RequestRedraw()
+        {
+            LayoutChanged();
+            _dirty = true;
+            Run();
+            _dirty = false;
+        }
 
         public override void Dispose()
         {
@@ -81,13 +90,15 @@ namespace Space_Engineers_LCD_MOD.Graph
         {
             var sizeOffset = (Surface.TextureSize - Surface.SurfaceSize) / 2;
 
-            CurrentTextPadding = Surface.TextPadding;
+            _userPadding = Surface.TextPadding;
 
             var padding = (Surface.TextPadding / 100) * Surface.SurfaceSize;
             sizeOffset += padding / 2;
 
             ViewBox = new RectangleF(sizeOffset.X, sizeOffset.Y, Surface.SurfaceSize.X - padding.X,
                 Surface.SurfaceSize.Y - padding.Y);
+            
+            _faction = FactionHelper.GetOwnerFaction(Block as IMyTerminalBlock);
         }
 
         public override void Run()
@@ -98,18 +109,15 @@ namespace Space_Engineers_LCD_MOD.Graph
                 return;
             }
 
-            if (Math.Abs(CurrentTextPadding - Surface.TextPadding) > .01f ||
-                Math.Abs(Scale - Config.Scale) > .001f ||
+            if (Math.Abs(_userPadding - Surface.TextPadding) > .01f ||
+                Math.Abs(_userScale - Config.Scale) > .001f ||
                 _languageWord != MyTexts.GetString("Language"))
-
                 LayoutChanged();
 
             if (GridLogic == null)
                 LcdModSessionComponent.Components.TryGetValue(Block.CubeGrid.EntityId, out GridLogic);
 
             base.Run();
-
-            _dirty = false;
         }
 
         void GetSettings(IMyTextSurface surface, IMyCubeBlock block)
@@ -156,7 +164,7 @@ namespace Space_Engineers_LCD_MOD.Graph
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXTURE,
-                Data = "Textures\\FactionLogo\\Others\\OtherIcon_18.dds",
+                Data = Logo,
                 Position = position + new Vector2(10f, 20) * Scale,
                 Size = new Vector2(40 * Scale),
                 Color = Config.HeaderColor,
@@ -395,9 +403,9 @@ namespace Space_Engineers_LCD_MOD.Graph
 
         protected virtual void LayoutChanged()
         {
-            _dirty = true;
-            _languageWord =
-                MyTexts.GetString("Language"); // hack Get the Language by comparing translation of the word Language
+            _userPadding = Surface.TextPadding;
+            _userScale = Config.Scale;
+            _languageWord = MyTexts.GetString("Language");
             Scale = GetAutoScaleUniform();
             UpdateViewBox();
         }

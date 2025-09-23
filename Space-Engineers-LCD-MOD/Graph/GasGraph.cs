@@ -38,8 +38,9 @@ namespace Space_Engineers_LCD_MOD.Graph
 
         public override Dictionary<MyItemType, double> ItemSource => null;
 
-        protected override string DefaultTitle { get; set; }
-
+        protected override string DefaultTitle => _localizedTitle;
+        string _localizedTitle;
+        
         public override void Run()
         {
             base.Run();
@@ -139,8 +140,7 @@ namespace Space_Engineers_LCD_MOD.Graph
             _nameO2 = GetGasDisplayName("Oxygen");
             _nameW = GetGasDisplayName("Water");
 
-            var localizedTitle = _nameH2 + " / " + _nameO2 + " / " + _nameW;
-            DefaultTitle = localizedTitle;
+            _localizedTitle = _nameH2 + " / " + _nameO2 + " / " + _nameW;
         }
 
         private string GetGasDisplayName(string subtype)
