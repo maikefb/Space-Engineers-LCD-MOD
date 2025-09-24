@@ -52,7 +52,7 @@ namespace Space_Engineers_LCD_MOD.Graph
         public ScreenConfig Config { get; protected set; }
 
         public bool Dirty => _dirty;
-        bool _dirty = true;
+        bool _dirty;
 
         public ScreenProviderConfig ProviderConfig;
 
