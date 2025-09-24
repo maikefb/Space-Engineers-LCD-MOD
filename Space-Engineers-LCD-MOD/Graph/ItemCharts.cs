@@ -52,7 +52,7 @@ namespace Space_Engineers_LCD_MOD.Graph
 
                 if (string.IsNullOrEmpty(LocalizedTitleCache))
                     LocalizedTitleCache = MyTexts.GetString(DefaultTitle);
-                
+
                 return LocalizedTitleCache;
             }
         }
@@ -200,6 +200,19 @@ namespace Space_Engineers_LCD_MOD.Graph
             Vector2 position = ViewBox.Position;
             position.X += margin;
             position.Y = CaretY;
+
+            if (Config.DrawLines)
+            {
+                frame.Add(new MySprite()
+                {
+                    Type = SpriteType.TEXTURE,
+                    Data = "Circle",
+                    Position = new Vector2(ViewBox.Center.X, position.Y),
+                    Size = new Vector2(ViewBox.Width - 2 * margin, 1),
+                    Color = Surface.ScriptForegroundColor,
+                    Alignment = TextAlignment.CENTER
+                });
+            }
 
             frame.Add(new MySprite()
             {

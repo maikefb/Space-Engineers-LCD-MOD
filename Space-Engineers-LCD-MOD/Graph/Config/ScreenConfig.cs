@@ -69,6 +69,8 @@ namespace Space_Engineers_LCD_MOD.Graph.Config
 
         [ProtoMember(8)] public long ReferenceBlock { get; set; }
 
+        [ProtoMember(9)] public bool DrawLines { get; set; }
+
         public void CopyFrom(ScreenConfig newValue)
         {
             HeaderColor = newValue.HeaderColor;
@@ -78,6 +80,7 @@ namespace Space_Engineers_LCD_MOD.Graph.Config
             SelectedCategories = newValue.SelectedCategories;
             InternalScale = newValue.InternalScale;
             ReferenceBlock = newValue.ReferenceBlock;
+            DrawLines = newValue.DrawLines;
         }
     }
 }

@@ -46,6 +46,8 @@ namespace Space_Engineers_LCD_MOD.Graph.Sys
                 _controls.Add(new ColorPickerHeader());
                 _controls.Add(new SliderChartScale());
 
+                _controls.Add(new SwitchToggleLines());
+                
                 _controls.Add(new ListboxProjectorSelection());
 
                 _controls.Add(new SeparatorFilter());
