@@ -176,6 +176,8 @@ namespace Graph.System
                 Controls.Add(new ButtonItemRemoveFromSelection(source, target));
                 Controls.Add(source);
                 Controls.Add(new ButtonItemAddToSelection(source, target));
+                
+                Controls.Add(new ComboboxSorting());
             }
             catch (Exception e)
             {

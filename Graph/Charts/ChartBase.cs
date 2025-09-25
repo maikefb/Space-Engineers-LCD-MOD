@@ -146,7 +146,22 @@ namespace Graph.Charts
             foreach (var keyValuePair in ItemSource)
                 _itemsCache.Add(keyValuePair);
 
-            _itemsCache.Sort((a, b) => b.Value.CompareTo(a.Value));
+            
+            switch (Config.SortMethod)
+            {
+                case SortMethod.Type:
+                    _itemsCache.Sort((a, b) =>
+                    {
+                        return a.Key.TypeId != b.Key.TypeId ? 
+                            string.Compare(a.Key.TypeId, b.Key.TypeId, StringComparison.CurrentCulture) : 
+                            string.Compare(a.Key.SubtypeId, b.Key.SubtypeId, StringComparison.CurrentCulture);
+                    });
+                    break;
+                default:
+                    _itemsCache.Sort((a, b) => b.Value.CompareTo(a.Value));
+                    break;
+            }
+
             return _itemsCache;
         }
 

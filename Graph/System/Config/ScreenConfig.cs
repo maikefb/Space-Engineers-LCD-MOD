@@ -70,6 +70,13 @@ namespace Graph.System.Config
         [ProtoMember(8)] public long ReferenceBlock { get; set; }
 
         [ProtoMember(9)] public bool DrawLines { get; set; }
+        [ProtoMember(10)] public int SortInternal { get; set; }
+
+        public SortMethod SortMethod
+        {
+            get { return (SortMethod)SortInternal; }
+            set { SortInternal = (int)value; }
+        }
 
         public void CopyFrom(ScreenConfig newValue)
         {
@@ -81,6 +88,7 @@ namespace Graph.System.Config
             InternalScale = newValue.InternalScale;
             ReferenceBlock = newValue.ReferenceBlock;
             DrawLines = newValue.DrawLines;
+            SortInternal = newValue.SortInternal;
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using Graph.Helpers;
+using Graph.System;
 using Sandbox.Definitions;
 using Sandbox.ModAPI;
 using VRage;
@@ -66,6 +67,7 @@ namespace Graph.Charts
         const int SCROLL_DELAY = 12; // 12 means 2 seconds delay (10 ticks per operation, 60 ticks per second)
 
         long _clock;
+        string _previousType = "";
 
         protected ItemCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
@@ -158,6 +160,8 @@ namespace Graph.Charts
 
                     int showCount = Math.Min(maxRows, items.Count);
 
+                    _previousType = items[start].Key.TypeId;
+
                     for (int visIdx = start; visIdx < start + showCount; visIdx++)
                         DrawRow(sprites, items[visIdx], shouldScroll);
                 }
@@ -201,7 +205,9 @@ namespace Graph.Charts
             position.X += margin;
             position.Y = CaretY;
 
-            if (Config.DrawLines)
+            bool drawSeparatorLine = Config.SortMethod == SortMethod.Type && _previousType != item.Key.TypeId;
+
+            if (Config.DrawLines || drawSeparatorLine)
             {
                 frame.Add(new MySprite()
                 {
@@ -209,10 +215,12 @@ namespace Graph.Charts
                     Data = "Circle",
                     Position = new Vector2(ViewBox.Center.X, position.Y),
                     Size = new Vector2(ViewBox.Width - 2 * margin, 1),
-                    Color = Surface.ScriptForegroundColor,
+                    Color = drawSeparatorLine ? Config.HeaderColor : Surface.ScriptForegroundColor,
                     Alignment = TextAlignment.CENTER
                 });
             }
+
+            _previousType = item.Key.TypeId;
 
             frame.Add(new MySprite()
             {
@@ -235,7 +243,7 @@ namespace Graph.Charts
             {
                 var key =
                     MyDefinitionManager.Static.TryGetPhysicalItemDefinition(item.Key).DisplayNameEnum?.ToString() ??
-                    item.Key.TypeId;
+                    item.Key.SubtypeId;
                 var sb = new StringBuilder(MyTexts.GetString(key));
                 TrimText(ref sb, clip.Width);
                 localizedName = sb.ToString();
