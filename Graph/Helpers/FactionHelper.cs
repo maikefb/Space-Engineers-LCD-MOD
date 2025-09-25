@@ -9,6 +9,7 @@ namespace Graph.Helpers
     {
         const string DEFAULT_ICON = "Textures\\FactionLogo\\Others\\OtherIcon_18.dds";
         public static Color DefaultColor => new Color(54, 0, 63);
+        public static Color DefaultBackgroundColor => Color.Black;
         
         public static IMyFaction GetOwnerFaction(IMyTerminalBlock block) => GetPlayerFaction(block?.OwnerId ?? 0);
         
@@ -24,6 +25,15 @@ namespace Graph.Helpers
                 return DefaultColor;
             
             var color = MyColorPickerConstants.HSVOffsetToHSV(faction.IconColor).HSVtoColor();
+            return color;
+        }
+        
+        public static Color GetBackgroundColor(IMyFaction faction)
+        {
+            if (faction?.CustomColor == null) 
+                return DefaultBackgroundColor;
+            
+            var color = MyColorPickerConstants.HSVOffsetToHSV(faction.CustomColor).HSVtoColor();
             return color;
         }
 

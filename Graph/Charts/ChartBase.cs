@@ -61,6 +61,20 @@ namespace Graph.Charts
             Instances.Add(this);
             UpdateViewBox();
             UpdateFaction(FactionHelper.GetOwnerFaction(Block as IMyTerminalBlock));
+            DrawSplash();
+        }
+
+        void DrawSplash()
+        {
+            var offset = Math.Min(ViewBox.Width, ViewBox.Height) / 5;
+            var frame = Surface.DrawFrame();
+            frame.Add(new MySprite(SpriteType.TEXTURE, "SquareSimple", ViewBox.Center,
+                new Vector2(Math.Max(ViewBox.Width, ViewBox.Height)*2), FactionHelper.GetBackgroundColor(Faction)));
+            frame.Add(new MySprite(SpriteType.TEXTURE, Icon, new Vector2(ViewBox.Center.X,ViewBox.Center.Y - offset/2),
+                new Vector2(Math.Min(ViewBox.Width, ViewBox.Height)/1.5f), FactionHelper.GetIconColor(Faction)));
+            frame.Add(new MySprite(SpriteType.TEXT, Title, new Vector2(ViewBox.Center.X, ViewBox.Center.Y + offset),
+                null,FactionHelper.GetIconColor(Faction), "White", rotation:1.6f));
+            frame.Dispose();
         }
 
         public void RequestRedraw()
