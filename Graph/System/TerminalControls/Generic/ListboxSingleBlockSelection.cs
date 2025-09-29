@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Graph.Helpers;
 using Graph.System.Config;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
@@ -49,9 +50,9 @@ namespace Graph.System.TerminalControls.Generic
             if (!_reference.Any())
                 return;
 
-            blockList.AddRange(_reference.Select(a => new MyTerminalControlListBoxItem(
-                MyStringId.GetOrCompute(a.CustomName),
-                MyStringId.GetOrCompute(a.CubeGrid.DisplayName),
+            blockList.AddRange(_reference.Select(a => ListBoxItemHelper.GetOrComputeListBoxItem(
+                a.CustomName,
+                a.CubeGrid.DisplayName,
                 a.EntityId)));
             
             var selection = blockList.FirstOrDefault(a => (a.UserData as long? ?? 0) == config.ReferenceBlock);

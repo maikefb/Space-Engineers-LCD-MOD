@@ -30,7 +30,7 @@ namespace Graph.System
 
         public static Dictionary<long, GridLogic> Components = new Dictionary<long, GridLogic>();
         public static List<TerminalControlsWrapper> Controls = new List<TerminalControlsWrapper>();
-        
+
         public override void LoadData()
         {
             if (MyAPIGateway.Utilities.IsDedicated && MyAPIGateway.Session.IsServer)
@@ -38,16 +38,17 @@ namespace Graph.System
 
             DebuggerHelper.Break();
             MyAPIGateway.Entities.OnEntityAdd += EntityAdded;
-            
+
             // lots of faction event to catch everything
             MyAPIGateway.Session.Factions.FactionCreated += FactionUpdated; // user created faction
             MyAPIGateway.Session.Factions.FactionEdited += FactionUpdated; // user changed anything on the faction
-            MyAPIGateway.Session.Factions.FactionStateChanged += FactionStateChanged; // user left the faction (and many others)
+            MyAPIGateway.Session.Factions.FactionStateChanged +=
+                FactionStateChanged; // user left the faction (and many others)
         }
 
         void FactionStateChanged(MyFactionStateChange change, long faction1, long faction2, long player, long client)
         {
-            if (change < MyFactionStateChange.FactionMemberSendJoin) 
+            if (change < MyFactionStateChange.FactionMemberSendJoin)
                 return;
 
             FactionUpdated(faction1);
@@ -84,6 +85,9 @@ namespace Graph.System
 
             ItemCharts.SpriteCache?.Clear();
             ItemCharts.SpriteCache = null;
+
+            ListBoxItemHelper.PerTypeCache.Clear();
+
             ConfigManager.Close();
         }
 
@@ -139,8 +143,8 @@ namespace Graph.System
                 ErrorHandlerHelper.LogError(e, this);
             }
         }
-        
-                public override void BeforeStart()
+
+        public override void BeforeStart()
         {
             try
             {
@@ -159,7 +163,7 @@ namespace Graph.System
                 Controls.Add(new SliderChartScale());
 
                 Controls.Add(new SwitchToggleLines());
-                
+
                 Controls.Add(new ListboxProjectorSelection());
 
                 Controls.Add(new SeparatorFilter());
@@ -176,7 +180,7 @@ namespace Graph.System
                 Controls.Add(new ButtonItemRemoveFromSelection(source, target));
                 Controls.Add(source);
                 Controls.Add(new ButtonItemAddToSelection(source, target));
-                
+
                 Controls.Add(new ComboboxSorting());
             }
             catch (Exception e)
@@ -200,7 +204,7 @@ namespace Graph.System
                     ScreenProviderConfig settings;
                     if (MyAPIGateway.Utilities.IsDedicated && MyAPIGateway.Session.IsServer)
                     {
-                        settings = ConfigManager.TryLoad(block) ?? ConfigManager.CreateSettings(block); 
+                        settings = ConfigManager.TryLoad(block) ?? ConfigManager.CreateSettings(block);
                         // Server doesn't need to keep track of the setting,
                         // only save/load it from blocks
                     }
@@ -226,7 +230,7 @@ namespace Graph.System
         {
             if (controls == null)
                 return;
-            
+
             try
             {
                 SetupProviderTerminal(block, controls);

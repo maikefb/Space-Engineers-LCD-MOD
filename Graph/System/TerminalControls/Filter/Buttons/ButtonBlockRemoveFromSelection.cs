@@ -20,18 +20,16 @@ namespace Graph.System.TerminalControls.Filter.Buttons
             
             var index = GetThisSurfaceIndex(block);
             var settings = ConfigManager.GetConfigForBlock(block);
-            
-            if (settings != null && settings.Screens.Count > index)
-            {
-                var config = settings.Screens[index];
-                RemoveGroups(config);
-                RemoveItems(config);
-                SourceList.TerminalControl.UpdateVisual();
-                TargetList.TerminalControl.UpdateVisual();
-                ConfigManager.Sync(block, settings);
-            }
 
-            TargetList.Selection.Clear();
+            if (settings == null || settings.Screens.Count <= index)
+                return;
+
+            var config = settings.Screens[index];
+            RemoveGroups(config);
+            RemoveItems(config);
+            SourceList.TerminalControl.UpdateVisual();
+            TargetList.TerminalControl.UpdateVisual();
+            ConfigManager.Sync(block, settings);
         }
 
         void RemoveGroups(ScreenConfig config)

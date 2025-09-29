@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Graph.Helpers;
 using Graph.System.Config;
 using Sandbox.ModAPI;
 using VRage.Game;
@@ -23,7 +24,7 @@ namespace Graph.System.TerminalControls.Filter.Listbox
         }
 
         protected override void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> blockList,
-            List<MyTerminalControlListBoxItem> _)
+            List<MyTerminalControlListBoxItem> selected)
         {
             var screenSettings = ConfigManager.GetConfigForCurrentScreen(b);
 
@@ -37,9 +38,9 @@ namespace Graph.System.TerminalControls.Filter.Listbox
 
             MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(b.CubeGrid).GetBlockGroups(_groups,
                 g => !screenSettings.SelectedGroups.Contains(g.Name));
-            blockList.AddRange(_groups.Select(a => new MyTerminalControlListBoxItem(
-                MyStringId.GetOrCompute($"*{a.Name}*"),
-                MyStringId.GetOrCompute($"{MyStringId.GetOrCompute("Terminal_GroupTitle")} {a.Name}"),
+            blockList.AddRange(_groups.Select(a => ListBoxItemHelper.GetOrComputeListBoxItem(
+                $"*{a.Name}*",
+                $"{MyStringId.GetOrCompute("Terminal_GroupTitle")} {a.Name}",
                 a.Name)));
 
             MyAPIGateway.GridGroups.GetGroup(referenceGrid, GridLinkTypeEnum.Logical, _grids);
@@ -47,9 +48,9 @@ namespace Graph.System.TerminalControls.Filter.Listbox
             _blocks.Clear();
 
             referenceGrid.GetBlocks(_blocks, c => IsValidBlock(c, b, screenSettings));
-            blockList.AddRange(_blocks.Select(a => new MyTerminalControlListBoxItem(
-                MyStringId.GetOrCompute(a.FatBlock.DisplayNameText),
-                MyStringId.GetOrCompute(a.FatBlock.DisplayNameText),
+            blockList.AddRange(_blocks.Select(a => ListBoxItemHelper.GetOrComputeListBoxItem(
+                a.FatBlock.DisplayNameText,
+                a.FatBlock.DisplayNameText,
                 a.FatBlock.EntityId)));
 
             foreach (var grid in _grids)
@@ -61,13 +62,15 @@ namespace Graph.System.TerminalControls.Filter.Listbox
 
                 grid.GetBlocks(_blocks, c => IsValidBlock(c, b, screenSettings));
 
-                blockList.AddRange(_blocks.Select(a => new MyTerminalControlListBoxItem(
-                    MyStringId.GetOrCompute($"@{a.FatBlock.DisplayNameText}@"),
-                    MyStringId.GetOrCompute(a.FatBlock.CubeGrid.DisplayName + " => " + a.FatBlock.DisplayNameText),
+                blockList.AddRange(_blocks.Select(a => ListBoxItemHelper.GetOrComputeListBoxItem(
+                    $"@{a.FatBlock.DisplayNameText}@",
+                    a.FatBlock.CubeGrid.DisplayName + " => " + a.FatBlock.DisplayNameText,
                     a.FatBlock.EntityId)));
 
                 _blocks.Clear();
             }
+            
+            base.Getter(b, blockList, selected);
         }
 
         bool IsValidBlock(IMySlimBlock block, IMyTerminalBlock referenceBlock, ScreenConfig config)

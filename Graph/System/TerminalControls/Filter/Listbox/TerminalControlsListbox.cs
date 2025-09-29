@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
 using VRage.ModAPI;
@@ -24,7 +25,27 @@ namespace Graph.System.TerminalControls.Filter.Listbox
             _terminalControl = listbox;
         }
 
-        protected abstract void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> items, List<MyTerminalControlListBoxItem> selected);
+        protected virtual void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> itemList,
+            List<MyTerminalControlListBoxItem> selected)
+        {
+            if (Selection == null || !Selection.Any())
+                return;
+
+            for (var index = 0; index < Selection.Count;)
+            {
+                if (itemList.Contains(Selection[index]))
+                {
+                    selected.Add(Selection[index]);
+                    index++;
+                }
+                else
+                {
+                    Selection.RemoveAtFast(index);
+                }
+            }
+
+        }
+
         void Setter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> selection) => Selection =  selection;
     }
 }

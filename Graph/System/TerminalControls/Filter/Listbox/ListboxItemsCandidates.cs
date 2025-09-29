@@ -20,26 +20,22 @@ namespace Graph.System.TerminalControls.Filter.Listbox
             CreateListbox("CandidatesItems", "BlockPropertyTitle_ConveyorSorterCandidatesList");
         }
 
-        protected override void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> blockList,
-            List<MyTerminalControlListBoxItem> _)
+        protected override void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> itemList,
+            List<MyTerminalControlListBoxItem> selected)
         {
             var screenSettings = ConfigManager.GetConfigForCurrentScreen(b);
 
             if (screenSettings == null)
                 return;
             
-            blockList.AddRange(ItemCategoryHelper.Groups.Where(g => !screenSettings.SelectedCategories.Contains(g))
-                .Select(g => new MyTerminalControlListBoxItem(
-                MyStringId.GetOrCompute(ItemCategoryHelper.GetGroupName(g)),
-                MyStringId.NullOrEmpty,
-                g)));
+            itemList.AddRange(ItemCategoryHelper.Groups.Where(g => !screenSettings.SelectedCategories.Contains(g))
+                .Select(g => ListBoxItemHelper.GetOrComputeListBoxItem(ItemCategoryHelper.GetGroupName(g), string.Empty, g)));
             
             var allItems = MyDefinitionManager.Static.GetAllDefinitions().Where(WhiteList).Where(a => !screenSettings.SelectedItems.Contains(a.Id)).ToList();
 
-            blockList.AddRange(allItems.Select(a => new MyTerminalControlListBoxItem(
-                MyStringId.GetOrCompute(a.DisplayNameText),
-                MyStringId.GetOrCompute(a.DescriptionText),
-                a.Id)));
+            itemList.AddRange(allItems.Select(a => ListBoxItemHelper.GetOrComputeListBoxItem(a.DisplayNameText,a.DescriptionText, a.Id)));
+
+            base.Getter(b, itemList, selected);
         }
 
         public bool WhiteList(object a)

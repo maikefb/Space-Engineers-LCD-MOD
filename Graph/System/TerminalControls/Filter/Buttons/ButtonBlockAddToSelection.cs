@@ -22,17 +22,15 @@ namespace Graph.System.TerminalControls.Filter.Buttons
             var index = GetThisSurfaceIndex(block);
             var settings = ConfigManager.GetConfigForBlock(block);
 
-            if (settings != null && settings.Screens.Count > index)
-            {
-                AddBlocks(settings.Screens[index]);
-                AddGroups(settings.Screens[index]);
-                
-                SourceList.TerminalControl.UpdateVisual();
-                TargetList.TerminalControl.UpdateVisual();
-                ConfigManager.Sync(block, settings);
-            }
+            if (settings == null || settings.Screens.Count <= index) 
+                return;
 
-            SourceList.Selection.Clear();
+            AddBlocks(settings.Screens[index]);
+            AddGroups(settings.Screens[index]);
+                
+            SourceList.TerminalControl.UpdateVisual();
+            TargetList.TerminalControl.UpdateVisual();
+            ConfigManager.Sync(block, settings);
         }
 
         void AddGroups(ScreenConfig config)
