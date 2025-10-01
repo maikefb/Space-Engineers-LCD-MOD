@@ -16,20 +16,19 @@ namespace Graph.System.Config
     /// </summary>
     public static class ConfigManager
     {
-        public static MyEasyNetworkManager NetworkManager;
+        public static NetworkManager NetworkManager;
 
         public static void Init()
         {
             MyLog.Default.Log(MyLogSeverity.Info, $"{nameof(Graph)}: Setting up Network Manager using port {Constants.PORT}");
-            NetworkManager = new MyEasyNetworkManager(Constants.PORT);
-            NetworkManager.Register();
+            NetworkManager = new NetworkManager(Constants.PORT);
+            NetworkManager.Init();
         }
 
         public static void Close()
         {
             MyLog.Default.Log(MyLogSeverity.Info, $"{nameof(Graph)}: Closing Network Manager");
-            NetworkManager?.UnRegister();
-            NetworkManager?.Clear();
+            NetworkManager?.Dispose();
             NetworkManager = null;
         }
 
@@ -82,7 +81,7 @@ namespace Graph.System.Config
         public static void Sync(IMyEntity storageEntity, ScreenProviderConfig providerConfig)
         {
             GetAppForBlock(storageEntity as IMyTerminalBlock).RequestRedraw();
-            NetworkManager.TransmitToServer(new PacketSyncScreenConfig(storageEntity.EntityId, providerConfig));
+            NetworkManager.TransmitToServer(new NetworkPackageSyncScreenConfig(storageEntity.EntityId, providerConfig));
             Save(storageEntity, providerConfig);
         }
 

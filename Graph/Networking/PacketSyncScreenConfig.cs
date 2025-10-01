@@ -4,25 +4,21 @@ using ProtoBuf;
 namespace Graph.Networking
 {
     [ProtoContract]
-    class PacketSyncScreenConfig : MyEasyNetworkManager.IPacket
+    class NetworkPackageSyncScreenConfig : NetworkPackage
     {
+        public override PackageCode Code => PackageCode.SyncConfig;
         [ProtoMember(1)] public long BlockId { get; set; }
         [ProtoMember(2)] public ScreenProviderConfig Config { get; set; }
 
         // ReSharper disable once UnusedMember.Global
-        public PacketSyncScreenConfig()// Needed for Protobuf
+        public NetworkPackageSyncScreenConfig()// Needed for Protobuf
         {
         }
 
-        public PacketSyncScreenConfig(long senderId, ScreenProviderConfig config)
+        public NetworkPackageSyncScreenConfig(long senderId, ScreenProviderConfig config)
         {
             BlockId = senderId;
             Config = config;
-        }
-
-        public int GetId()
-        {
-            return 1;
         }
     }
 }

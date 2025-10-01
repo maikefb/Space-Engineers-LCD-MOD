@@ -189,13 +189,13 @@ namespace Graph.System
             }
         }
 
-        void OnReceivedPacket(MyEasyNetworkManager.PacketIn packetRaw)
+        void OnReceivedPacket(ReceivedPacketEventArgs args)
         {
             try
             {
-                if (packetRaw.PacketId == 1)
+                if (args.PacketId == 1)
                 {
-                    var packet = packetRaw.UnWrap<PacketSyncScreenConfig>();
+                    var packet = args.UnWrap<NetworkPackageSyncScreenConfig>();
                     var block = MyEntities.GetEntityById(packet.BlockId) as IMyFunctionalBlock;
 
                     if (block == null)
