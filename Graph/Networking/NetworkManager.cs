@@ -17,7 +17,7 @@ namespace Graph.Networking
         {
             _channelId = channelId;
         }
-        
+
         public void Init()
         {
             Register();
@@ -32,7 +32,7 @@ namespace Graph.Networking
         {
             MyAPIGateway.Multiplayer.UnregisterSecureMessageHandler(_channelId, ReceivedPacket);
         }
-        
+
         public void Dispose()
         {
             OnReceivedPacket = null;
@@ -50,7 +50,8 @@ namespace Graph.Networking
         {
             PacketBase packet = new PacketBase(data.Id, false, sendToSender);
             packet.Wrap(data);
-            MyAPIGateway.Multiplayer.SendMessageTo(_channelId, MyAPIGateway.Utilities.SerializeToBinary(packet), playerId);
+            MyAPIGateway.Multiplayer.SendMessageTo(_channelId, MyAPIGateway.Utilities.SerializeToBinary(packet),
+                playerId);
         }
 
         void ReceivedPacket(ushort handler, byte[] raw, ulong id, bool isFromServer)
@@ -58,18 +59,18 @@ namespace Graph.Networking
             try
             {
                 PacketBase packet = MyAPIGateway.Utilities.SerializeFromBinary<PacketBase>(raw);
-                ReceivedPacketEventArgs receivedPacketEventArgs = new ReceivedPacketEventArgs(packet.Id, packet.Data, id, isFromServer);
+                ReceivedPacketEventArgs receivedPacketEventArgs =
+                    new ReceivedPacketEventArgs(packet.Id, packet.Data, id, isFromServer);
 
                 if (receivedPacketEventArgs.IsResolved)
                     return;
 
-                if (packet.SendToAllPlayers && MyAPIGateway.Session.IsServer) 
+                if (packet.SendToAllPlayers && MyAPIGateway.Session.IsServer)
                     TransmitPacketToAllPlayers(id, packet);
 
                 if ((!isFromServer && MyAPIGateway.Session.IsServer) ||
-                    (isFromServer && (!MyAPIGateway.Session.IsServer || packet.SendToSender))) 
+                    (isFromServer && (!MyAPIGateway.Session.IsServer || packet.SendToSender)))
                     OnReceivedPacket?.Invoke(receivedPacketEventArgs);
-
             }
             catch (Exception e)
             {
@@ -77,7 +78,9 @@ namespace Graph.Networking
                 MyLog.Default.WriteLineAndConsole($"{e.Message}\n{e.StackTrace}");
 
                 if (MyAPIGateway.Session?.Player != null)
-                    MyAPIGateway.Utilities.ShowNotification($"[ERROR: {GetType().FullName}: {e.Message} | Send SpaceEngineers.Log to mod author]", 10000, MyFontEnum.Red);
+                    MyAPIGateway.Utilities.ShowNotification(
+                        $"[ERROR: {GetType().FullName}: {e.Message} | Send SpaceEngineers.Log to mod author]", 10000,
+                        MyFontEnum.Red);
             }
         }
 
@@ -88,28 +91,28 @@ namespace Graph.Networking
 
             foreach (var p in tempPlayers)
             {
-                if (p.IsBot || p.SteamUserId == MyAPIGateway.Multiplayer.ServerId || (!packet.SendToSender && p.SteamUserId == sender))
+                if (p.IsBot || p.SteamUserId == MyAPIGateway.Multiplayer.ServerId ||
+                    (!packet.SendToSender && p.SteamUserId == sender))
                     continue;
 
-                MyAPIGateway.Multiplayer.SendMessageTo(_channelId, MyAPIGateway.Utilities.SerializeToBinary(packet), p.SteamUserId);
+                MyAPIGateway.Multiplayer.SendMessageTo(_channelId, MyAPIGateway.Utilities.SerializeToBinary(packet),
+                    p.SteamUserId);
             }
         }
 
         [ProtoContract]
         class PacketBase
         {
-            [ProtoMember(1)]
-            public readonly int Id;
-            [ProtoMember(2)]
-            public readonly bool SendToAllPlayers;
-            [ProtoMember(3)]
-            public readonly bool SendToSender;
+            [ProtoMember(1)] public readonly int Id;
+            [ProtoMember(2)] public readonly bool SendToAllPlayers;
+            [ProtoMember(3)] public readonly bool SendToSender;
 
-            [ProtoMember(4)]
-            public byte[] Data;
+            [ProtoMember(4)] public byte[] Data;
 
             // ReSharper disable once UnusedMember.Local
-            public PacketBase() { } // Needed for Protobuf
+            public PacketBase()
+            {
+            } // Needed for Protobuf
 
             public PacketBase(int id, bool sendToAllPlayers, bool sendToSender)
             {
@@ -136,9 +139,12 @@ namespace Graph.Networking
         SyncConfig = 1,
     }
 
-    public class ReceivedPacketEventArgs : EventArgs {
+    public class ReceivedPacketEventArgs : EventArgs
+    {
         public bool IsResolved { private set; get; }
         public int PacketId { protected set; get; }
+
+        public PackageCode Code => (PackageCode)PacketId;
         public ulong SenderId { protected set; get; }
         public bool IsFromServer { protected set; get; }
 

@@ -18,6 +18,7 @@ using VRage;
 using VRage.Game.Components;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
+using VRage.Utils;
 
 namespace Graph.System
 {
@@ -30,7 +31,7 @@ namespace Graph.System
 
         public static Dictionary<long, GridLogic> Components = new Dictionary<long, GridLogic>();
         public static List<TerminalControlsWrapper> Controls = new List<TerminalControlsWrapper>();
-
+        
         public override void LoadData()
         {
             if (MyAPIGateway.Utilities.IsDedicated && MyAPIGateway.Session.IsServer)
@@ -193,31 +194,40 @@ namespace Graph.System
         {
             try
             {
-                if (args.PacketId == 1)
+                switch (args.Code)
                 {
-                    var packet = args.UnWrap<NetworkPackageSyncScreenConfig>();
-                    var block = MyEntities.GetEntityById(packet.BlockId) as IMyFunctionalBlock;
-
-                    if (block == null)
-                        return;
-
-                    ScreenProviderConfig settings;
-                    if (MyAPIGateway.Utilities.IsDedicated && MyAPIGateway.Session.IsServer)
+                    case PackageCode.SyncConfig:
                     {
-                        settings = ConfigManager.TryLoad(block) ?? ConfigManager.CreateSettings(block);
-                        // Server doesn't need to keep track of the setting,
-                        // only save/load it from blocks
+                        var packet = args.UnWrap<NetworkPackageSyncScreenConfig>();
+                        var block = MyEntities.GetEntityById(packet.BlockId) as IMyFunctionalBlock;
+
+                        if (block == null)
+                            return;
+
+                        ScreenProviderConfig settings;
+                        if (MyAPIGateway.Utilities.IsDedicated && MyAPIGateway.Session.IsServer)
+                        {
+                            settings = ConfigManager.TryLoad(block) ?? ConfigManager.CreateSettings(block);
+                            // Server doesn't need to keep track of the setting,
+                            // only save/load it from blocks
+                        }
+                        else
+                        {
+                            settings = ChartBase.Instances.FirstOrDefault(a => a.Block.Equals(block))?.ProviderConfig;
+                        }
+
+                        if (settings == null)
+                            return;
+
+                        settings.CopyFrom(packet.Config);
+                        ConfigManager.Save(block, settings);
+                        break;
                     }
-                    else
+                    default:
                     {
-                        settings = ChartBase.Instances.FirstOrDefault(a => a.Block.Equals(block))?.ProviderConfig;
+                        MyLog.Default.Log(MyLogSeverity.Error, $"{nameof(Graph)}: Unexpected Packet Code Received");
+                        break;
                     }
-
-                    if (settings == null)
-                        return;
-
-                    settings.CopyFrom(packet.Config);
-                    ConfigManager.Save(block, settings);
                 }
             }
             catch (Exception e)
