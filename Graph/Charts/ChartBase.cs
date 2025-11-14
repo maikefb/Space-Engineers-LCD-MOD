@@ -47,6 +47,7 @@ namespace Graph.Charts
         float _userScale;
         float _userPadding;
         string _languageWord;
+        public bool TitleVisible { get; private set; } = true;
         public override ScriptUpdate NeedsUpdate => ScriptUpdate.Update10;
 
         public ScreenConfig Config { get; protected set; }
@@ -124,6 +125,7 @@ namespace Graph.Charts
 
             if (Math.Abs(_userPadding - Surface.TextPadding) > .01f ||
                 Math.Abs(_userScale - Config.Scale) > .001f ||
+                TitleVisible != Config.TitleVisible ||
                 _languageWord != MyTexts.GetString("Language"))
                 LayoutChanged();
 
@@ -179,15 +181,21 @@ namespace Graph.Charts
             return _itemsCache;
         }
 
+        /// <summary>
+        /// Resets the <see cref="CaretY"/> to the Top of the screen, if <see cref="TitleVisible"/>, draws the Tittle 
+        /// </summary>
+        /// <param name="frame"></param>
         protected virtual void DrawTitle(List<MySprite> frame)
         {
             var margin = ViewBox.Size.X * Margin;
-
             Vector2 position = ViewBox.Position;
             position.X += margin;
             position.Y += (ViewBox.Size.Y * Margin) / 2;
 
             CaretY = position.Y;
+            
+            if(!TitleVisible)
+                return;
 
             frame.Add(new MySprite()
             {
@@ -433,6 +441,7 @@ namespace Graph.Charts
         {
             _userPadding = Surface.TextPadding;
             _userScale = Config.Scale;
+            TitleVisible = Config.TitleVisible;
             _languageWord = MyTexts.GetString("Language");
             Scale = GetAutoScaleUniform();
             UpdateViewBox();

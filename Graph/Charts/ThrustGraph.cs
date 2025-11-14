@@ -9,9 +9,12 @@ using VRageMath;
 
 namespace Graph.Charts
 {
-    [MyTextSurfaceScript("MotorForceGraph", "Força dos Motores (solo)")]
-    public class MotorForceGraph : ChartBase
+    [MyTextSurfaceScript(ID, TITLE)]
+    public class ThrustGraph : ChartBase
     {
+        public const string ID = "MotorForceGraph";
+        public const string TITLE = "HelpScreen_JoystickThrust";
+        
         private static readonly Vector2 PIE_POS  = new Vector2(250, 320);
         private static readonly Vector2 INFO_POS = new Vector2(90, 355);
 
@@ -20,11 +23,11 @@ namespace Graph.Charts
         private const float PCT_FONT   = 1.5f;  
 
         public override Dictionary<VRage.Game.ModAPI.Ingame.MyItemType, double> ItemSource => null;
-        protected override string DefaultTitle => "Força dos Motores (solo)";
+        protected override string DefaultTitle => TITLE;
 
         PieChartPanel pie;
         
-        public MotorForceGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
+        public ThrustGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
             Surface.ContentType = ContentType.SCRIPT;
             

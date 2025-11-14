@@ -11,8 +11,8 @@ namespace Graph.System.Config
     [ProtoContract]
     public class ScreenConfig
     {
-        const float MAX_SCALE = 2.5f;
-        const float MIN_SCALE = 0.1f;
+        public const float MAX_SCALE = 10f;
+        public const float MIN_SCALE = 0.1f;
         
         // ReSharper disable once UnusedMember.Global
         public ScreenConfig() // Needed for Protobuf
@@ -28,6 +28,8 @@ namespace Graph.System.Config
         [ProtoMember(1)] public int ScreenIndex { get; set; }
 
         [ProtoMember(2)] public Color HeaderColor { get; set; }
+        
+        [ProtoMember(11)] public bool TitleVisible { get; set; } = true;
 
         [ProtoMember(3)] public long[] SelectedBlocks { get; set; } = Array.Empty<long>();
 

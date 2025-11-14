@@ -161,6 +161,7 @@ namespace Graph.System
                 TerminalControlsListbox target = new ListboxBlockSelected();
 
                 Controls.Add(new ColorPickerHeader());
+                Controls.Add(new SwitchToggleHeader());
                 Controls.Add(new SliderChartScale());
 
                 Controls.Add(new SwitchToggleLines());

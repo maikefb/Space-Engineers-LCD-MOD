@@ -118,9 +118,7 @@ namespace Graph.Charts
                     Vector2 position = ViewBox.Position;
                     position.X += margin;
                     position.Y = CaretY;
-                    sprites.Add(MakeText((IMyTextSurface)Surface,
-                        $"- {MyTexts.GetString("BlockPropertyProperties_WaterLevel_Empty")} -",
-                        ViewBox.Center, Scale, TextAlignment.CENTER));
+                    sprites.Add(MakeText((IMyTextSurface)Surface, LocHelper.Empty, ViewBox.Center, Scale, TextAlignment.CENTER));
                 }
                 else
                 {
@@ -351,6 +349,9 @@ namespace Graph.Charts
 
             CaretY = position.Y;
 
+            if(!TitleVisible)
+                return;
+            
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXTURE,

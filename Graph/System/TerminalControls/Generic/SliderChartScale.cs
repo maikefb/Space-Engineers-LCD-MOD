@@ -16,7 +16,7 @@ namespace Graph.System.TerminalControls.Generic
             slider.Getter = Getter;
             slider.Setter = Setter;
             slider.Visible = Visible;
-            slider.SetLimits(.1f, 2.5f);
+            slider.SetLimits(ScreenConfig.MIN_SCALE, ScreenConfig.MAX_SCALE);
             slider.Writer = Writer;
             slider.Title = MyStringId.GetOrCompute("BlockPropertyTitle_Scale");
 

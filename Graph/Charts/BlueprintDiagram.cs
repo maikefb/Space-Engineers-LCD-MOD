@@ -16,9 +16,12 @@ using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
 namespace Graph.Charts
 {
-    [MyTextSurfaceScript("BlueprintDiagram", "Blueprints")]
+    [MyTextSurfaceScript(ID, "Blueprints")]
     public class BlueprintDiagram : ItemCharts
     {
+        public const string ID = "BlueprintDiagram";
+        public const string TITLE = "Blueprints";
+        
         public override string Title
         {
             get
@@ -30,7 +33,7 @@ namespace Graph.Charts
             }
         }
 
-        protected override string DefaultTitle => "Blueprints";
+        protected override string DefaultTitle => TITLE;
 
         IMyProjector _projector;
 

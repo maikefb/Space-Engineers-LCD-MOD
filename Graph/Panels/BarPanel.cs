@@ -14,7 +14,7 @@ namespace Graph.Panels
 
         private readonly Color _bgColor;
         private readonly Color _fillColor;
-        private readonly Vector2 _posTopLeft;
+        private readonly Vector2 _position;
         private readonly float _radius;
         private readonly Vector2 _size;
         private readonly Style _style;
@@ -27,7 +27,7 @@ namespace Graph.Panels
             float cornerRadius = -1f,
             Style style = Style.PillBleed)
         {
-            _posTopLeft = posTopLeft;
+            _position = new Vector2(posTopLeft.X, posTopLeft.Y + (size.Y/2));
             _size = new Vector2(MathHelper.Max(1f, size.X), MathHelper.Max(1f, size.Y));
             _fillColor = fillColor;
             _bgColor = bgColor;
@@ -46,11 +46,11 @@ namespace Graph.Panels
             if (_style == Style.Ellipse)
             {
                 if (drawBackground)
-                    list.Add(MakeTex("Circle", _posTopLeft, _size, _bgColor));
+                    list.Add(MakeTex("Circle", _position, _size, _bgColor));
                 if (f > 0f)
                 {
                     var w = _size.X * f;
-                    list.Add(MakeTex("Circle", _posTopLeft, new Vector2(w, _size.Y), fillCol));
+                    list.Add(MakeTex("Circle", _position, new Vector2(w, _size.Y), fillCol));
                 }
 
                 return list;
@@ -78,17 +78,17 @@ namespace Graph.Panels
 
             if (w <= d + 0.001f)
             {
-                list.Add(MakeTex("Circle", _posTopLeft, new Vector2(w, h), color));
+                list.Add(MakeTex("Circle", _position, new Vector2(w, h), color));
                 return;
             }
 
-            list.Add(MakeTex("Circle", _posTopLeft, new Vector2(d, h), color));
-            list.Add(MakeTex("Circle", _posTopLeft + new Vector2(w - d, 0), new Vector2(d, h), color));
+            list.Add(MakeTex("Circle", _position, new Vector2(d, h), color));
+            list.Add(MakeTex("Circle", _position + new Vector2(w - d, 0), new Vector2(d, h), color));
 
             var rectX = r - bleed;
             var rectW = w - 2f * r + 2f * bleed;
             if (rectW > 0.25f)
-                list.Add(MakeTex("SquareSimple", _posTopLeft + new Vector2(rectX, 0f), new Vector2(rectW, h), color));
+                list.Add(MakeTex("SquareSimple", _position + new Vector2(rectX, 0f), new Vector2(rectW, h), color));
         }
 
         private static MySprite MakeTex(string name, Vector2 posTopLeft, Vector2 size, Color color)

@@ -1,4 +1,5 @@
 using System;
+using Graph.Charts;
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
@@ -22,7 +23,7 @@ namespace Graph.System.TerminalControls
         ///     List of which scripts should be selected for this control be visible
         /// </summary>
         protected virtual string[] VisibleForScripts { get; } =
-            { "InventoryCharts", "MotorForceGraph", "RenewableGraph", "BlueprintDiagram", "ContainerGraph" };
+            { InventoryCharts.ID, ThrustGraph.ID, "RenewableGraph", BlueprintDiagram.ID, ContainerGraph.ID };
 
         /// <summary>
         ///     Prefix for ID of every control

@@ -4,17 +4,22 @@ using Graph.Helpers;
 using Graph.Panels;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
+using VRage;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
+using VRage.Utils;
 using VRageMath;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 using IMyCubeGrid = VRage.Game.ModAPI.IMyCubeGrid;
 
 namespace Graph.Charts
 {
-    [MyTextSurfaceScript("RenewableGraph", "Turbina & Painel Solar")]
+    [MyTextSurfaceScript(ID, TITLE)]
     public class RenewableGraph : ChartBase
     {
+        public const string ID = "RenewableGraph";
+        public const string TITLE = "DisplayName_BlockGroup_EnergyRenewableGroup";
+        
         private const float LINE = 25f;
         private static readonly Vector2 TITLE_POS = new Vector2(16, 18);
         private static readonly Vector2 PIE_SOLAR = new Vector2(90, 240);
@@ -48,7 +53,7 @@ namespace Graph.Charts
         }
 
         public override Dictionary<MyItemType, double> ItemSource => null;
-        protected override string DefaultTitle => "Turbina & Painel Solar";
+        protected override string DefaultTitle => TITLE;
 
         protected override void LayoutChanged()
         {
@@ -81,33 +86,37 @@ namespace Graph.Charts
                 sprites.AddRange(pieSolar.GetSprites(useSolar, Config.HeaderColor, true));
                 sprites.AddRange(pieWind.GetSprites(useWind, Config.HeaderColor, true));
 
-                sprites.Add(Centered("Painel ( " + Pct(useSolar) + " )",
+
+                var max = MyTexts.Get(MyStringId.GetOrCompute("BlockPropertiesText_MaxOutput"));
+                var current = MyTexts.Get(MyStringId.GetOrCompute("BlockPropertyProperties_CurrentOutput"));
+                var usage = MyTexts.Get(MyStringId.GetOrCompute("HudInfoNamePowerUsage")) + " ";
+                var solar = MyTexts.Get(MyStringId.GetOrCompute("DisplayName_BlockGroup_SolarPanels"));
+                sprites.Add(Centered($"{solar} ( " + Pct(useSolar) + " )",
                     ViewBox.Position + PIE_SOLAR * Scale - new Vector2(-15f * Scale, 160f * Scale),
                     0.8f * Scale));
 
-                sprites.Add(Centered("Turbina ( " + Pct(useWind) + " )",
+                var wind = MyTexts.Get(MyStringId.GetOrCompute("DisplayName_BlockGroup_WindTurbines"));
+                sprites.Add(Centered($"{wind} ( " + Pct(useWind) + " )",
                     ViewBox.Position + PIE_WIND * Scale - new Vector2(-15f * Scale, 160f * Scale),
                     0.8f * Scale));
 
                 var solarVector = ViewBox.Position + TEXT_POS_SOLAR * Scale;
-                sprites.Add(Text("Painéis Solares", solarVector, 0.95f * Scale));
+                sprites.Add(Text(solar.ToString(), solarVector, 0.95f * Scale));
                 solarVector += new Vector2(0, LINE * Scale);
-                sprites.Add(Text("Geração Max: " + Pow(maxSolar), solarVector, 0.9f * Scale));
+                sprites.Add(Text(max + Pow(maxSolar), solarVector, 0.9f * Scale));
                 solarVector += new Vector2(0, LINE * Scale);
-                sprites.Add(Text("Gerando: " + Pow(curSolar), solarVector, 0.9f * Scale));
+                sprites.Add(Text(current + Pow(curSolar), solarVector, 0.9f * Scale));
                 solarVector += new Vector2(0, LINE * Scale);
-                sprites.Add(Text("Uso: " + Pct(useSolar), solarVector, 0.9f * Scale));
-                solarVector += new Vector2(0, LINE * 2f * Scale);
+                sprites.Add(Text(usage + Pct(useSolar), solarVector, 0.9f * Scale));
 
                 var windVector = ViewBox.Position + TEXT_POS_WIND * Scale;
-                sprites.Add(Text("Turbinas Eólicas", windVector, 0.95f * Scale));
+                sprites.Add(Text(wind.ToString(), windVector, 0.95f * Scale));
                 windVector += new Vector2(0, LINE * Scale);
-                sprites.Add(Text("Geração Max: " + Pow(maxWind), windVector, 0.9f * Scale));
+                sprites.Add(Text(max + Pow(maxWind), windVector, 0.9f * Scale));
                 windVector += new Vector2(0, LINE * Scale);
-                sprites.Add(Text("Gerando: " + Pow(curWind), windVector, 0.9f * Scale));
+                sprites.Add(Text(current + Pow(curWind), windVector, 0.9f * Scale));
                 windVector += new Vector2(0, LINE * Scale);
-                sprites.Add(Text("Uso: " + Pct(useWind), windVector, 0.9f * Scale));
-                windVector += new Vector2(0, LINE * Scale);
+                sprites.Add(Text(usage + Pct(useWind), windVector, 0.9f * Scale));
 
                 frame.AddRange(sprites);
             }

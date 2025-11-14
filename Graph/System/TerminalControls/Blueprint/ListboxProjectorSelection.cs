@@ -1,3 +1,4 @@
+using Graph.Charts;
 using Graph.System.TerminalControls.Generic;
 using Sandbox.ModAPI;
 
@@ -5,7 +6,7 @@ namespace Graph.System.TerminalControls.Blueprint
 {
     public class ListboxProjectorSelection : ListboxSingleBlockSelection<IMyProjector>
     {
-        protected override string[] VisibleForScripts { get; } = { "BlueprintDiagram" };
+        protected override string[] VisibleForScripts { get; } = { BlueprintDiagram.ID };
 
         public ListboxProjectorSelection()
         {

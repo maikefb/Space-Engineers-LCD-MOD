@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using Graph.Extensions;
+using Graph.Helpers;
+using Graph.Panels;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
 using VRage.Game.GUI.TextPanel;
@@ -13,19 +16,20 @@ using IMySlimBlock = VRage.Game.ModAPI.IMySlimBlock;
 
 namespace Graph.Charts
 {
-    [MyTextSurfaceScript("ContainerCharts", "Contêineres")]
+    [MyTextSurfaceScript(ID, TITLE)]
     public class ContainerGraph : ChartBase
     {
-        private const float LINE = 18f;
-        private const float H_MARGIN = 12f;
-        private const float TOP_MARGIN = 56f;
+        public const string ID = "ContainerCharts";
+        public const string TITLE = "DisplayName_CargoFilledEntityComponent";
+
+        List<BarPanel> barCache = new List<BarPanel>();
 
         public ContainerGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
             Surface.ContentType = ContentType.SCRIPT;
         }
 
-        protected override string DefaultTitle => "Contêineres";
+        protected override string DefaultTitle => TITLE;
         public override Dictionary<MyItemType, double> ItemSource => null;
 
         public override void Run()
@@ -43,7 +47,7 @@ namespace Graph.Charts
                 DrawTitle(sprites);
 
                 var details = new List<Entry>(128);
-                AggregateAllContainersInLogicalGroup((IMyCubeGrid)Block?.CubeGrid, details);
+                GetContainers((IMyCubeGrid)Block?.CubeGrid, details);
 
                 details.Sort((a, b) =>
                 {
@@ -54,56 +58,121 @@ namespace Graph.Charts
                     return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
                 });
 
-                var lh = LINE * Scale;
-                var leftX = ViewBox.Position.X + H_MARGIN * Scale;
-                var rightX = ViewBox.Position.X + ViewBox.Size.X - H_MARGIN * Scale;
-                var y = ViewBox.Position.Y + TOP_MARGIN * Scale;
 
                 if (details.Count == 0)
                     sprites.Add(new MySprite
                     {
                         Type = SpriteType.TEXT,
-                        Data = "- nenhum contêiner encontrado -",
-                        Position = new Vector2(leftX, y),
+                        Data = LocHelper.Empty,
+                        Position = new Vector2(ViewBox.Position.X + 12f * Scale, CaretY),
                         Color = Surface.ScriptForegroundColor,
                         Alignment = TextAlignment.LEFT,
                         RotationOrScale = 0.88f * Scale
                     });
                 else
-                    for (var i = 0; i < details.Count; i++)
+                    for (var index = 0; index < details.Count; index++)
                     {
-                        var e = details[i];
-                        var pct = 0;
-                        if (e.Cap > 1e-9)
-                            pct = (int)Math.Round(Math.Max(0.0, Math.Min(1.0, e.Used / e.Cap)) * 100.0);
+                        var t = details[index];
+                        BarPanel panel = null;
 
-                        sprites.Add(new MySprite
-                        {
-                            Type = SpriteType.TEXT,
-                            Data = e.Name,
-                            Position = new Vector2(leftX, y),
-                            Color = Surface.ScriptForegroundColor,
-                            Alignment = TextAlignment.LEFT,
-                            RotationOrScale = 0.86f * Scale
-                        });
+                        if (barCache.Count > index)
+                            panel = barCache[index];
 
-                        sprites.Add(new MySprite
-                        {
-                            Type = SpriteType.TEXT,
-                            Data = pct.ToString(CultureInfo.InvariantCulture) + "%",
-                            Position = new Vector2(rightX, y),
-                            Color = Surface.ScriptForegroundColor,
-                            Alignment = TextAlignment.RIGHT,
-                            RotationOrScale = 0.86f * Scale
-                        });
+                        DrawRow(sprites, t, true, ref panel);
 
-                        y += lh;
+                        if (barCache.Count <= index)
+                            barCache.Add(panel);
                     }
 
                 frame.AddRange(sprites);
             }
         }
 
+        protected override void LayoutChanged()
+        {
+            base.LayoutChanged();
+            barCache.Clear();
+        }
+
+        protected void DrawRow(List<MySprite> frame, Entry item, bool showScrollBar, ref BarPanel barPanel)
+        {
+            var margin = ViewBox.Size.X * Margin;
+            Vector2 position = ViewBox.Position;
+            position.X += margin;
+            position.Y = CaretY;
+
+            var pct = MathHelper.Clamp(item.Used / item.Cap, 0, 1);
+
+            var clip = new Rectangle((int)position.X, (int)position.Y,
+                (int)(ViewBox.Width - position.X + (ViewBox.X) - 145 * Scale),
+                (int)(LINE_HEIGHT * Scale));
+
+            var barMargin = 8 * Scale;
+
+            if (barPanel == null)
+            {
+                Vector2 size;
+                if (showScrollBar)
+                    size = new Vector2(ViewBox.Width - position.X + (ViewBox.X) - SCROLLER_WIDTH * Scale, clip.Height) -
+                           barMargin;
+                else
+                    size = new Vector2(ViewBox.Width - position.X + (ViewBox.X), clip.Height) - barMargin;
+
+                barPanel = new BarPanel(new Vector2(clip.Location.X, clip.Location.Y) + barMargin / 2, size
+                    , Config.HeaderColor, Surface.ScriptForegroundColor);
+            }
+
+            frame.AddRange(barPanel.GetSprites((float)pct));
+
+            frame.Add(MySprite.CreateClipRect(clip));
+
+            position.X += 16 * Scale;
+            position.Y += 4 * Scale;
+            
+            var text = new MySprite()
+            {
+                Type = SpriteType.TEXT,
+                Data = item.Name,
+                Position = position,
+                RotationOrScale = Scale,
+                Color = Surface.ScriptForegroundColor,
+                Alignment = TextAlignment.LEFT,
+                FontId = "White"
+            };
+
+            var shadowOffset = 2 * Scale;
+            frame.Add(text.Shadow(2*Scale));
+            frame.Add(text);
+
+            frame.Add(MySprite.CreateClearClipRect());
+
+            position.X = ViewBox.Width + ViewBox.X - margin;
+            if (showScrollBar)
+                position.X -= SCROLLER_WIDTH * Scale;
+
+            var percentage = new MySprite()
+            {
+                Type = SpriteType.TEXT,
+                Data = pct.ToString("P"),
+                Position = position,
+                RotationOrScale = Scale,
+                Color = Surface.ScriptForegroundColor,
+                Alignment = TextAlignment.RIGHT,
+                FontId = "White"
+            };
+            frame.Add(percentage.Shadow(shadowOffset));
+            frame.Add(percentage);
+
+            CaretY += LINE_HEIGHT * Scale;
+        }
+
+        const int SCROLLER_WIDTH = 8;
+        const int LINE_HEIGHT = 40;
+
+        void GetContainers(IMyCubeGrid rootGrid, List<Entry> details)
+        {
+            AggregateAllContainersInLogicalGroup(rootGrid, details);
+        }
 
         private void AggregateAllContainersInLogicalGroup(IMyCubeGrid rootGrid, List<Entry> details)
         {
@@ -202,7 +271,7 @@ namespace Graph.Charts
         }
 
 
-        private class Entry
+        public class Entry
         {
             public double Cap;
             public string Name;
