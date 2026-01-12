@@ -23,7 +23,6 @@ using VRage.Utils;
 namespace Graph.System
 {
     [MySessionComponentDescriptor(MyUpdateOrder.BeforeSimulation | MyUpdateOrder.AfterSimulation)]
-    // ReSharper disable once ClassNeverInstantiated.Global
     public class LcdModSessionComponent : MySessionComponentBase
     {
         readonly Dictionary<long, MyTuple<IMyCubeGrid, GridLogic>> _grids =
@@ -40,11 +39,10 @@ namespace Graph.System
             DebuggerHelper.Break();
             MyAPIGateway.Entities.OnEntityAdd += EntityAdded;
 
-            // lots of faction event to catch everything
-            MyAPIGateway.Session.Factions.FactionCreated += FactionUpdated; // user created faction
-            MyAPIGateway.Session.Factions.FactionEdited += FactionUpdated; // user changed anything on the faction
+            MyAPIGateway.Session.Factions.FactionCreated += FactionUpdated;
+            MyAPIGateway.Session.Factions.FactionEdited += FactionUpdated; 
             MyAPIGateway.Session.Factions.FactionStateChanged +=
-                FactionStateChanged; // user left the faction (and many others)
+                FactionStateChanged; 
         }
 
         void FactionStateChanged(MyFactionStateChange change, long faction1, long faction2, long player, long client)
@@ -209,8 +207,6 @@ namespace Graph.System
                         if (MyAPIGateway.Utilities.IsDedicated && MyAPIGateway.Session.IsServer)
                         {
                             settings = ConfigManager.TryLoad(block) ?? ConfigManager.CreateSettings(block);
-                            // Server doesn't need to keep track of the setting,
-                            // only save/load it from blocks
                         }
                         else
                         {

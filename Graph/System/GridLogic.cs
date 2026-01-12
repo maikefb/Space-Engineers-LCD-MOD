@@ -17,7 +17,7 @@ namespace Graph.System
     /// </summary>
     public class GridLogic
     {
-        const int DELAY = 120; // 120 ticks means 2 seconds delay
+        const int DELAY = 120; 
         long _clock;
 
         public readonly IMyCubeGrid Grid;
@@ -92,7 +92,7 @@ namespace Graph.System
             {
                 var tb = blocks[b];
 
-                if (!tb.HasInventory) // should *NOT* happen
+                if (!tb.HasInventory) 
                     continue;
 
                 int invCount = tb.InventoryCount;

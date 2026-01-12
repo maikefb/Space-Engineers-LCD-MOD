@@ -14,8 +14,7 @@ namespace Graph.System.Config
         public const float MAX_SCALE = 10f;
         public const float MIN_SCALE = 0.1f;
         
-        // ReSharper disable once UnusedMember.Global
-        public ScreenConfig() // Needed for Protobuf
+        public ScreenConfig() 
         {
         }
 

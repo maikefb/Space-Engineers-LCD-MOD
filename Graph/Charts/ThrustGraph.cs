@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Graph.Panels;
-using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
@@ -9,7 +8,7 @@ using VRageMath;
 
 namespace Graph.Charts
 {
-    [MyTextSurfaceScript(ID, TITLE)]
+    // [MyTextSurfaceScript(ID, TITLE)]
     public class ThrustGraph : ChartBase
     {
         public const string ID = "MotorForceGraph";

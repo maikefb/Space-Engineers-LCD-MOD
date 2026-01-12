@@ -47,7 +47,7 @@ namespace Graph.System
         class TankInfo
         {
             public IMyTerminalBlock Block;
-            public string GasKind; // "H2" | "O2" | null
+            public string GasKind; 
             public string TypeName;
             public double Capacity;
             public double Amount;
@@ -56,7 +56,6 @@ namespace Graph.System
 
         public override void UpdateBeforeSimulation()
         {
-            // roda só no host/servidor
             if (MyAPIGateway.Multiplayer != null && !MyAPIGateway.Multiplayer.IsServer) return;
 
             _ticks++;
@@ -102,32 +101,22 @@ namespace Graph.System
                         string mode, token;
                         ParseFilter(lcd.CustomName ?? "", out mode, out token);
 
-                        // ==== Gases (H2/O2): total/atual + taxa total (grid/token)
                         double capH2 = 0, amtH2 = 0, capO2 = 0, amtO2 = 0;
                         SumGasesFromTankInfos(tankInfos, token, ref capH2, ref amtH2, ref capO2, ref amtO2);
 
                         double inH2 = 0, outH2 = 0, inO2 = 0, outO2 = 0;
                         ComputeGasRates(grid, token, amtH2, amtO2, ref inH2, ref outH2, ref inO2, ref outO2);
 
-                        // ==== TOP 3 entrada/saída por TIPO DE TANQUE (filtrado pelo token)
                         var inTopH2  = new List<KeyValuePair<string,double>>();
                         var outTopH2 = new List<KeyValuePair<string,double>>();
                         var inTopO2  = new List<KeyValuePair<string,double>>();
                         var outTopO2 = new List<KeyValuePair<string,double>>();
                         BuildTopTankFlows(tankInfos, token, inTopH2, outTopH2, inTopO2, outTopO2);
 
-                        // PROJECTOR → progresso + faltantes (texto localizado do jogo)
                         int totalBlocks = 1, remainingBlocks = 0;
                         var missingMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                         AggregateProjector(projectors, lcd.CustomName ?? "", ref totalBlocks, ref remainingBlocks, missingMap);
 
-                        WriteCustomData(
-                            lcd,
-                            totalBlocks, remainingBlocks, missingMap,
-                            capH2, amtH2, inH2, outH2,
-                            capO2, amtO2, inO2, outO2,
-                            inTopH2, outTopH2, inTopO2, outTopO2
-                        );
                     }
                 }
             }
@@ -137,7 +126,6 @@ namespace Graph.System
             }
         }
 
-        // ===== util =====
 
         void ParseFilter(string name, out string mode, out string token)
         {
@@ -157,7 +145,7 @@ namespace Graph.System
                 {
                     var def = MyDefinitionManager.Static.GetDefinition(defId);
                     if (def != null)
-                        return def.DisplayNameText; // localizado na língua do jogo
+                        return def.DisplayNameText; 
                 }
             }
             catch (Exception e)
@@ -228,7 +216,6 @@ namespace Graph.System
             }
         }
 
-        // ===== Tanques (H2/O2) =====
 
         List<TankInfo> BuildTankInfos(List<IMySlimBlock> slims)
         {
@@ -244,7 +231,6 @@ namespace Graph.System
                 var gas = tb as Sandbox.ModAPI.IMyGasTank;
                 if (gas == null) continue;
 
-                // definição do bloco
                 double capacity = 0.0;
                 string gasKind = null;
                 string typeName = null;
@@ -273,7 +259,6 @@ namespace Graph.System
                     ErrorHandlerHelper.LogError(e, GetType());
                 }
 
-                // fallback por nome do bloco
                 if (gasKind == null)
                 {
                     var name = (tb.CustomName ?? "").ToLowerInvariant();
@@ -286,7 +271,6 @@ namespace Graph.System
                 try { ratio = (float) gas.FilledRatio; } catch { }
                 double amount = capacity * (double)ratio;
 
-                // taxa (delta/seg) via snapshot por tanque
                 double rate = 0;
                 var id = tb.EntityId;
                 TankSnap snap;
@@ -300,7 +284,7 @@ namespace Graph.System
                     var dt = now - snap.LastSec;
                     if (dt > 0.5)
                     {
-                        rate = (amount - snap.LastAmount) / dt; // + enchendo, - esvaziando
+                        rate = (amount - snap.LastAmount) / dt; 
                         snap.LastAmount = amount;
                         snap.LastSec = now;
                     }
@@ -522,47 +506,6 @@ namespace Graph.System
             int acc;
             if (map.TryGetValue(name, out acc)) map[name] = acc + qty;
             else map[name] = qty;
-        }
-
-        // ===== SAÍDA PARA AS LCDs =====
-        void WriteCustomData(
-            Sandbox.ModAPI.IMyTextPanel lcd,
-            int totalBlocks,
-            int remainingBlocks,
-            Dictionary<string, int> missing,
-            double capH2, double amtH2, double inH2, double outH2,
-            double capO2, double amtO2, double inO2, double outO2,
-            List<KeyValuePair<string,double>> inTopH2,
-            List<KeyValuePair<string,double>> outTopH2,
-            List<KeyValuePair<string,double>> inTopO2,
-            List<KeyValuePair<string,double>> outTopO2
-        )
-        {
-            var sb = new StringBuilder();
-
-            sb.AppendLine("[GasCharts]");
-            sb.AppendLine("TotalH2="   + capH2.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine("CurrentH2=" + amtH2.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine("InH2="      + inH2.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine("OutH2="     + outH2.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine("TotalO2="   + capO2.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine("CurrentO2=" + amtO2.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine("InO2="      + inO2.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine("OutO2="     + outO2.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
-
-            for (int i = 0; i < inTopH2.Count; i++)  sb.AppendLine("InTopH2="  + inTopH2[i].Key  + ": " + inTopH2[i].Value.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
-            for (int i = 0; i < outTopH2.Count; i++) sb.AppendLine("OutTopH2=" + outTopH2[i].Key + ": " + outTopH2[i].Value.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
-            for (int i = 0; i < inTopO2.Count; i++)  sb.AppendLine("InTopO2="  + inTopO2[i].Key  + ": " + inTopO2[i].Value.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
-            for (int i = 0; i < outTopO2.Count; i++) sb.AppendLine("OutTopO2=" + outTopO2[i].Key + ": " + outTopO2[i].Value.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
-            sb.AppendLine();
-
-            sb.AppendLine("[BlueprintCharts]");
-            sb.AppendLine("TotalBlocks=" + Math.Max(totalBlocks, 1));
-            sb.AppendLine("RemainingBlocks=" + Math.Max(Math.Min(remainingBlocks, totalBlocks), 0));
-            foreach (var kv in missing)
-                sb.AppendLine("Missing=" + kv.Key + ": " + kv.Value);
-
-            lcd.CustomData = sb.ToString();
         }
     }
 }

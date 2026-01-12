@@ -312,17 +312,16 @@ namespace Graph.Charts
             {
                 const string ELLIPSIS = "...";
 
-                // Trim until it fits
                 for (int i = sb.Length - 1; i > 0; i--)
                 {
-                    sb.Length = i; // cut characters at the end
-                    sb.Append(ELLIPSIS); // append "..."
+                    sb.Length = i; 
+                    sb.Append(ELLIPSIS); 
                     textSize = Surface.MeasureStringInPixels(sb, "White", fontSize * Scale);
 
                     if (textSize.X <= availableWidth)
                         break;
 
-                    sb.Length = i; // reset before next loop
+                    sb.Length = i; 
                 }
             }
         }

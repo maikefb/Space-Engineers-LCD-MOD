@@ -23,7 +23,7 @@ namespace Graph.System.TerminalControls
         ///     List of which scripts should be selected for this control be visible
         /// </summary>
         protected virtual string[] VisibleForScripts { get; } =
-            { InventoryCharts.ID, ThrustGraph.ID, "RenewableGraph", BlueprintDiagram.ID, ContainerGraph.ID };
+            { InventoryCharts.ID, ThrustGraph.ID, "RenewableGraph","GasGraph", BlueprintDiagram.ID, ContainerGraph.ID };
 
         /// <summary>
         ///     Prefix for ID of every control

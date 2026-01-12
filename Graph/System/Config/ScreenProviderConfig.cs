@@ -8,8 +8,7 @@ namespace Graph.System.Config
     [ProtoContract]
     public class ScreenProviderConfig
     {
-        // ReSharper disable once UnusedMember.Global
-        public ScreenProviderConfig() // Needed for Protobuf
+        public ScreenProviderConfig() 
         {
         }
 
