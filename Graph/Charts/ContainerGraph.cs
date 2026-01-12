@@ -32,11 +32,16 @@ namespace Graph.Charts
         protected override string DefaultTitle => TITLE;
         public override Dictionary<MyItemType, double> ItemSource => null;
 
+        Color _scriptForegroundColor;
+        
         public override void Run()
         {
             base.Run();
             if (Config == null) return;
 
+            if(_scriptForegroundColor != Surface.ScriptForegroundColor)
+                LayoutChanged();
+            
             Scale = GetAutoScaleUniform();
             UpdateViewBox();
 
@@ -90,6 +95,7 @@ namespace Graph.Charts
 
         protected override void LayoutChanged()
         {
+            _scriptForegroundColor = Surface.ScriptForegroundColor;
             base.LayoutChanged();
             barCache.Clear();
         }
@@ -118,8 +124,9 @@ namespace Graph.Charts
                 else
                     size = new Vector2(ViewBox.Width - position.X + (ViewBox.X), clip.Height) - barMargin;
 
-                barPanel = new BarPanel(new Vector2(clip.Location.X, clip.Location.Y) + barMargin / 2, size
-                    , Config.HeaderColor, Surface.ScriptForegroundColor);
+
+                bool dark = m_surface.ScriptForegroundColor.R + m_surface.ScriptForegroundColor.G + m_surface.ScriptForegroundColor.B > 96;
+                barPanel = new BarPanel(new Vector2(clip.Location.X, clip.Location.Y) + barMargin / 2, size, Config.HeaderColor, dark ? Color.Black : Color.Gray);
             }
 
             frame.AddRange(barPanel.GetSprites((float)pct));
@@ -139,9 +146,7 @@ namespace Graph.Charts
                 Alignment = TextAlignment.LEFT,
                 FontId = "White"
             };
-
-            var shadowOffset = 2 * Scale;
-            frame.Add(text.Shadow(2*Scale));
+            
             frame.Add(text);
 
             frame.Add(MySprite.CreateClearClipRect());
@@ -150,7 +155,7 @@ namespace Graph.Charts
             if (showScrollBar)
                 position.X -= SCROLLER_WIDTH * Scale;
 
-            var percentage = new MySprite()
+            var percentage = new MySprite
             {
                 Type = SpriteType.TEXT,
                 Data = pct.ToString("P"),
@@ -160,7 +165,7 @@ namespace Graph.Charts
                 Alignment = TextAlignment.RIGHT,
                 FontId = "White"
             };
-            frame.Add(percentage.Shadow(shadowOffset));
+
             frame.Add(percentage);
 
             CaretY += LINE_HEIGHT * Scale;
