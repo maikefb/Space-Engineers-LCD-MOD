@@ -22,7 +22,7 @@ namespace Graph.Charts
 
         protected string LocalizedTitleCache = string.Empty;
 
-        readonly Dictionary<MyItemType, string> _locKeysCache =
+        protected readonly Dictionary<MyItemType, string> _locKeysCache =
             new Dictionary<MyItemType, string>();
 
         string[] _selectedCategories;
@@ -61,13 +61,13 @@ namespace Graph.Charts
         public Dictionary<string, string> TitleCache =
             new Dictionary<string, string>();
 
-        const int TITLE_HEIGHT = 35;
-        const int LINE_HEIGHT = 30;
-        const int SCROLLER_WIDTH = 8;
+        protected const int TITLE_HEIGHT = 35;
+        protected const int LINE_HEIGHT = 30;
+        protected const int SCROLLER_WIDTH = 8;
         const int SCROLL_DELAY = 12; // 12 means 2 seconds delay (10 ticks per operation, 60 ticks per second)
 
         long _clock;
-        string _previousType = "";
+        protected string _previousType = "";
 
         protected ItemCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
@@ -176,7 +176,7 @@ namespace Graph.Charts
         }
 
 
-        protected void DrawRow(List<MySprite> frame,
+        protected virtual void DrawRow(List<MySprite> frame,
             KeyValuePair<MyItemType, double> item, bool showScrollBar)
         {
             string sprite;
@@ -364,7 +364,6 @@ namespace Graph.Charts
             position.X += ViewBox.Width / 8f;
 
             var stockText = MyTexts.Get(MyStringId.GetOrCompute("BlockPropertyTitle_Stockpile"));
-
             var endSize = Surface.MeasureStringInPixels(stockText, "White", Scale * 1.3f);
 
             var availableSize = new Rectangle((int)position.X, (int)position.Y,

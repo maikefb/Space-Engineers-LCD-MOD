@@ -6,7 +6,7 @@ namespace Graph.System.TerminalControls.Blueprint
 {
     public class ListboxProjectorSelection : ListboxSingleBlockSelection<IMyProjector>
     {
-        protected override string[] VisibleForScripts { get; } = { BlueprintDiagram.ID };
+        protected override string[] VisibleForScripts { get; } = { ProjectorCharts.ID };
 
         public ListboxProjectorSelection()
         {

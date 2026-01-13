@@ -137,7 +137,7 @@ namespace Graph.System
         }
 
 
-        public Dictionary<MyItemType, double> GetItems(ScreenConfig config, IMyTerminalBlock referenceBlock)
+        public Dictionary<MyItemType, double> GetItems(ScreenConfig config, IMyTerminalBlock referenceBlock, string[] types = null)
         {
             try
             {
@@ -173,7 +173,7 @@ namespace Graph.System
                         }
                     }
 
-                    AggregateItems(blocks, dictionary, config.SelectedCategories, config.SelectedItems);
+                    AggregateItems(blocks, dictionary, types ?? config.SelectedCategories, config.SelectedItems);
 
                     _queryCache[queryToken] = dictionary;
                 }

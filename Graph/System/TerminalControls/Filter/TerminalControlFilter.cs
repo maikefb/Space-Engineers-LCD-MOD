@@ -6,6 +6,6 @@ namespace Graph.System.TerminalControls.Filter
     {
         protected override string[] VisibleForScripts => DefaultVisibility;
         protected string[] InventoryOnlyVisibility { get; } = { InventoryCharts.ID };
-        protected string[] DefaultVisibility { get; } = { InventoryCharts.ID, BlueprintDiagram.ID, ContainerGraph.ID };
+        protected string[] DefaultVisibility { get; } = { InventoryCharts.ID, ProjectorCharts.ID, ContainerGraph.ID };
     }
 }

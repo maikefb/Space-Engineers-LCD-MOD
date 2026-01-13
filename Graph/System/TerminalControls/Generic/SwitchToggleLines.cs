@@ -8,7 +8,7 @@ namespace Graph.System.TerminalControls.Generic
 {
     public class SwitchToggleLines : TerminalControlsWrapper
     {
-        protected override string[] VisibleForScripts { get; } = { InventoryCharts.ID, BlueprintDiagram.ID };
+        protected override string[] VisibleForScripts { get; } = { InventoryCharts.ID, ProjectorCharts.ID };
         public override IMyTerminalControl TerminalControl { get; }
 
         public SwitchToggleLines()

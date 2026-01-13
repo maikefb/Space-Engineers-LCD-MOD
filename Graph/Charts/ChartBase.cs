@@ -25,6 +25,8 @@ namespace Graph.Charts
         public IMyFaction Faction { get; protected set; }
         protected string Icon { get; set; }
 
+        protected virtual SortMethod SortMethod => Config.SortMethod;
+
         List<KeyValuePair<MyItemType, double>> _itemsCache = new List<KeyValuePair<MyItemType, double>>();
 
         /// <summary>
@@ -163,7 +165,7 @@ namespace Graph.Charts
                 _itemsCache.Add(keyValuePair);
 
             
-            switch (Config.SortMethod)
+            switch (SortMethod)
             {
                 case SortMethod.Type:
                     _itemsCache.Sort((a, b) =>
