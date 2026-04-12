@@ -96,7 +96,7 @@ namespace Graph.Charts
             {
                 Type = SpriteType.TEXTURE,
                 Data = Icon,
-                Position = position + new Vector2(10f, 20) * Scale,
+                Position = position + new Vector2(20) * Scale,
                 Size = new Vector2(40 * Scale),
                 Color = Config.HeaderColor,
                 Alignment = TextAlignment.CENTER

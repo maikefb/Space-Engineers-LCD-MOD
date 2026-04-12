@@ -21,6 +21,10 @@ namespace Graph.Charts
 {
     public abstract class ChartBase : MyTextSurfaceScriptBase
     {
+                
+        static Dictionary<string, Vector2> _fontSizeCache = new Dictionary<string, Vector2>();
+        static StringBuilder _stringBuilderBuffer = new StringBuilder();
+        
         public static List<ChartBase> Instances = new List<ChartBase>();
 
         public IMyFaction Faction { get; protected set; }
@@ -68,6 +72,19 @@ namespace Graph.Charts
             UpdateViewBox();
             UpdateFaction(FactionHelper.GetOwnerFaction(Block as IMyTerminalBlock));
             DrawSplash();
+        }
+
+
+        public static Vector2 GetSizeInPixel(string text, string font, float fontSize, Sandbox.ModAPI.Ingame.IMyTextSurface surface)
+        {
+            Vector2 size;
+            var key = text + font + fontSize;
+            if (_fontSizeCache.TryGetValue(key, out size)) return size;
+            _stringBuilderBuffer.Clear();
+            _stringBuilderBuffer.Append(text);
+            size = surface.MeasureStringInPixels(_stringBuilderBuffer, font, fontSize);
+            _fontSizeCache[key] = size;
+            return size;
         }
 
         void DrawSplash()
@@ -219,7 +236,7 @@ namespace Graph.Charts
             {
                 Type = SpriteType.TEXTURE,
                 Data = Icon,
-                Position = position + new Vector2(10f, 20) * Scale,
+                Position = position + new Vector2(20) * Scale,
                 Size = new Vector2(40 * Scale),
                 Color = Config.HeaderColor,
                 Alignment = TextAlignment.CENTER
@@ -253,8 +270,7 @@ namespace Graph.Charts
         protected static readonly Regex RxGroup = new Regex(@"\(\s*G\s*:\s*(.+?)\s*\)", RegexOptions.IgnoreCase);
         protected static readonly Regex RxContainer = new Regex(@"\(\s*(?!G\s*:)(.+?)\s*\)", RegexOptions.IgnoreCase);
 
-        protected static MySprite MakeText(IMyTextSurface surf, string s, Vector2 p, float scale,
-            TextAlignment alignment = TextAlignment.LEFT)
+        protected static MySprite MakeText(IMyTextSurface surf, string s, Vector2 p, float scale, TextAlignment alignment = TextAlignment.LEFT)
         {
             return new MySprite
             {

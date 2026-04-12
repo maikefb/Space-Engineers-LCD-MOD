@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using Graph.Helpers;
+using Graph.Panels;
 using Graph.System;
 using Sandbox.Definitions;
 using Sandbox.ModAPI;
@@ -76,6 +77,7 @@ namespace Graph.Charts
 
         protected const int TITLE_HEIGHT = 35;
         protected const int LINE_HEIGHT = 30;
+        protected const int MINIMUM_COL_WIDTH = 220;
         protected const int SCROLLER_WIDTH = 8;
         const int SCROLL_DELAY = 12; 
         long _clock;
@@ -134,50 +136,166 @@ namespace Graph.Charts
                 }
                 else
                 {
-                    int maxRows = GetMaxRowsFromSurface();
-                    if (maxRows < 1)
-                        maxRows = 1;
-
-                    bool shouldScroll = items.Count > maxRows;
-
-                    int start = 0;
-
-                    if (shouldScroll)
+                    switch (Config.DisplayMode)
                     {
-                        int totalSteps = items.Count - maxRows;
-                        if (totalSteps < 1) totalSteps = 1;
-
-                        int step = GetScrollStep(SCROLL_DELAY / 6);
-
-                        start = step % (totalSteps + 1);
-
-                        float viewportHeight = maxRows * (LINE_HEIGHT * Scale) - (SCROLLER_WIDTH * 2 * Scale);
-                        float scrollBarHeight = (float)maxRows / items.Count * viewportHeight;
-
-                        float totalScrollableRows = items.Count - maxRows;
-                        float scrollFraction = (totalScrollableRows > 0) ? start / totalScrollableRows : 0f;
-
-                        float scrollBarTrackHeight = viewportHeight;
-                        float scrollBarTravel = scrollBarTrackHeight - scrollBarHeight;
-
-                        float scrollBarY = scrollFraction * scrollBarTravel;
-                        float scrollBarCenter = scrollBarY + scrollBarHeight / 2f;
-
-                        var initialY = CaretY + SCROLLER_WIDTH * Scale;
-
-                        DrawScrollBar(sprites, Scale, initialY, viewportHeight, scrollBarCenter, scrollBarHeight);
+                        case DisplayMode.Default:
+                            DrawList(sprites, items);
+                            break;
+                        case DisplayMode.Grid:
+                            DrawGrid(sprites, items);
+                            break;
                     }
-
-                    int showCount = Math.Min(maxRows, items.Count);
-
-                    _previousType = items[start].Key.TypeId;
-
-                    for (int visIdx = start; visIdx < start + showCount; visIdx++)
-                        DrawRow(sprites, items[visIdx], shouldScroll);
                 }
 
                 frame.AddRange(sprites);
             }
+        }
+
+        void DrawList(List<MySprite> sprites, List<KeyValuePair<MyItemType, double>> items)
+        {
+            int maxRows = GetMaxRowsFromSurface();
+            if (maxRows < 1)
+                maxRows = 1;
+
+            bool shouldScroll = items.Count > maxRows;
+
+            int start = 0;
+
+            if (shouldScroll)
+            {
+                int totalSteps = items.Count - maxRows;
+                if (totalSteps < 1) totalSteps = 1;
+
+                int step = GetScrollStep(SCROLL_DELAY / 6);
+
+                start = step % (totalSteps + 1);
+
+                float viewportHeight = maxRows * (LINE_HEIGHT * Scale) - (SCROLLER_WIDTH * 2 * Scale);
+                float scrollBarHeight = (float)maxRows / items.Count * viewportHeight;
+
+                float totalScrollableRows = items.Count - maxRows;
+                float scrollFraction = (totalScrollableRows > 0) ? start / totalScrollableRows : 0f;
+
+                float scrollBarTrackHeight = viewportHeight;
+                float scrollBarTravel = scrollBarTrackHeight - scrollBarHeight;
+
+                float scrollBarY = scrollFraction * scrollBarTravel;
+                float scrollBarCenter = scrollBarY + scrollBarHeight / 2f;
+
+                var initialY = CaretY + SCROLLER_WIDTH * Scale;
+
+                DrawScrollBar(sprites, Scale, initialY, viewportHeight, scrollBarCenter, scrollBarHeight);
+            }
+
+            int showCount = Math.Min(maxRows, items.Count);
+
+            _previousType = items[start].Key.TypeId;
+
+            for (int visIdx = start; visIdx < start + showCount; visIdx++)
+                DrawRow(sprites, items[visIdx], shouldScroll);
+        }
+        
+        void DrawGrid(List<MySprite> sprites, List<KeyValuePair<MyItemType, double>> items)
+        {
+            var rowHeight = 3f * LINE_HEIGHT * Scale;
+            var viewportAvailableHeight = ViewBox.Height - (CaretY - ViewBox.Y) - FooterHeight;
+            int maxRows = Math.Max(1, (int)Math.Floor(viewportAvailableHeight / rowHeight));
+            int maxCols = Math.Max(1,GetMaxColsFromSurface());
+
+            int maxVisible = maxRows * maxCols;
+            bool shouldScroll = items.Count > maxVisible;
+
+            int startRow = 0;
+
+            if (shouldScroll)
+            {
+                int totalRows = (int)Math.Ceiling(items.Count / (float)maxCols);
+                int totalSteps = totalRows - maxRows;
+                if (totalSteps < 1) totalSteps = 1;
+
+                int step = GetScrollStep(SCROLL_DELAY / 6);
+
+                startRow = step % (totalSteps + 1);
+
+                float viewportHeight = maxRows * rowHeight - (SCROLLER_WIDTH * 2 * Scale);
+                float scrollBarHeight = (float)maxRows / totalRows * viewportHeight;
+
+                float totalScrollableRows = totalRows - maxRows;
+                float scrollFraction = (totalScrollableRows > 0) ? startRow / totalScrollableRows : 0f;
+
+                float scrollBarTrackHeight = viewportHeight;
+                float scrollBarTravel = scrollBarTrackHeight - scrollBarHeight;
+
+                float scrollBarY = scrollFraction * scrollBarTravel;
+                float scrollBarCenter = scrollBarY + scrollBarHeight / 2f;
+
+                var initialY = CaretY + SCROLLER_WIDTH * Scale;
+
+                DrawScrollBar(sprites, Scale, initialY, viewportHeight, scrollBarCenter, scrollBarHeight);
+            }
+
+            int start = startRow * maxCols;
+            int showCount = Math.Min(maxVisible, items.Count - start);
+            var margin = ViewBox.Size.X * Margin;
+            var contentStart = ViewBox.X + margin;
+            var contentEnd = ViewBox.Width + ViewBox.X - margin;
+            if (shouldScroll)
+                contentEnd -= SCROLLER_WIDTH * Scale;
+            var columnWidth = (contentEnd - contentStart) / maxCols;
+            var gridHeight = maxRows * rowHeight;
+
+            if (Config.DrawLines)
+            {
+                var lineColor = new Color(Config.HeaderColor.R, Config.HeaderColor.G,
+                    Config.HeaderColor.B);
+
+                for (int row = 0; row <= maxRows; row++)
+                {
+                    var y = CaretY + row * rowHeight;
+                    sprites.Add(new MySprite
+                    {
+                        Type = SpriteType.TEXTURE,
+                        Data = "SquareSimple",
+                        Position = new Vector2((contentStart + contentEnd) / 2f, y),
+                        Size = new Vector2(contentEnd - contentStart, 2f),
+                        Color = lineColor,
+                        Alignment = TextAlignment.CENTER
+                    });
+                }
+
+                for (int col = 0; col <= maxCols; col++)
+                {
+                    var x = contentStart + col * columnWidth;
+                    sprites.Add(new MySprite
+                    {
+                        Type = SpriteType.TEXTURE,
+                        Data = "SquareSimple",
+                        Position = new Vector2(x, CaretY + gridHeight / 2f),
+                        Size = new Vector2(2f, gridHeight),
+                        Color = lineColor,
+                        Alignment = TextAlignment.CENTER
+                    });
+                }
+            }
+
+            _previousType = items[start].Key.TypeId;
+
+            for (int gridIdx = 0; gridIdx < showCount; gridIdx++)
+            {
+                int visIdx = start + gridIdx;
+                int col = gridIdx % maxCols;
+                float xStart = contentStart + col * columnWidth;
+                float xEnd = (col == maxCols - 1) ? contentEnd : xStart + columnWidth;
+                bool moveToNextLine = (col == maxCols - 1) || (gridIdx == showCount - 1);
+                DrawGridCell(sprites, items[visIdx], xStart, xEnd, moveToNextLine);
+            }
+        }
+
+        int GetMaxColsFromSurface()
+        {
+            var max = ViewBox.Width - (ViewBox.X);
+            var perCol = MINIMUM_COL_WIDTH * Scale;
+            return (int)(Math.Round(max / perCol - .5, MidpointRounding.AwayFromZero));
         }
 
         int GetMaxRowsFromSurface()
@@ -211,8 +329,10 @@ namespace Graph.Charts
             }
 
             var margin = ViewBox.Size.X * Margin;
+            var xStart = ViewBox.X + margin;
+            var xEnd = ViewBox.Width + ViewBox.X - margin;
             Vector2 position = ViewBox.Position;
-            position.X += margin;
+            position.X = xStart;
             position.Y = CaretY;
 
             bool drawSeparatorLine = Config.SortMethod == SortMethod.Type && _previousType != item.Key.TypeId;
@@ -223,8 +343,8 @@ namespace Graph.Charts
                 {
                     Type = SpriteType.TEXTURE,
                     Data = "Circle",
-                    Position = new Vector2(ViewBox.Center.X, position.Y),
-                    Size = new Vector2(ViewBox.Width - 2 * margin, 1),
+                    Position = new Vector2((xStart + xEnd) / 2f, position.Y),
+                    Size = new Vector2(xEnd - xStart, 1),
                     Color = drawSeparatorLine ? Config.HeaderColor : Surface.ScriptForegroundColor,
                     Alignment = TextAlignment.CENTER
                 });
@@ -232,19 +352,18 @@ namespace Graph.Charts
 
             _previousType = item.Key.TypeId;
 
-            frame.Add(new MySprite()
+            frame.Add(new MySprite
             {
                 Type = SpriteType.TEXTURE,
                 Data = sprite,
                 Position = position + new Vector2(10f, 15) * Scale,
                 Size = new Vector2(LINE_HEIGHT * Scale),
-                Color = Surface.ScriptForegroundColor,
                 Alignment = TextAlignment.CENTER
             });
-            position.X += ViewBox.Width / 8f;
+            position.X += (xEnd - xStart) / 8f;
 
             var clip = new Rectangle((int)position.X, (int)position.Y,
-                (int)(ViewBox.Width - position.X + (ViewBox.X) - 105 * Scale),
+                (int)Math.Max(0, xEnd - position.X - 105 * Scale),
                 (int)(position.Y + (LINE_HEIGHT + 5) * Scale));
 
             frame.Add(MySprite.CreateClipRect(clip));
@@ -271,7 +390,7 @@ namespace Graph.Charts
                 FontId = "White"
             });
             frame.Add(MySprite.CreateClearClipRect());
-            position.X = ViewBox.Width + ViewBox.X - margin;
+            position.X = xEnd;
             if (showScrollBar)
                 position.X -= SCROLLER_WIDTH * Scale;
             frame.Add(new MySprite()
@@ -286,6 +405,129 @@ namespace Graph.Charts
             });
 
             CaretY += LINE_HEIGHT * Scale;
+        }
+
+        protected virtual void DrawGridCell(List<MySprite> frame,
+            KeyValuePair<MyItemType, double> item, float xStart, float xEnd, bool MoveToNextLine)
+        {
+            var gridCellHeight = 3 * LINE_HEIGHT * Scale;
+            var cellPadding = (LINE_HEIGHT * Scale) / 2f;
+            string sprite;
+            string localizedName;
+
+            if (!SpriteCache.TryGetValue(item.Key, out sprite))
+            {
+                var reference = new List<string>();
+                var color = "ColorfulIcons_" + item.Key.ToString().Substring(16);
+                const string NOT_FOUND = "Textures\\FactionLogo\\Unknown.dds";
+
+                Surface.GetSprites(reference);
+                if (reference.Contains(color))
+                    sprite = color;
+                else if (reference.Contains(item.Key.ToString()))
+                    sprite = item.Key.ToString();
+                else sprite = NOT_FOUND;
+
+                AddToSpriteCache(item.Key, sprite);
+            }
+
+            Vector2 position = ViewBox.Position;
+            position.X = xStart;
+            position.Y = CaretY;
+            var innerLeft = xStart + cellPadding;
+            var innerRight = xEnd - cellPadding;
+            var innerTop = position.Y + cellPadding;
+            var innerBottom = position.Y + gridCellHeight - cellPadding;
+
+            if (!Config.DrawLines)
+            {
+                var rl = xStart + cellPadding/2;
+                var rr = xEnd - cellPadding/2;
+                var rt = position.Y + cellPadding/2;
+                var rb = position.Y + gridCellHeight - cellPadding/2;
+
+                var backgroundColor = new Color(Config.HeaderColor.R, Config.HeaderColor.G, Config.HeaderColor.B);
+                var a = backgroundColor.ColorToHSV();
+                a.Z *= 0.2f;
+                var cellRect = new RectangleF(rl, rt, rr - rl, rb - rt);
+                var dropShadow = new RectangleF(cellRect.Position + 2, cellRect.Size);
+                RectanglePanel.CreateSpritesFromRect(dropShadow , frame, a.HSVtoColor(), .2f);
+                RectanglePanel.CreateSpritesFromRect(cellRect , frame, backgroundColor, .2f);
+            }
+
+            _previousType = item.Key.TypeId;
+            var topRowHeight = LINE_HEIGHT * Scale;
+            var bottomRowTop = innerTop + topRowHeight;
+            var bottomRowHeight = Math.Max(0f, innerBottom - bottomRowTop);
+            var iconSize = 2f * LINE_HEIGHT * Scale;
+            var contentLeft = innerLeft + iconSize;
+            var contentWidth = Math.Max(0f, innerRight - contentLeft);
+
+            var iconRect = new RectangleF(innerLeft, innerTop, iconSize, iconSize);
+            var numberRect = new RectangleF(contentLeft, innerTop, contentWidth, topRowHeight);
+            var nameRect = new RectangleF(contentLeft, bottomRowTop, contentWidth, bottomRowHeight);
+
+            frame.Add(new MySprite
+            {
+                Type = SpriteType.TEXTURE,
+                Data = sprite,
+                Position = new Vector2(iconRect.X, iconRect.Y + iconRect.Height / 2f),
+                Size = new Vector2(iconSize),
+                Alignment = TextAlignment.LEFT
+            });
+
+            if (!_locKeysCache.TryGetValue(item.Key, out localizedName))
+            {
+                var key =
+                    MyDefinitionManager.Static.TryGetPhysicalItemDefinition(item.Key).DisplayNameEnum?.ToString() ??
+                    item.Key.SubtypeId;
+                var sb = new StringBuilder(MyTexts.GetString(key));
+                TrimText(ref sb, nameRect.Width);
+                localizedName = sb.ToString();
+                _locKeysCache[item.Key] = sb.ToString();
+            }
+
+            Vector2 size = GetSizeInPixel(localizedName, "White", 1, Surface);
+            float minProportion = Math.Min(nameRect.Width / size.X, nameRect.Height / size.Y);
+            float fontSize = minProportion;
+            float renderedHeight = size.Y * fontSize;
+            Vector2 pos = nameRect.Center;
+            pos.Y -= renderedHeight * 0.5f;
+            pos.X = nameRect.Right;
+
+            frame.Add(new MySprite(
+                (SpriteType)2,
+                localizedName,
+                pos,
+                null,
+                Surface.ScriptForegroundColor,
+                "White",
+                TextAlignment.RIGHT,
+                fontSize * .95f
+            ));
+
+            var qty = FormatItemQty(item.Value);
+            size = GetSizeInPixel(qty, "White", 1, Surface);
+            minProportion = Math.Min(numberRect.Width / size.X, numberRect.Height / size.Y);
+            fontSize = minProportion;
+            renderedHeight = size.Y * fontSize;
+            pos = numberRect.Center;
+            pos.Y -= renderedHeight * 0.5f;
+            pos.X = numberRect.Right;
+            
+            frame.Add(new MySprite(
+                (SpriteType)2,
+                qty,
+                pos,
+                null,
+                Surface.ScriptForegroundColor,
+                "White",
+                TextAlignment.RIGHT,
+                fontSize * .95f
+            ));
+
+            if (MoveToNextLine)
+                CaretY += gridCellHeight;
         }
 
         protected void DrawScrollBar(List<MySprite> frame, float scale, float initialY, float viewportHeight,
@@ -368,7 +610,7 @@ namespace Graph.Charts
             {
                 Type = SpriteType.TEXTURE,
                 Data = Icon,
-                Position = position + new Vector2(10f, 20) * Scale,
+                Position = position + new Vector2(20) * Scale,
                 Size = new Vector2(40 * Scale),
                 Color = Config.HeaderColor,
                 Alignment = TextAlignment.CENTER

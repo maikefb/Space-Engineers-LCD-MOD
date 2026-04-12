@@ -169,6 +169,7 @@ namespace Graph.System
                 Controls.Add(new SwitchToggleHeader());
                 Controls.Add(new SliderChartScale());
 
+                Controls.Add(new ComboboxDisplayMode());
                 Controls.Add(new SwitchToggleLines());
 
                 Controls.Add(new ListboxProjectorSelection());
@@ -183,10 +184,10 @@ namespace Graph.System
                 source = new ListboxItemsCandidates();
                 target = new ListboxItemsSelected();
 
-                Controls.Add(target);
-                Controls.Add(new ButtonItemRemoveFromSelection(source, target));
                 Controls.Add(source);
                 Controls.Add(new ButtonItemAddToSelection(source, target));
+                Controls.Add(target);
+                Controls.Add(new ButtonItemRemoveFromSelection(source, target));
 
                 Controls.Add(new ComboboxSorting());
             }

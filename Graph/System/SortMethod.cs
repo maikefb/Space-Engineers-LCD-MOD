@@ -2,7 +2,6 @@ using System;
 
 namespace Graph.System
 {
-    [Flags]
     public enum SortMethod
     {
         Amount = 0,
