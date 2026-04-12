@@ -36,8 +36,7 @@ namespace Graph.Charts
 
         protected string LocalizedTitleCache = string.Empty;
 
-        protected readonly Dictionary<MyItemType, string> _locKeysCache =
-            new Dictionary<MyItemType, string>();
+        protected readonly Dictionary<MyItemType, string> _locKeysCache = new Dictionary<MyItemType, string>();
 
         string[] _selectedCategories;
 
@@ -312,6 +311,8 @@ namespace Graph.Charts
             string sprite;
             string localizedName;
 
+            var foreground = item.Value == 0 ? new Color(96, 32, 32) : Surface.ScriptForegroundColor;
+
             if (!SpriteCache.TryGetValue(item.Key, out sprite))
             {
                 var reference = new List<string>();
@@ -358,7 +359,8 @@ namespace Graph.Charts
                 Data = sprite,
                 Position = position + new Vector2(20f, 15) * Scale,
                 Size = new Vector2(LINE_HEIGHT * Scale),
-                Alignment = TextAlignment.CENTER
+                Alignment = TextAlignment.CENTER,
+                Color = item.Value == 0 ? new Color(96, 32,32) : Color.White
             });
             position.X += (xEnd - xStart) / 8f;
 
@@ -385,7 +387,7 @@ namespace Graph.Charts
                 Data = localizedName,
                 Position = position,
                 RotationOrScale = Scale,
-                Color = Surface.ScriptForegroundColor,
+                Color = foreground,
                 Alignment = TextAlignment.LEFT,
                 FontId = "White"
             });
@@ -399,7 +401,7 @@ namespace Graph.Charts
                 Data = FormatItemQty(item.Value),
                 Position = position,
                 RotationOrScale = Scale,
-                Color = Surface.ScriptForegroundColor,
+                Color = foreground,
                 Alignment = TextAlignment.RIGHT,
                 FontId = "White"
             });
@@ -414,6 +416,7 @@ namespace Graph.Charts
             var cellPadding = (LINE_HEIGHT * Scale) / 2f;
             string sprite;
             string localizedName;
+            var foreground = Surface.ScriptForegroundColor;
 
             if (!SpriteCache.TryGetValue(item.Key, out sprite))
             {
@@ -445,14 +448,18 @@ namespace Graph.Charts
                 var rr = xEnd - cellPadding/2;
                 var rt = position.Y + cellPadding/2;
                 var rb = position.Y + gridCellHeight - cellPadding/2;
-
-                var backgroundColor = new Color(Config.HeaderColor.R, Config.HeaderColor.G, Config.HeaderColor.B);
+                
+                var backgroundColor = item.Value == 0 ? new Color(96, 32,32) : Config.HeaderColor;
                 var a = backgroundColor.ColorToHSV();
                 a.Z *= 0.2f;
                 var cellRect = new RectangleF(rl, rt, rr - rl, rb - rt);
                 var dropShadow = new RectangleF(cellRect.Position + 2, cellRect.Size);
                 RectanglePanel.CreateSpritesFromRect(dropShadow , frame, a.HSVtoColor(), .2f);
                 RectanglePanel.CreateSpritesFromRect(cellRect , frame, backgroundColor, .2f);
+            }
+            else if(item.Value == 0)
+            {
+                foreground = new Color(96, 32, 32);
             }
 
             _previousType = item.Key.TypeId;
@@ -473,7 +480,8 @@ namespace Graph.Charts
                 Data = sprite,
                 Position = new Vector2(iconRect.X, iconRect.Y + iconRect.Height / 2f),
                 Size = new Vector2(iconSize),
-                Alignment = TextAlignment.LEFT
+                Alignment = TextAlignment.LEFT,
+                Color = item.Value == 0 ? new Color(96, 32,32) : Color.White
             });
 
             if (!_locKeysCache.TryGetValue(item.Key, out localizedName))
@@ -500,7 +508,7 @@ namespace Graph.Charts
                 localizedName,
                 pos,
                 null,
-                Surface.ScriptForegroundColor,
+                foreground,
                 "White",
                 TextAlignment.RIGHT,
                 fontSize * .95f
@@ -520,7 +528,7 @@ namespace Graph.Charts
                 qty,
                 pos,
                 null,
-                Surface.ScriptForegroundColor,
+                foreground,
                 "White",
                 TextAlignment.RIGHT,
                 fontSize * .95f

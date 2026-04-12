@@ -173,7 +173,7 @@ namespace Graph.System
                 Controls.Add(new SwitchToggleLines());
 
                 Controls.Add(new ListboxProjectorSelection());
-
+                Controls.Add(new CheckboxHideEmpty());
                 Controls.Add(new SeparatorFilter());
                 Controls.Add(new LabelSeparator());
                 Controls.Add(source);
@@ -183,7 +183,7 @@ namespace Graph.System
 
                 source = new ListboxItemsCandidates();
                 target = new ListboxItemsSelected();
-
+                
                 Controls.Add(source);
                 Controls.Add(new ButtonItemAddToSelection(source, target));
                 Controls.Add(target);

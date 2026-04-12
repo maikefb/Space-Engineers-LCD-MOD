@@ -75,6 +75,8 @@ namespace Graph.System.Config
 
         [ProtoMember(12)] public int DisplayInternal { get; set; }
 
+        [ProtoMember(13)] public bool HideEmpty { get; set; } = true;
+
         public SortMethod SortMethod
         {
             get { return (SortMethod)SortInternal; }
@@ -99,6 +101,7 @@ namespace Graph.System.Config
             DrawLines = newValue.DrawLines;
             SortInternal = newValue.SortInternal;
             DisplayInternal = newValue.DisplayInternal;
+            HideEmpty = newValue.HideEmpty;
         }
     }
 }
