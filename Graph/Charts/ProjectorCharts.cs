@@ -163,7 +163,7 @@ namespace Graph.Charts
                 FontId = "White"
             });
 
-            CaretY += 40 * Scale;
+            CaretY += TitleBarHeightBase * Scale;
         }
 
         protected override void DrawFooter(List<MySprite> frame)
@@ -286,7 +286,7 @@ namespace Graph.Charts
                     sprite = item.Key.ToString();
                 else sprite = NOT_FOUND;
 
-                SpriteCache[item.Key] = sprite;
+                AddToSpriteCache(item.Key, sprite);
             }
 
             var margin = ViewBox.Size.X * Margin;

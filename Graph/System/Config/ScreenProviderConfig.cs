@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using ProtoBuf;
 using Sandbox.ModAPI;
+using VRage.Utils;
 
 namespace Graph.System.Config
 {
@@ -45,8 +46,14 @@ namespace Graph.System.Config
         public void CopyFrom(ScreenProviderConfig other)
         {
             if (Screens.Count != other.Screens.Count)
-                return;
-                        
+            {
+                MyLog.Default.WriteLine(
+                    $"[LCDMod] CopyFrom: Screens count mismatch ({Screens.Count} vs {other.Screens.Count}), rebuilding list.");
+                Screens.Clear();
+                for (int i = 0; i < other.Screens.Count; i++)
+                    Screens.Add(new ScreenConfig());
+            }
+
             for (var index = 0; index < Screens.Count; index++)
                 Screens[index].CopyFrom(other.Screens[index]);
         }

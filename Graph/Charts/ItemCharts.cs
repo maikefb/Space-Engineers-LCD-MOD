@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using Graph.Helpers;
 using Graph.System;
@@ -19,6 +20,18 @@ namespace Graph.Charts
     {
         public static Dictionary<MyItemType, string> SpriteCache =
             new Dictionary<MyItemType, string>();
+
+        private const int SpriteCacheMaxSize = 256;
+
+        protected static void AddToSpriteCache(MyItemType key, string sprite)
+        {
+            SpriteCache[key] = sprite;
+            if (SpriteCache.Count > SpriteCacheMaxSize)
+            {
+                var oldest = SpriteCache.Keys.First();
+                SpriteCache.Remove(oldest);
+            }
+        }
 
         protected string LocalizedTitleCache = string.Empty;
 
@@ -64,8 +77,7 @@ namespace Graph.Charts
         protected const int TITLE_HEIGHT = 35;
         protected const int LINE_HEIGHT = 30;
         protected const int SCROLLER_WIDTH = 8;
-        const int SCROLL_DELAY = 12; // 12 means 2 seconds delay (10 ticks per operation, 60 ticks per second)
-
+        const int SCROLL_DELAY = 12; 
         long _clock;
         protected string _previousType = "";
 
@@ -79,7 +91,7 @@ namespace Graph.Charts
 
             _clock++;
             if (_clock % SCROLL_DELAY != 0 && !Dirty)
-                return; // skip update by {DELAY} ticks
+                return; 
 
             if (Config == null)
                 return;
@@ -195,7 +207,7 @@ namespace Graph.Charts
                     sprite = item.Key.ToString();
                 else sprite = NOT_FOUND;
 
-                SpriteCache[item.Key] = sprite;
+                AddToSpriteCache(item.Key, sprite);
             }
 
             var margin = ViewBox.Size.X * Margin;
@@ -412,7 +424,7 @@ namespace Graph.Charts
                 FontId = "White"
             });
 
-            CaretY += 40 * Scale;
+            CaretY += TitleBarHeightBase * Scale;
         }
 
         protected static string FormatItemQty(double input)

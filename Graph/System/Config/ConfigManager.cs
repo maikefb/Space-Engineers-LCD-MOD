@@ -63,7 +63,7 @@ namespace Graph.System.Config
             try
             {
                 if (storageEntity.Storage == null)
-                    return;
+                    storageEntity.Storage = new MyModStorageComponent();
 
                 var base64 = Convert.ToBase64String(MyAPIGateway.Utilities.SerializeToBinary(providerConfig));
 
@@ -80,7 +80,16 @@ namespace Graph.System.Config
 
         public static void Sync(IMyEntity storageEntity, ScreenProviderConfig providerConfig)
         {
-            GetAppForBlock(storageEntity as IMyTerminalBlock).RequestRedraw();
+            var app = GetAppForBlock(storageEntity as IMyTerminalBlock);
+            if (app != null)
+                app.RequestRedraw();
+
+            if (MyAPIGateway.Session != null && MyAPIGateway.Session.IsServer)
+            {
+                Save(storageEntity, providerConfig);
+                return;
+            }
+
             NetworkManager.TransmitToServer(new NetworkPackageSyncScreenConfig(storageEntity.EntityId, providerConfig));
             Save(storageEntity, providerConfig);
         }
@@ -124,6 +133,9 @@ namespace Graph.System.Config
 
         public static ScreenProviderConfig TryLoad(IMyCubeBlock block)
         {
+            if (block.Storage == null)
+                return null;
+
             string value;
             if (block.Storage.TryGetValue(Constants.STORAGE_GUID, out value) && !string.IsNullOrEmpty(value))
             {

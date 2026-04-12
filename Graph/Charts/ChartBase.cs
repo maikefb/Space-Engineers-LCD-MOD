@@ -9,6 +9,7 @@ using Graph.System.Config;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
 using VRage;
+using VRage.Utils;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
@@ -40,6 +41,8 @@ namespace Graph.Charts
         protected float FooterHeight;
 
         protected float Margin = 0.02f;
+
+        protected const float TitleBarHeightBase = 40f;
         public abstract Dictionary<MyItemType, double> ItemSource { get; }
         public virtual string Title => DefaultTitle;
         protected virtual string DefaultTitle => "|";
@@ -92,7 +95,7 @@ namespace Graph.Charts
         {
             try
             {
-                if (ProviderConfig != null)
+                if (Block != null && ProviderConfig != null)
                     ConfigManager.Save((IMyEntity)Block, ProviderConfig);
             }
             catch (Exception e)
@@ -103,6 +106,8 @@ namespace Graph.Charts
             Instances.Remove(this);
             base.Dispose();
         }
+        
+        const float ServerExtraPadding = 4f;
 
         protected void UpdateViewBox()
         {
@@ -113,8 +118,19 @@ namespace Graph.Charts
             var padding = (Surface.TextPadding / 100) * Surface.SurfaceSize;
             sizeOffset += padding / 2;
 
-            ViewBox = new RectangleF(sizeOffset.X, sizeOffset.Y, Surface.SurfaceSize.X - padding.X,
-                Surface.SurfaceSize.Y - padding.Y);
+            if (MyAPIGateway.Session != null && MyAPIGateway.Session.IsServer)
+            {
+                sizeOffset += new Vector2(ServerExtraPadding, ServerExtraPadding);
+                ViewBox = new RectangleF(
+                    sizeOffset.X, sizeOffset.Y,
+                    Surface.SurfaceSize.X - padding.X - ServerExtraPadding * 2,
+                    Surface.SurfaceSize.Y - padding.Y - ServerExtraPadding * 2);
+            }
+            else
+            {
+                ViewBox = new RectangleF(sizeOffset.X, sizeOffset.Y, Surface.SurfaceSize.X - padding.X,
+                    Surface.SurfaceSize.Y - padding.Y);
+            }
         }
 
         public override void Run()
@@ -227,7 +243,7 @@ namespace Graph.Charts
 
             frame.Add(MySprite.CreateClearClipRect());
 
-            CaretY += 40 * Scale;
+            CaretY += TitleBarHeightBase * Scale;
         }
 
         protected virtual void DrawFooter(List<MySprite> frame)
@@ -261,8 +277,9 @@ namespace Graph.Charts
                 double sec = sess.ElapsedPlayTime.TotalSeconds;
                 return (int)(sec / secondsPerStep);
             }
-            catch
+            catch (Exception ex)
             {
+                MyLog.Default.WriteLine($"[LCDMod] GetScrollStep error: {ex.Message}");
                 return 0;
             }
         }

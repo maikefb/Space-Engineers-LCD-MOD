@@ -12,6 +12,7 @@ using Graph.System.TerminalControls.Filter.Buttons;
 using Graph.System.TerminalControls.Filter.Listbox;
 using Graph.System.TerminalControls.Generic;
 using Sandbox.Game.Entities;
+using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
 using VRage;
@@ -27,6 +28,8 @@ namespace Graph.System
     {
         readonly Dictionary<long, MyTuple<IMyCubeGrid, GridLogic>> _grids =
             new Dictionary<long, MyTuple<IMyCubeGrid, GridLogic>>();
+
+        int _updateTick;
 
         public static Dictionary<long, GridLogic> Components = new Dictionary<long, GridLogic>();
         public static List<TerminalControlsWrapper> Controls = new List<TerminalControlsWrapper>();
@@ -127,6 +130,10 @@ namespace Graph.System
             if (MyAPIGateway.Utilities.IsDedicated && MyAPIGateway.Session.IsServer)
                 return;
 
+            _updateTick++;
+            if (_updateTick % 6 != 0)
+                return;
+
             try
             {
                 foreach (var grid in _grids.Values)
@@ -206,6 +213,8 @@ namespace Graph.System
                         ScreenProviderConfig settings;
                         if (MyAPIGateway.Utilities.IsDedicated && MyAPIGateway.Session.IsServer)
                         {
+                            if (block.Storage == null)
+                                block.Storage = new MyModStorageComponent();
                             settings = ConfigManager.TryLoad(block) ?? ConfigManager.CreateSettings(block);
                         }
                         else
