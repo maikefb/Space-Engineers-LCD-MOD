@@ -356,7 +356,7 @@ namespace Graph.Charts
             {
                 Type = SpriteType.TEXTURE,
                 Data = sprite,
-                Position = position + new Vector2(10f, 15) * Scale,
+                Position = position + new Vector2(20f, 15) * Scale,
                 Size = new Vector2(LINE_HEIGHT * Scale),
                 Alignment = TextAlignment.CENTER
             });
