@@ -8,7 +8,7 @@ namespace Graph.Helpers
     public class FactionHelper
     {
         const string DEFAULT_ICON = "Textures\\FactionLogo\\Others\\OtherIcon_18.dds";
-        public static Color DefaultColor => new Color(54, 0, 63);
+        public static Color DefaultColor => new Color(58, 32, 63);
         public static Color DefaultBackgroundColor => Color.Black;
         
         public static IMyFaction GetOwnerFaction(IMyTerminalBlock block) => GetPlayerFaction(block?.OwnerId ?? 0);
