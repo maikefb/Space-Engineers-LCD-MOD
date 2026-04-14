@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Graph.Helpers;
 using Graph.Panels;
 using Sandbox.Definitions;
@@ -258,18 +259,18 @@ namespace Graph.Charts
         {
             var a = Math.Abs(liters);
             var sign = liters < 0 ? "-" : "";
-            if (a >= 1000000.0) return sign + (a / 1000000.0).ToString("0.##", Pt) + " ML";
-            if (a >= 1000.0) return sign + (a / 1000.0).ToString("0.##", Pt) + " kL";
-            return sign + a.ToString("0.#", Pt) + " L";
+            if (a >= 1000000.0) return sign + (a / 1000000.0).ToString("0.##", CultureInfo.CurrentUICulture) + " ML";
+            if (a >= 1000.0) return sign + (a / 1000.0).ToString("0.##", CultureInfo.CurrentUICulture) + " kL";
+            return sign + a.ToString("0.#", CultureInfo.CurrentUICulture) + " L";
         }
 
         private string GasRate(double lps)
         {
             var a = Math.Abs(lps);
             var sign = lps < 0 ? "-" : "";
-            if (a >= 1000000.0) return sign + (a / 1000000.0).ToString("0.##", Pt) + " ML/s";
-            if (a >= 1000.0) return sign + (a / 1000.0).ToString("0.##", Pt) + " kL/s";
-            return sign + a.ToString("0.#", Pt) + " L/s";
+            if (a >= 1000000.0) return sign + (a / 1000000.0).ToString("0.##", CultureInfo.CurrentUICulture) + " ML/s";
+            if (a >= 1000.0) return sign + (a / 1000.0).ToString("0.##", CultureInfo.CurrentUICulture) + " kL/s";
+            return sign + a.ToString("0.#", CultureInfo.CurrentUICulture) + " L/s";
         }
 
         private void SumFluids(

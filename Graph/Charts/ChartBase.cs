@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using Graph.Extensions;
 using Graph.Helpers;
 using Graph.Panels;
 using Graph.System;
@@ -25,11 +26,10 @@ namespace Graph.Charts
 {
     public abstract class ChartBase : MyTextSurfaceScriptBase
     {
-                
         static Dictionary<string, Vector2> _fontSizeCache = new Dictionary<string, Vector2>();
         static Dictionary<MyDefinitionId, MyItemType> _typeCache = new Dictionary<MyDefinitionId, MyItemType>();
         static StringBuilder _stringBuilderBuffer = new StringBuilder();
-        
+
         public static List<ChartBase> Instances = new List<ChartBase>();
 
         public IMyFaction Faction { get; protected set; }
@@ -61,6 +61,11 @@ namespace Graph.Charts
         float _userScale;
         float _userPadding;
         string _languageWord;
+        string _cachedTitleSource;
+        string _cachedTitleText;
+        float _cachedTitleAvailableWidth = -1f;
+        float _cachedTitleFontSize = -1f;
+        bool _cachedTitleLocalized;
         public bool TitleVisible { get; private set; } = true;
         public override ScriptUpdate NeedsUpdate => ScriptUpdate.Update10;
 
@@ -80,7 +85,8 @@ namespace Graph.Charts
         }
 
 
-        public static Vector2 GetSizeInPixel(string text, string font, float fontSize, Sandbox.ModAPI.Ingame.IMyTextSurface surface)
+        public static Vector2 GetSizeInPixel(string text, string font, float fontSize,
+            Sandbox.ModAPI.Ingame.IMyTextSurface surface)
         {
             Vector2 size;
             var key = text + font + fontSize;
@@ -97,11 +103,12 @@ namespace Graph.Charts
             var offset = Math.Min(ViewBox.Width, ViewBox.Height) / 5;
             var frame = Surface.DrawFrame();
             frame.Add(new MySprite(SpriteType.TEXTURE, "SquareSimple", ViewBox.Center,
-                new Vector2(Math.Max(ViewBox.Width, ViewBox.Height)*2), FactionHelper.GetBackgroundColor(Faction)));
-            frame.Add(new MySprite(SpriteType.TEXTURE, Icon, new Vector2(ViewBox.Center.X,ViewBox.Center.Y - offset/2),
-                new Vector2(Math.Min(ViewBox.Width, ViewBox.Height)/1.5f), FactionHelper.GetIconColor(Faction)));
+                new Vector2(Math.Max(ViewBox.Width, ViewBox.Height) * 2), FactionHelper.GetBackgroundColor(Faction)));
+            frame.Add(new MySprite(SpriteType.TEXTURE, Icon,
+                new Vector2(ViewBox.Center.X, ViewBox.Center.Y - offset / 2),
+                new Vector2(Math.Min(ViewBox.Width, ViewBox.Height) / 1.5f), FactionHelper.GetIconColor(Faction)));
             frame.Add(new MySprite(SpriteType.TEXT, Title, new Vector2(ViewBox.Center.X, ViewBox.Center.Y + offset),
-                null,FactionHelper.GetIconColor(Faction), "White", rotation:1.6f));
+                null, FactionHelper.GetIconColor(Faction), "White", rotation: 1.6f));
             frame.Dispose();
         }
 
@@ -128,7 +135,7 @@ namespace Graph.Charts
             Instances.Remove(this);
             base.Dispose();
         }
-        
+
         const float ServerExtraPadding = 4f;
 
         protected void UpdateViewBox()
@@ -203,9 +210,9 @@ namespace Graph.Charts
 
             if (_itemsCache.Any())
             {
-               var ar = _itemsCache.Keys.ToArray();
+                var ar = _itemsCache.Keys.ToArray();
                 foreach (var key in ar) // will be 0 unless Clear() was NOT called
-                    _itemsCache[key] = 0; 
+                    _itemsCache[key] = 0;
             }
 
 
@@ -219,7 +226,7 @@ namespace Graph.Charts
                         type = MyItemType.Parse(configSelectedItem.ToString());
                         _typeCache[configSelectedItem] = type;
                     }
-                       
+
                     _itemsCache[type] = 0;
                 }
             }
@@ -227,7 +234,7 @@ namespace Graph.Charts
             foreach (var keyValuePair in ItemSource)
                 _itemsCache[keyValuePair.Key] = (keyValuePair.Value);
 
-            
+
             switch (SortMethod)
             {
                 case SortMethod.Type:
@@ -236,6 +243,7 @@ namespace Graph.Charts
                     {
                         sortedByType[entry.Key] = entry.Value;
                     }
+
                     return sortedByType.ToList();
                 default:
                     var sortedByValue = new SortedDictionary<double, List<KeyValuePair<MyItemType, double>>>(
@@ -252,7 +260,8 @@ namespace Graph.Charts
                         bucket.Add(entry);
                     }
 
-                    return sortedByValue.SelectMany(b => b.Value).ToList();;
+                    return sortedByValue.SelectMany(b => b.Value).ToList();
+                    ;
             }
         }
 
@@ -288,11 +297,11 @@ namespace Graph.Charts
             position.Y += (ViewBox.Size.Y * Margin) / 2;
 
             CaretY = position.Y;
-            
-            if(!TitleVisible)
+
+            if (!TitleVisible)
                 return;
 
-            frame.Add(new MySprite
+            AddHeaderSprite(frame, new MySprite
             {
                 Type = SpriteType.TEXTURE,
                 Data = Icon,
@@ -307,10 +316,13 @@ namespace Graph.Charts
                 (int)(ViewBox.Width - position.X + ViewBox.X),
                 (int)(position.Y + 35 * Scale))));
 
-            frame.Add(new MySprite()
+            var availableWidth = ViewBox.Width - position.X + ViewBox.X;
+            var titleText = GetCachedTitleText(availableWidth, 1.3f, true);
+
+            AddHeaderSprite(frame, new MySprite()
             {
                 Type = SpriteType.TEXT,
-                Data = MyTexts.GetString(Title),
+                Data = titleText,
                 Position = position,
                 RotationOrScale = Scale * 1.3f,
                 Color = Config.HeaderColor,
@@ -330,7 +342,8 @@ namespace Graph.Charts
         protected static readonly Regex RxGroup = new Regex(@"\(\s*G\s*:\s*(.+?)\s*\)", RegexOptions.IgnoreCase);
         protected static readonly Regex RxContainer = new Regex(@"\(\s*(?!G\s*:)(.+?)\s*\)", RegexOptions.IgnoreCase);
 
-        protected static MySprite MakeText(IMyTextSurface surf, string s, Vector2 p, float scale, TextAlignment alignment = TextAlignment.LEFT)
+        protected static MySprite MakeText(IMyTextSurface surf, string s, Vector2 p, float scale,
+            TextAlignment alignment = TextAlignment.LEFT)
         {
             return new MySprite
             {
@@ -360,7 +373,7 @@ namespace Graph.Charts
             }
         }
 
-        
+
         protected virtual RectangleF GetCellViewBox(float xStart, float xEnd, float yStart, float cellHeight,
             float cellPadding)
         {
@@ -396,14 +409,13 @@ namespace Graph.Charts
             var rb = yStart + cellHeight - cellPadding / 2;
 
             var backgroundColor = item.Value == 0 ? new Color(96, 32, 32) : Config.HeaderColor;
-            var a = backgroundColor.ColorToHSV();
-            a.Z *= 0.2f;
+            var a = backgroundColor.MulValue(0.2f);
             var cellRect = new RectangleF(rl, rt, rr - rl, rb - rt);
             var dropShadow = new RectangleF(cellRect.Position + 2, cellRect.Size);
-            RectanglePanel.CreateSpritesFromRect(dropShadow, frame, a.HSVtoColor(), .2f);
+            RectanglePanel.CreateSpritesFromRect(dropShadow, frame, a, .2f);
             RectanglePanel.CreateSpritesFromRect(cellRect, frame, backgroundColor, .2f);
         }
-        
+
         protected static int GetMaxRows(IMyTextSurface surf, float listStartY, float lineHeight)
         {
             float surfH = 512f;
@@ -453,14 +465,14 @@ namespace Graph.Charts
 
                 for (int i = sb.Length - 1; i > 0; i--)
                 {
-                    sb.Length = i; 
-                    sb.Append(ELLIPSIS); 
+                    sb.Length = i;
+                    sb.Append(ELLIPSIS);
                     textSize = Surface.MeasureStringInPixels(sb, "White", fontSize * Scale);
 
                     if (textSize.X <= availableWidth)
                         break;
 
-                    sb.Length = i; 
+                    sb.Length = i;
                 }
             }
         }
@@ -503,57 +515,51 @@ namespace Graph.Charts
             };
         }
 
-        protected static readonly CultureInfo Pt = new CultureInfo("pt-BR");
-
         protected string Pow(double watts)
         {
-            CultureInfo culture = new CultureInfo("pt-BR");
-
             double a = global::System.Math.Abs(watts);
             string sign = watts < 0 ? "-" : "";
 
             if (a < 1e-12)
                 return "0 W";
 
-            if (a >= 1e24) return sign + (a / 1e24).ToString("0.##", culture) + " YW";
-            if (a >= 1e21) return sign + (a / 1e21).ToString("0.##", culture) + " ZW";
-            if (a >= 1e18) return sign + (a / 1e18).ToString("0.##", culture) + " EW";
-            if (a >= 1e15) return sign + (a / 1e15).ToString("0.##", culture) + " PW";
-            if (a >= 1e12) return sign + (a / 1e12).ToString("0.##", culture) + " TW";
-            if (a >= 1e9) return sign + (a / 1e9).ToString("0.##", culture) + " GW";
-            if (a >= 1e6) return sign + (a / 1e6).ToString("0.##", culture) + " MW";
-            if (a >= 1e3) return sign + (a / 1e3).ToString("0.##", culture) + " kW";
-            if (a >= 1.0) return sign + a.ToString("0.##", culture) + " W";
-            if (a >= 1e-3) return sign + (a / 1e-3).ToString("0.##", culture) + " mW";
-            if (a >= 1e-6) return sign + (a / 1e-6).ToString("0.##", culture) + " uW";
-            if (a >= 1e-9) return sign + (a / 1e-9).ToString("0.##", culture) + " nW";
-            if (a >= 1e-12) return sign + (a / 1e-12).ToString("0.##", culture) + " pW";
-            return sign + a.ToString("0.##", culture) + " W";
+            if (a >= 1e24) return sign + (a / 1e24).ToString("0.##", CultureInfo.CurrentUICulture) + " YW";
+            if (a >= 1e21) return sign + (a / 1e21).ToString("0.##", CultureInfo.CurrentUICulture) + " ZW";
+            if (a >= 1e18) return sign + (a / 1e18).ToString("0.##", CultureInfo.CurrentUICulture) + " EW";
+            if (a >= 1e15) return sign + (a / 1e15).ToString("0.##", CultureInfo.CurrentUICulture) + " PW";
+            if (a >= 1e12) return sign + (a / 1e12).ToString("0.##", CultureInfo.CurrentUICulture) + " TW";
+            if (a >= 1e9) return sign + (a / 1e9).ToString("0.##", CultureInfo.CurrentUICulture) + " GW";
+            if (a >= 1e6) return sign + (a / 1e6).ToString("0.##", CultureInfo.CurrentUICulture) + " MW";
+            if (a >= 1e3) return sign + (a / 1e3).ToString("0.##", CultureInfo.CurrentUICulture) + " kW";
+            if (a >= 1.0) return sign + a.ToString("0.##", CultureInfo.CurrentUICulture) + " W";
+            if (a >= 1e-3) return sign + (a / 1e-3).ToString("0.##", CultureInfo.CurrentUICulture) + " mW";
+            if (a >= 1e-6) return sign + (a / 1e-6).ToString("0.##", CultureInfo.CurrentUICulture) + " uW";
+            if (a >= 1e-9) return sign + (a / 1e-9).ToString("0.##", CultureInfo.CurrentUICulture) + " nW";
+            if (a >= 1e-12) return sign + (a / 1e-12).ToString("0.##", CultureInfo.CurrentUICulture) + " pW";
+            return sign + a.ToString("0.##", CultureInfo.CurrentUICulture) + " W";
         }
 
 
         protected string PowForce(double newtons)
         {
-            var culture = new CultureInfo("pt-BR");
-
             double a = global::System.Math.Abs(newtons);
             string sign = newtons < 0 ? "-" : "";
 
             if (a < 1e-12)
                 return "0 N";
 
-            if (a >= 1e24) return sign + (a / 1e24).ToString("0.##", culture) + " YN";
-            if (a >= 1e21) return sign + (a / 1e21).ToString("0.##", culture) + " ZN";
-            if (a >= 1e18) return sign + (a / 1e18).ToString("0.##", culture) + " EN";
-            if (a >= 1e15) return sign + (a / 1e15).ToString("0.##", culture) + " PN";
-            if (a >= 1e12) return sign + (a / 1e12).ToString("0.##", culture) + " TN";
-            if (a >= 1e9) return sign + (a / 1e9).ToString("0.##", culture) + " GN";
-            if (a >= 1e6) return sign + (a / 1e6).ToString("0.##", culture) + " MN";
-            if (a >= 1e3) return sign + (a / 1e3).ToString("0.##", culture) + " kN";
-            if (a >= 1e-3) return sign + (a / 1e-3).ToString("0.##", culture) + " mN";
-            if (a >= 1e-6) return sign + (a / 1e-6).ToString("0.##", culture) + " uN";
-            if (a >= 1e-9) return sign + (a / 1e-9).ToString("0.##", culture) + " nN";
-            return sign + a.ToString("0.##", culture) + " N";
+            if (a >= 1e24) return sign + (a / 1e24).ToString("0.##", CultureInfo.CurrentUICulture) + " YN";
+            if (a >= 1e21) return sign + (a / 1e21).ToString("0.##", CultureInfo.CurrentUICulture) + " ZN";
+            if (a >= 1e18) return sign + (a / 1e18).ToString("0.##", CultureInfo.CurrentUICulture) + " EN";
+            if (a >= 1e15) return sign + (a / 1e15).ToString("0.##", CultureInfo.CurrentUICulture) + " PN";
+            if (a >= 1e12) return sign + (a / 1e12).ToString("0.##", CultureInfo.CurrentUICulture) + " TN";
+            if (a >= 1e9) return sign + (a / 1e9).ToString("0.##", CultureInfo.CurrentUICulture) + " GN";
+            if (a >= 1e6) return sign + (a / 1e6).ToString("0.##", CultureInfo.CurrentUICulture) + " MN";
+            if (a >= 1e3) return sign + (a / 1e3).ToString("0.##", CultureInfo.CurrentUICulture) + " kN";
+            if (a >= 1e-3) return sign + (a / 1e-3).ToString("0.##", CultureInfo.CurrentUICulture) + " mN";
+            if (a >= 1e-6) return sign + (a / 1e-6).ToString("0.##", CultureInfo.CurrentUICulture) + " uN";
+            if (a >= 1e-9) return sign + (a / 1e-9).ToString("0.##", CultureInfo.CurrentUICulture) + " nN";
+            return sign + a.ToString("0.##", CultureInfo.CurrentUICulture) + " N";
         }
 
 
@@ -581,8 +587,50 @@ namespace Graph.Charts
             _userScale = Config.Scale;
             TitleVisible = Config.TitleVisible;
             _languageWord = MyTexts.GetString("Language");
+            InvalidateTitleCache();
             Scale = GetAutoScaleUniform();
             UpdateViewBox();
+        }
+
+        protected string GetCachedTitleText(float availableWidth, float fontSize = 1.3f, bool localizeTitle = false)
+        {
+            var source = localizeTitle ? MyTexts.GetString(Title) : Title;
+            availableWidth = Math.Max(0f, availableWidth);
+
+            if (_cachedTitleText != null &&
+                _cachedTitleSource == source &&
+                _cachedTitleLocalized == localizeTitle &&
+                Math.Abs(_cachedTitleAvailableWidth - availableWidth) <= 0.1f &&
+                Math.Abs(_cachedTitleFontSize - fontSize) <= 0.0001f)
+            {
+                return _cachedTitleText;
+            }
+
+            var sb = new StringBuilder(source ?? string.Empty);
+            if (availableWidth > 0f)
+                TrimText(ref sb, availableWidth, fontSize);
+
+            _cachedTitleSource = source;
+            _cachedTitleLocalized = localizeTitle;
+            _cachedTitleAvailableWidth = availableWidth;
+            _cachedTitleFontSize = fontSize;
+            _cachedTitleText = sb.ToString();
+            return _cachedTitleText;
+        }
+
+        protected void InvalidateTitleCache()
+        {
+            _cachedTitleSource = null;
+            _cachedTitleText = null;
+            _cachedTitleAvailableWidth = -1f;
+            _cachedTitleFontSize = -1f;
+            _cachedTitleLocalized = false;
+        }
+
+        protected static void AddHeaderSprite(List<MySprite> frame, MySprite sprite)
+        {
+            frame.Add(sprite.Shadow(1f));
+            frame.Add(sprite);
         }
 
         public void UpdateFaction(IMyFaction faction)

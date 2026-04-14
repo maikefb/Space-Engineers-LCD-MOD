@@ -8,6 +8,9 @@ namespace Graph.Panels
 {
     public class PieDualChartPanel : PieChartPanel
     {
+        bool _hasCachedSecondState;
+        float _cachedValue2;
+
         public PieDualChartPanel(string title, IMyTextSurface surface, Vector2 margin, Vector2 size,
             bool showTitle = true) : base(title, surface, margin, size, showTitle)
         {
@@ -19,17 +22,39 @@ namespace Graph.Panels
             if (color == null)
                 color = _surface.ScriptForegroundColor;
 
+            var backgroundColor = _surface.ScriptForegroundColor;
+            if (!_layoutDirty &&
+                _hasCachedState &&
+                _hasCachedSecondState &&
+                Math.Abs(_cachedValue - value) <= EPSILON &&
+                Math.Abs(_cachedValue2 - value2) <= EPSILON &&
+                _cachedColor == color.Value &&
+                _cachedTurnDarkOnComplete == turnDarkOnComplete &&
+                _cachedBackgroundColor == backgroundColor)
+            {
+                return _sprites;
+            }
+
             _sprites.Clear();
 
             if (_showTitle) DrawTitle(value, color.Value);
             DrawBackground(Math.Max(value, value2),
-                (value > value2) ? _surface.ScriptForegroundColor : color.Value, _surface.ScriptForegroundColor, turnDarkOnComplete);
+                (value > value2) ? backgroundColor : color.Value, backgroundColor, turnDarkOnComplete);
 
             if(value > 0 && value > value2) // draw only if > 0 and bigger than the second value
-                DrawPie(value, _surface.ScriptForegroundColor, _surface.ScriptForegroundColor);
+                DrawPie(value, backgroundColor, backgroundColor);
             
             if(value2 > 0 && value2 < .99)  // draw only if > 0 and not 100% (turnDarkOnComplete already draws 100%)
                 DrawPieWithTransparency(value2, color.Value);
+
+            _cachedValue = value;
+            _cachedValue2 = value2;
+            _cachedColor = color.Value;
+            _cachedTurnDarkOnComplete = turnDarkOnComplete;
+            _cachedBackgroundColor = backgroundColor;
+            _layoutDirty = false;
+            _hasCachedState = true;
+            _hasCachedSecondState = true;
 
             return _sprites;
         }

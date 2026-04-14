@@ -71,9 +71,6 @@ namespace Graph.Charts
             }
         }
 
-        public Dictionary<string, string> TitleCache =
-            new Dictionary<string, string>();
-
         protected const int TITLE_HEIGHT = 35;
         protected const int LINE_HEIGHT = 30;
         protected const int MINIMUM_COL_WIDTH = 220;
@@ -599,7 +596,7 @@ namespace Graph.Charts
             if(!TitleVisible)
                 return;
             
-            frame.Add(new MySprite()
+            AddHeaderSprite(frame, new MySprite()
             {
                 Type = SpriteType.TEXTURE,
                 Data = Icon,
@@ -619,22 +616,9 @@ namespace Graph.Charts
             frame.Add(MySprite.CreateClipRect(availableSize));
 
 
-            StringBuilder displayNameSb = new StringBuilder(Title);
-            string displayName;
+            var displayName = GetCachedTitleText(availableSize.Width, 1.3f, false);
 
-            if (!TitleCache.TryGetValue(Title + Scale, out displayName))
-            {
-                TitleCache.Clear();
-
-                StringBuilder trimmedSb = new StringBuilder(displayNameSb.ToString());
-
-                TrimText(ref trimmedSb, availableSize.Width, 1.3f);
-
-                displayName = trimmedSb.ToString();
-                TitleCache[displayNameSb.ToString() + Scale] = displayName;
-            }
-
-            frame.Add(new MySprite()
+            AddHeaderSprite(frame, new MySprite()
             {
                 Type = SpriteType.TEXT,
                 Data = displayName,
@@ -648,7 +632,7 @@ namespace Graph.Charts
             frame.Add(MySprite.CreateClearClipRect());
             position.X = ViewBox.Width + ViewBox.X - margin;
 
-            frame.Add(new MySprite()
+            AddHeaderSprite(frame, new MySprite()
             {
                 Type = SpriteType.TEXT,
                 Data = stockText.ToString(),

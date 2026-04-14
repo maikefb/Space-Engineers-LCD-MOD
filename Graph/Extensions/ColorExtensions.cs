@@ -28,6 +28,13 @@ namespace Graph.Extensions
             return Invert(color.Value);
         }
         
+        public static Color MulValue(this Color color, float value)
+        {
+            var hsv = color.ColorToHSV();
+            hsv.Z *= value;
+            return hsv.HSVtoColor();
+        }
+        
         public static Color DeriveAscentColor(this Color @base)
         {
             var hsv = @base.ColorToHSV();

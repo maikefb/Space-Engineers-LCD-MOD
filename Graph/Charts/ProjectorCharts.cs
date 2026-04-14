@@ -101,7 +101,7 @@ namespace Graph.Charts
             if (!TitleVisible)
                 return;
 
-            frame.Add(new MySprite()
+            AddHeaderSprite(frame, new MySprite()
             {
                 Type = SpriteType.TEXTURE,
                 Data = Icon,
@@ -121,22 +121,9 @@ namespace Graph.Charts
             frame.Add(MySprite.CreateClipRect(availableSize));
 
 
-            StringBuilder displayNameSb = new StringBuilder(Title);
-            string displayName;
+            var displayName = GetCachedTitleText(availableSize.Width, 1.3f, false);
 
-            if (!TitleCache.TryGetValue(Title + Scale, out displayName))
-            {
-                TitleCache.Clear();
-
-                StringBuilder trimmedSb = new StringBuilder(displayNameSb.ToString());
-
-                TrimText(ref trimmedSb, availableSize.Width, 1.3f);
-
-                displayName = trimmedSb.ToString();
-                TitleCache[displayNameSb.ToString() + Scale] = displayName;
-            }
-
-            frame.Add(new MySprite()
+            AddHeaderSprite(frame, new MySprite()
             {
                 Type = SpriteType.TEXT,
                 Data = displayName,
@@ -153,7 +140,7 @@ namespace Graph.Charts
             var separatorX = requiredRight - numberWidth - headerSeparatorPadding;
 
             position.X = requiredRight;
-            frame.Add(new MySprite
+            AddHeaderSprite(frame, new MySprite
             {
                 Type = SpriteType.TEXT,
                 Data = Required,
@@ -164,7 +151,7 @@ namespace Graph.Charts
                 FontId = "White"
             });
 
-            frame.Add(new MySprite
+            AddHeaderSprite(frame, new MySprite
             {
                 Type = SpriteType.TEXT,
                 Data = "/",
@@ -176,7 +163,7 @@ namespace Graph.Charts
             });
 
             position.X = availableRight;
-            frame.Add(new MySprite
+            AddHeaderSprite(frame, new MySprite
             {
                 Type = SpriteType.TEXT,
                 Data = Available,

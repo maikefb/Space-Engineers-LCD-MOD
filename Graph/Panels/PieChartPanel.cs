@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Sandbox.ModAPI;
 using VRage.Game.GUI.TextPanel;
@@ -8,12 +9,20 @@ namespace Graph.Panels
 {
     public class PieChartPanel
     {
+        protected const float EPSILON = 0.0001f;
+
         protected readonly IMyTextSurface _surface;
         protected readonly string _title;
         protected Vector2 _origo;
         protected Vector2 _size;
         protected readonly bool _showTitle;
         protected readonly List<MySprite> _sprites = new List<MySprite>();
+        protected bool _layoutDirty = true;
+        protected bool _hasCachedState;
+        protected float _cachedValue;
+        protected Color _cachedColor;
+        protected bool _cachedTurnDarkOnComplete;
+        protected Color _cachedBackgroundColor;
 
         public PieChartPanel(string title, IMyTextSurface surface, Vector2 margin, Vector2 size, bool showTitle = true)
         {
@@ -25,20 +34,47 @@ namespace Graph.Panels
 
         public void SetMargin(Vector2 margin, Vector2 size)
         {
-            _origo = new Vector2(margin.X, 512 - margin.Y);
-            _size = size;
+            var newOrigo = new Vector2(margin.X, 512 - margin.Y);
+            if (_origo != newOrigo || _size != size)
+            {
+                _origo = newOrigo;
+                _size = size;
+                _layoutDirty = true;
+            }
         }
 
         public virtual List<MySprite> GetSprites(float value, Color? color = null, bool turnDarkOnComplete = false)
         {
             if (color == null)
                 color = _surface.ScriptForegroundColor;
+
+            var backgroundColor = _surface.ScriptForegroundColor;
+            if (!_layoutDirty &&
+                _hasCachedState &&
+                Math.Abs(_cachedValue - value) <= EPSILON &&
+                _cachedColor == color.Value &&
+                _cachedTurnDarkOnComplete == turnDarkOnComplete &&
+                _cachedBackgroundColor == backgroundColor)
+            {
+                return _sprites;
+            }
+
             _sprites.Clear();
             if (_showTitle) DrawTitle(value, color.Value);
-            DrawBackground(value, color.Value, _surface.ScriptForegroundColor, turnDarkOnComplete);
-            if (value > .99) 
-                return _sprites;
-            DrawPie(value, color.Value, _surface.ScriptForegroundColor);
+            DrawBackground(value, color.Value, backgroundColor, turnDarkOnComplete);
+            
+            if (value <= .01f)
+                DrawPie(.01f, color.Value, backgroundColor);
+            else if (value <= .99f)
+                DrawPie(value, color.Value, backgroundColor);
+
+            
+            _cachedValue = value;
+            _cachedColor = color.Value;
+            _cachedTurnDarkOnComplete = turnDarkOnComplete;
+            _cachedBackgroundColor = backgroundColor;
+            _layoutDirty = false;
+            _hasCachedState = true;
             return _sprites;
         }
 
