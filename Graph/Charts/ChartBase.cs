@@ -193,7 +193,7 @@ namespace Graph.Charts
             }
         }
 
-        protected List<KeyValuePair<MyItemType, double>> ReadItems(IMyTerminalBlock lcd)
+        protected virtual List<KeyValuePair<MyItemType, double>> ReadItems(IMyTerminalBlock lcd)
         {
             if (Config.HideEmpty || Config.SelectedItems.Any())
                 _itemsCache.Clear();

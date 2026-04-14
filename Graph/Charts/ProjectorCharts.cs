@@ -46,11 +46,13 @@ namespace Graph.Charts
 
         int _totalComponents;
         int _missingComponents;
+        
+        string Required = "Req";
+        string Available = "Ava";
 
-        string Req = "Req";
-        string Mis = "Mis";
-
-        readonly Vector2 _piePosition = new Vector2(10 + PIE_RADIUS / 2, -5);
+        float RequiredX;
+        float AvailableX;
+        
         const float PIE_RADIUS = 40;
         readonly PieDualChartPanel _pieBlueprint;
 
@@ -60,7 +62,7 @@ namespace Graph.Charts
             _pieBlueprint = new PieDualChartPanel(
                 "",
                 (IMyTextSurface)Surface,
-                ToScreenMargin(new Vector2(ViewBox.Position.X, ViewBox.Bottom) + _piePosition * Scale),
+                ToScreenMargin(GetFooterPieCenter()),
                 new Vector2(PIE_RADIUS * Scale),
                 false
             );
@@ -70,13 +72,20 @@ namespace Graph.Charts
         {
             base.LayoutChanged();
             _pieBlueprint.SetMargin(
-                ToScreenMargin(new Vector2(ViewBox.Position.X, ViewBox.Bottom) + _piePosition * Scale),
+                ToScreenMargin(GetFooterPieCenter()),
                 new Vector2(PIE_RADIUS * Scale));
 
             _customTitle = _projector?.CustomName;
 
-            Req = MyTexts.Get(MyStringId.GetOrCompute("ScreenTerminalProduction_RequiredAndAvailable")).ToString().Substring(0, 3);
-            Mis = MyTexts.Get(MyStringId.GetOrCompute("AssemblerState_MissingItems")).ToString().Substring(0, 3);
+            var RaA = MyTexts.Get(MyStringId.GetOrCompute("ScreenTerminalProduction_RequiredAndAvailable")).ToString().Split('/');
+            if (RaA.Length == 2)
+            {
+                Required = RaA.First().Trim();
+                Available = RaA.Last().Trim();
+            }
+            
+            RequiredX = Surface.MeasureStringInPixels(new StringBuilder(Required), "White", 1).X;
+            AvailableX = Surface.MeasureStringInPixels(new StringBuilder(Available), "White", 1).X;
         }
 
         protected override void DrawTitle(List<MySprite> frame)
@@ -103,10 +112,11 @@ namespace Graph.Charts
             });
             position.X += ViewBox.Width / 8f;
 
-            var numberWidth = NUMBER_WIDTH * Scale;
+            var numberWidth = GetQuantityColumnWidth();
+            var headerSeparatorPadding = 10f * Scale;
 
             var availableSize = new Rectangle((int)position.X, (int)position.Y,
-                (int)(ViewBox.Width - position.X + (ViewBox.X) - (2 * margin) - (2 * numberWidth)),
+                (int)(ViewBox.Width - position.X + (ViewBox.X) - (2 * margin) - (2 * numberWidth) - (2 * headerSeparatorPadding)),
                 (int)(position.Y + TITLE_HEIGHT * Scale));
             frame.Add(MySprite.CreateClipRect(availableSize));
 
@@ -138,11 +148,15 @@ namespace Graph.Charts
             });
 
             frame.Add(MySprite.CreateClearClipRect());
-            position.X = ViewBox.Width + ViewBox.X - margin - SCROLLER_WIDTH * Scale;
+            var requiredRight = ViewBox.Width + ViewBox.X - margin - SCROLLER_WIDTH * Scale;
+            var availableRight = requiredRight - numberWidth - (2f * headerSeparatorPadding);
+            var separatorX = requiredRight - numberWidth - headerSeparatorPadding;
+
+            position.X = requiredRight;
             frame.Add(new MySprite
             {
                 Type = SpriteType.TEXT,
-                Data = Mis,
+                Data = Required,
                 Position = position,
                 RotationOrScale = Scale * 1.3f,
                 Color = Config.HeaderColor,
@@ -150,12 +164,22 @@ namespace Graph.Charts
                 FontId = "White"
             });
 
-            position.X -= numberWidth;
-
             frame.Add(new MySprite
             {
                 Type = SpriteType.TEXT,
-                Data = Req,
+                Data = "/",
+                Position = new Vector2(separatorX, position.Y),
+                RotationOrScale = Scale * 1.3f,
+                Color = Config.HeaderColor,
+                Alignment = TextAlignment.LEFT,
+                FontId = "White"
+            });
+
+            position.X = availableRight;
+            frame.Add(new MySprite
+            {
+                Type = SpriteType.TEXT,
+                Data = Available,
                 Position = position,
                 RotationOrScale = Scale * 1.3f,
                 Color = Config.HeaderColor,
@@ -268,6 +292,31 @@ namespace Graph.Charts
             frame.AddRange(_pieBlueprint.GetSprites(componentsPct, blocksPct, Config.HeaderColor, true));
         }
 
+        protected override List<KeyValuePair<MyItemType, double>> ReadItems(IMyTerminalBlock lcd)
+        {
+            if (lcd == null || ItemSource == null)
+                return new List<KeyValuePair<MyItemType, double>>();
+
+            var list = ItemSource.ToList();
+            switch (SortMethod)
+            {
+                case SortMethod.Type:
+                    list.Sort((a, b) =>
+                    {
+                        var typeCmp = string.Compare(a.Key.TypeId, b.Key.TypeId, StringComparison.CurrentCulture);
+                        if (typeCmp != 0)
+                            return typeCmp;
+                        return string.Compare(a.Key.SubtypeId, b.Key.SubtypeId, StringComparison.CurrentCulture);
+                    });
+                    break;
+                default:
+                    list.Sort((a, b) => b.Value.CompareTo(a.Value));
+                    break;
+            }
+
+            return list;
+        }
+
         protected override void DrawRow(List<MySprite> frame, KeyValuePair<MyItemType, double> item, bool showScrollBar)
         {
             string sprite;
@@ -310,6 +359,7 @@ namespace Graph.Charts
             }
 
             _previousType = item.Key.TypeId;
+            var hasShortage = HasShortage(item.Key, item.Value);
 
             frame.Add(new MySprite()
             {
@@ -317,13 +367,14 @@ namespace Graph.Charts
                 Data = sprite,
                 Position = position + new Vector2(20f, 15) * Scale,
                 Size = new Vector2(LINE_HEIGHT * Scale),
-                Color = Surface.ScriptForegroundColor,
+                Color = hasShortage ? new Color(96, 32, 32) : Surface.ScriptForegroundColor,
                 Alignment = TextAlignment.CENTER
             });
             position.X += ViewBox.Width / 8f;
+            var quantityColumnsWidth = 2f * GetQuantityColumnWidth() + GetQuantityColumnGap();
 
             var clip = new Rectangle((int)position.X, (int)position.Y,
-                (int)(ViewBox.Width - position.X + (ViewBox.X) - 105 * Scale),
+                (int)(ViewBox.Width - position.X + (ViewBox.X) - quantityColumnsWidth - margin),
                 (int)(position.Y + (LINE_HEIGHT + 5) * Scale));
 
             frame.Add(MySprite.CreateClipRect(clip));
@@ -345,7 +396,7 @@ namespace Graph.Charts
                 Data = localizedName,
                 Position = position,
                 RotationOrScale = Scale,
-                Color = Surface.ScriptForegroundColor,
+                Color = hasShortage ? new Color(96, 32, 32) : Surface.ScriptForegroundColor,
                 Alignment = TextAlignment.LEFT,
                 FontId = "White"
             });
@@ -355,28 +406,152 @@ namespace Graph.Charts
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
-                Data = FormatItemQty(item.Value),
+                Data = FormatItemQty(GetNeededQty(item.Key)),
                 Position = position,
                 RotationOrScale = Scale,
-                Color = Surface.ScriptForegroundColor,
+                Color = hasShortage ? new Color(96, 32, 32) : Surface.ScriptForegroundColor,
                 Alignment = TextAlignment.RIGHT,
                 FontId = "White"
             });
-
-            position.X -= NUMBER_WIDTH * Scale;
-
+            position.X -= GetQuantityColumnWidth() + GetQuantityColumnGap();
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
-                Data = FormatItemQty(_needed[item.Key]),
+                Data = FormatItemQty(GetAvailableQty(item.Key, item.Value)),
                 Position = position,
                 RotationOrScale = Scale,
-                Color = Surface.ScriptForegroundColor,
+                Color = hasShortage ? new Color(96, 32, 32) : Surface.ScriptForegroundColor,
                 Alignment = TextAlignment.RIGHT,
                 FontId = "White"
             });
 
             CaretY += LINE_HEIGHT * Scale;
+        }
+
+        protected override void DrawCellContent(List<MySprite> frame, KeyValuePair<MyItemType, double> item,
+            string sprite, Color foreground, MyTuple<RectangleF, RectangleF, RectangleF> slots)
+        {
+            string localizedName;
+            var iconRect = slots.Item1;
+            var numberRect = slots.Item2;
+            var nameRect = slots.Item3;
+            var hasShortage = HasShortage(item.Key, item.Value);
+            var useAlertText = hasShortage && Config.DrawLines;
+            var color = useAlertText ? new Color(96, 32, 32) : foreground;
+
+            frame.Add(new MySprite
+            {
+                Type = SpriteType.TEXTURE,
+                Data = sprite,
+                Position = new Vector2(iconRect.X, iconRect.Y + iconRect.Height / 2f),
+                Size = new Vector2(iconRect.Width),
+                Alignment = TextAlignment.LEFT,
+                Color = useAlertText ? new Color(96, 32, 32) : Color.White
+            });
+
+            if (!_locKeysCache.TryGetValue(item.Key, out localizedName))
+            {
+                var key =
+                    MyDefinitionManager.Static.TryGetPhysicalItemDefinition(item.Key).DisplayNameEnum?.ToString() ??
+                    item.Key.SubtypeId;
+                var sb = new StringBuilder(MyTexts.GetString(key));
+                TrimText(ref sb, nameRect.Width);
+                localizedName = sb.ToString();
+                _locKeysCache[item.Key] = sb.ToString();
+            }
+
+            Vector2 size = GetSizeInPixel(localizedName, "White", 1, Surface);
+            float minProportion = Math.Min(nameRect.Width / size.X, nameRect.Height / size.Y);
+            float fontSize = minProportion;
+            float renderedHeight = size.Y * fontSize;
+            Vector2 pos = nameRect.Center;
+            pos.Y -= renderedHeight * 0.5f;
+            pos.X = nameRect.Right;
+
+            frame.Add(new MySprite(
+                SpriteType.TEXT,
+                localizedName,
+                pos,
+                null,
+                color,
+                "White",
+                TextAlignment.RIGHT,
+                fontSize * .95f
+            ));
+
+            var qty = FormatItemQty(GetAvailableQty(item.Key, item.Value)) + "/" + FormatItemQty(GetNeededQty(item.Key));
+            size = GetSizeInPixel(qty, "White", 1, Surface);
+            minProportion = Math.Min(numberRect.Width / size.X, numberRect.Height / size.Y);
+            fontSize = minProportion;
+            renderedHeight = size.Y * fontSize;
+            pos = numberRect.Center;
+            pos.Y -= renderedHeight * 0.5f;
+            pos.X = numberRect.Right;
+
+            frame.Add(new MySprite(
+                SpriteType.TEXT,
+                qty,
+                pos,
+                null,
+                color,
+                "White",
+                TextAlignment.RIGHT,
+                fontSize * .95f
+            ));
+        }
+
+        protected override void DrawCellBackground(List<MySprite> frame, KeyValuePair<MyItemType, double> item,
+            float xStart, float xEnd, float yStart, float cellHeight, float cellPadding)
+        {
+            var rl = xStart + cellPadding / 2;
+            var rr = xEnd - cellPadding / 2;
+            var rt = yStart + cellPadding / 2;
+            var rb = yStart + cellHeight - cellPadding / 2;
+
+            var backgroundColor = HasShortage(item.Key, item.Value) ? new Color(96, 32, 32) : Config.HeaderColor;
+            var a = backgroundColor.ColorToHSV();
+            a.Z *= 0.2f;
+            var cellRect = new RectangleF(rl, rt, rr - rl, rb - rt);
+            var dropShadow = new RectangleF(cellRect.Position + 2, cellRect.Size);
+            RectanglePanel.CreateSpritesFromRect(dropShadow, frame, a.HSVtoColor(), .2f);
+            RectanglePanel.CreateSpritesFromRect(cellRect, frame, backgroundColor, .2f);
+        }
+
+        int GetNeededQty(MyItemType itemType)
+        {
+            int needed;
+            return _needed.TryGetValue(itemType, out needed) ? needed : 0;
+        }
+
+        double GetAvailableQty(MyItemType itemType, double missingQty)
+        {
+            var needed = GetNeededQty(itemType);
+            var have = needed - missingQty;
+            return have < 0 ? 0 : have;
+        }
+
+        bool HasShortage(MyItemType itemType, double missingQty)
+        {
+            return GetAvailableQty(itemType, missingQty) < GetNeededQty(itemType);
+        }
+
+        float GetQuantityColumnWidth()
+        {
+            var labelWidth = Math.Max(RequiredX, AvailableX) * Scale * 1.3f + (8f * Scale);
+            return Math.Max(100f * Scale, labelWidth);
+        }
+
+        float GetQuantityColumnGap()
+        {
+            return 20f * Scale;
+        }
+
+        Vector2 GetFooterPieCenter()
+        {
+            var margin = ViewBox.Size.X * Margin;
+            var headerIconCenterX = ViewBox.Position.X + margin + 20f * Scale;
+            var footerPieCenterY = ViewBox.Bottom + (-5f * Scale);
+            return new Vector2(headerIconCenterX, footerPieCenterY);
         }
 
         void EnsureData()

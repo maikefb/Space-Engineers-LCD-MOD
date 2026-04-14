@@ -223,9 +223,10 @@ namespace Graph.Charts
         void BuildVisibleEntries()
         {
             _visibleEntries.Clear();
+            var hideEmpty = Config == null || Config.HideEmpty;
             for (int i = 0; i < _entriesOrdered.Length; i++)
             {
-                if (_entriesOrdered[i].DetectedBlocks > 0)
+                if (!hideEmpty || _entriesOrdered[i].DetectedBlocks > 0)
                     _visibleEntries.Add(_entriesOrdered[i]);
             }
         }

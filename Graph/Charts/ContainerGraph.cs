@@ -126,7 +126,7 @@ namespace Graph.Charts
 
 
                 bool dark = m_surface.ScriptForegroundColor.R + m_surface.ScriptForegroundColor.G + m_surface.ScriptForegroundColor.B > 96;
-                barPanel = new BarPanel(new Vector2(clip.Location.X, clip.Location.Y) + barMargin / 2, size, Config.HeaderColor, dark ? Color.Black : Color.Gray);
+                barPanel = new BarPanel(new Vector2(clip.Location.X, clip.Location.Y) + barMargin / 2, size, Config.HeaderColor, BackgroundColor.DeriveAscentColor());
             }
 
             frame.AddRange(barPanel.GetSprites((float)pct));

@@ -114,7 +114,7 @@ namespace Graph.Charts
             LocalizedTitleCache = string.Empty;
         }
 
-        public void DrawItems()
+        public virtual void DrawItems()
         {
             using (var frame = Surface.DrawFrame())
             {
