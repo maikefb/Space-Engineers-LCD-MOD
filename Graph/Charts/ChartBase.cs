@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Graph.Helpers;
+using Graph.Panels;
 using Graph.System;
 using Graph.System.Config;
 using Sandbox.Definitions;
@@ -359,6 +360,50 @@ namespace Graph.Charts
             }
         }
 
+        
+        protected virtual RectangleF GetCellViewBox(float xStart, float xEnd, float yStart, float cellHeight,
+            float cellPadding)
+        {
+            var innerLeft = xStart + cellPadding;
+            var innerRight = xEnd - cellPadding;
+            var innerTop = yStart + cellPadding;
+            var innerBottom = yStart + cellHeight - cellPadding;
+            return new RectangleF(innerLeft, innerTop, innerRight - innerLeft, innerBottom - innerTop);
+        }
+
+        protected virtual MyTuple<RectangleF, RectangleF, RectangleF> GetCellSlots(float innerLeft, float innerRight,
+            float innerTop, float innerBottom, float spacing)
+        {
+            var topRowHeight = spacing * Scale;
+            var bottomRowTop = innerTop + topRowHeight;
+            var bottomRowHeight = Math.Max(0f, innerBottom - bottomRowTop);
+            var iconSize = innerBottom - innerTop;
+            var contentLeft = innerLeft + iconSize;
+            var contentWidth = Math.Max(0f, innerRight - contentLeft);
+
+            var iconRect = new RectangleF(innerLeft, innerTop, iconSize, iconSize);
+            var numberRect = new RectangleF(contentLeft, innerTop, contentWidth, topRowHeight);
+            var nameRect = new RectangleF(contentLeft, bottomRowTop, contentWidth, bottomRowHeight);
+            return new MyTuple<RectangleF, RectangleF, RectangleF>(iconRect, numberRect, nameRect);
+        }
+
+        protected virtual void DrawCellBackground(List<MySprite> frame, KeyValuePair<MyItemType, double> item,
+            float xStart, float xEnd, float yStart, float cellHeight, float cellPadding)
+        {
+            var rl = xStart + cellPadding / 2;
+            var rr = xEnd - cellPadding / 2;
+            var rt = yStart + cellPadding / 2;
+            var rb = yStart + cellHeight - cellPadding / 2;
+
+            var backgroundColor = item.Value == 0 ? new Color(96, 32, 32) : Config.HeaderColor;
+            var a = backgroundColor.ColorToHSV();
+            a.Z *= 0.2f;
+            var cellRect = new RectangleF(rl, rt, rr - rl, rb - rt);
+            var dropShadow = new RectangleF(cellRect.Position + 2, cellRect.Size);
+            RectanglePanel.CreateSpritesFromRect(dropShadow, frame, a.HSVtoColor(), .2f);
+            RectanglePanel.CreateSpritesFromRect(cellRect, frame, backgroundColor, .2f);
+        }
+        
         protected static int GetMaxRows(IMyTextSurface surf, float listStartY, float lineHeight)
         {
             float surfH = 512f;

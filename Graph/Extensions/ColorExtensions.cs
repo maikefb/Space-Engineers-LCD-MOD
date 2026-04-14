@@ -27,5 +27,22 @@ namespace Graph.Extensions
                 color = Color.White;
             return Invert(color.Value);
         }
+        
+        public static Color DeriveAscentColor(this Color @base)
+        {
+            var hsv = @base.ColorToHSV();
+
+            if (hsv.Y > 0.3f)
+                hsv.Y = hsv.Y > 0.7f ? hsv.Y - 0.3f : hsv.Y + 0.3f;
+            else
+                hsv.Z = hsv.Z > 0.5f ? hsv.Z - 0.5f : hsv.Z + 0.5f;
+
+            hsv.Y = MathHelper.Clamp(hsv.Y, 0f, 1f);
+            hsv.Z = MathHelper.Clamp(hsv.Z, 0f, 1f);
+
+            var color = hsv.HSVtoColor();
+            color.A = @base.A;
+            return color;
+        }
     }
 }

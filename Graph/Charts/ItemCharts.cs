@@ -305,8 +305,7 @@ namespace Graph.Charts
         }
 
 
-        protected virtual void DrawRow(List<MySprite> frame,
-            KeyValuePair<MyItemType, double> item, bool showScrollBar)
+        protected virtual void DrawRow(List<MySprite> frame, KeyValuePair<MyItemType, double> item, bool showScrollBar)
         {
             string sprite;
             string localizedName;
@@ -415,7 +414,6 @@ namespace Graph.Charts
             var gridCellHeight = 3 * LINE_HEIGHT * Scale;
             var cellPadding = (LINE_HEIGHT * Scale) / 2f;
             string sprite;
-            string localizedName;
             var foreground = Surface.ScriptForegroundColor;
 
             if (!SpriteCache.TryGetValue(item.Key, out sprite))
@@ -437,25 +435,11 @@ namespace Graph.Charts
             Vector2 position = ViewBox.Position;
             position.X = xStart;
             position.Y = CaretY;
-            var innerLeft = xStart + cellPadding;
-            var innerRight = xEnd - cellPadding;
-            var innerTop = position.Y + cellPadding;
-            var innerBottom = position.Y + gridCellHeight - cellPadding;
+            var cellViewBox = GetCellViewBox(xStart, xEnd, position.Y, gridCellHeight, cellPadding);
 
             if (!Config.DrawLines)
             {
-                var rl = xStart + cellPadding/2;
-                var rr = xEnd - cellPadding/2;
-                var rt = position.Y + cellPadding/2;
-                var rb = position.Y + gridCellHeight - cellPadding/2;
-                
-                var backgroundColor = item.Value == 0 ? new Color(96, 32,32) : Config.HeaderColor;
-                var a = backgroundColor.ColorToHSV();
-                a.Z *= 0.2f;
-                var cellRect = new RectangleF(rl, rt, rr - rl, rb - rt);
-                var dropShadow = new RectangleF(cellRect.Position + 2, cellRect.Size);
-                RectanglePanel.CreateSpritesFromRect(dropShadow , frame, a.HSVtoColor(), .2f);
-                RectanglePanel.CreateSpritesFromRect(cellRect , frame, backgroundColor, .2f);
+                DrawCellBackground(frame, item, xStart, xEnd, position.Y, gridCellHeight, cellPadding);
             }
             else if(item.Value == 0)
             {
@@ -463,25 +447,30 @@ namespace Graph.Charts
             }
 
             _previousType = item.Key.TypeId;
-            var topRowHeight = LINE_HEIGHT * Scale;
-            var bottomRowTop = innerTop + topRowHeight;
-            var bottomRowHeight = Math.Max(0f, innerBottom - bottomRowTop);
-            var iconSize = 2f * LINE_HEIGHT * Scale;
-            var contentLeft = innerLeft + iconSize;
-            var contentWidth = Math.Max(0f, innerRight - contentLeft);
+            var slots = GetCellSlots(cellViewBox.X, cellViewBox.Right, cellViewBox.Y, cellViewBox.Bottom, LINE_HEIGHT);
+            DrawCellContent(frame, item, sprite, foreground, slots);
 
-            var iconRect = new RectangleF(innerLeft, innerTop, iconSize, iconSize);
-            var numberRect = new RectangleF(contentLeft, innerTop, contentWidth, topRowHeight);
-            var nameRect = new RectangleF(contentLeft, bottomRowTop, contentWidth, bottomRowHeight);
+            if (MoveToNextLine)
+                CaretY += gridCellHeight;
+        }
+
+
+        protected virtual void DrawCellContent(List<MySprite> frame, KeyValuePair<MyItemType, double> item, 
+            string sprite, Color foreground, MyTuple<RectangleF, RectangleF, RectangleF> slots)
+        {
+            string localizedName;
+            var iconRect = slots.Item1;
+            var numberRect = slots.Item2;
+            var nameRect = slots.Item3;
 
             frame.Add(new MySprite
             {
                 Type = SpriteType.TEXTURE,
                 Data = sprite,
                 Position = new Vector2(iconRect.X, iconRect.Y + iconRect.Height / 2f),
-                Size = new Vector2(iconSize),
+                Size = new Vector2(iconRect.Width),
                 Alignment = TextAlignment.LEFT,
-                Color = item.Value == 0 ? new Color(96, 32,32) : Color.White
+                Color = item.Value == 0 ? new Color(96, 32, 32) : Color.White
             });
 
             if (!_locKeysCache.TryGetValue(item.Key, out localizedName))
@@ -522,7 +511,7 @@ namespace Graph.Charts
             pos = numberRect.Center;
             pos.Y -= renderedHeight * 0.5f;
             pos.X = numberRect.Right;
-            
+
             frame.Add(new MySprite(
                 (SpriteType)2,
                 qty,
@@ -533,9 +522,6 @@ namespace Graph.Charts
                 TextAlignment.RIGHT,
                 fontSize * .95f
             ));
-
-            if (MoveToNextLine)
-                CaretY += gridCellHeight;
         }
 
         protected void DrawScrollBar(List<MySprite> frame, float scale, float initialY, float viewportHeight,
