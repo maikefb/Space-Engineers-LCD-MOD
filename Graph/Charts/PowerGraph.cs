@@ -328,7 +328,7 @@ namespace Graph.Charts
                         Data = "Circle",
                         Position = new Vector2((contentStart + contentEnd) / 2f, y),
                         Size = new Vector2(contentEnd - contentStart, 2f),
-                        Color = Config.HeaderColor,
+                        Color = ForegroundColor,
                         Alignment = TextAlignment.CENTER
                     });
                 }

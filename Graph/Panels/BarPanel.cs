@@ -61,12 +61,12 @@ namespace Graph.Panels
 
             var fillW = _size.X * f;
             if (fillW > 0.001f)
-                AddPill(ref list, fillW, fillCol);
+                AddPill(ref list, fillW + 1f, fillCol, -1f);
 
             return list;
         }
 
-        private void AddPill(ref List<MySprite> list, float width, Color color)
+        private void AddPill(ref List<MySprite> list, float width, Color color, float xOffset = 0f)
         {
             var w = MathHelper.Clamp(width, 0f, _size.X);
             var h = _size.Y;
@@ -78,17 +78,17 @@ namespace Graph.Panels
 
             if (w <= d + 0.001f)
             {
-                list.Add(MakeTex("Circle", _position, new Vector2(w, h), color));
+                list.Add(MakeTex("Circle", _position + new Vector2(xOffset, 0f), new Vector2(w, h), color));
                 return;
             }
 
-            list.Add(MakeTex("Circle", _position, new Vector2(d, h), color));
-            list.Add(MakeTex("Circle", _position + new Vector2(w - d, 0), new Vector2(d, h), color));
+            list.Add(MakeTex("Circle", _position + new Vector2(xOffset, 0f), new Vector2(d, h), color));
+            list.Add(MakeTex("Circle", _position + new Vector2(xOffset + (w - d), 0), new Vector2(d, h), color));
 
             var rectX = r - bleed;
             var rectW = w - 2f * r + 2f * bleed;
             if (rectW > 0.25f)
-                list.Add(MakeTex("SquareSimple", _position + new Vector2(rectX, 0f), new Vector2(rectW, h), color));
+                list.Add(MakeTex("SquareSimple", _position + new Vector2(xOffset + rectX, 0f), new Vector2(rectW, h), color));
         }
 
         private static MySprite MakeTex(string name, Vector2 posTopLeft, Vector2 size, Color color)

@@ -245,8 +245,7 @@ namespace Graph.Charts
 
             if (Config.DrawLines)
             {
-                var lineColor = new Color(Config.HeaderColor.R, Config.HeaderColor.G,
-                    Config.HeaderColor.B);
+                var lineColor = Config.HeaderColor;
 
                 for (int row = 0; row <= maxRows; row++)
                 {

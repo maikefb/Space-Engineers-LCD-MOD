@@ -559,7 +559,7 @@ namespace Graph.Charts
 
         protected string Pct(float f)
         {
-            return ((int)Math.Round(f * 100f)).ToString(Pt) + "%";
+            return f.ToString("P0", CultureInfo.CurrentUICulture);
         }
 
         protected Vector2 GetAutoScale2D(float logicalWidth = 512f, float logicalHeight = 512f)

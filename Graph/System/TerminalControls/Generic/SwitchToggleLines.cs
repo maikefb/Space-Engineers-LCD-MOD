@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Graph.Charts;
 using Graph.System.Config;
 using Sandbox.ModAPI;
@@ -8,7 +9,7 @@ namespace Graph.System.TerminalControls.Generic
 {
     public class SwitchToggleLines : TerminalControlsWrapper
     {
-        protected override string[] VisibleForScripts { get; } = { InventoryCharts.ID, ProjectorCharts.ID, RenewableGraph.ID, GeneratorsGraph.ID };
+        protected override string[] VisibleForScripts { get; } = { InventoryCharts.ID, ProjectorCharts.ID, RenewableGraph.ID, GeneratorsGraph.ID, ContainerGraph.ID };
         public override IMyTerminalControl TerminalControl { get; }
 
         public SwitchToggleLines()
