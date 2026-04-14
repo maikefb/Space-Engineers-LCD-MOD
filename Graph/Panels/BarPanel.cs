@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using VRage.Game.GUI.TextPanel;
 using VRageMath;
 
@@ -6,18 +7,26 @@ namespace Graph.Panels
 {
     public class BarPanel
     {
+        const float EPSILON = 0.0001f;
+
         public enum Style
         {
             PillBleed,
             Ellipse
         }
 
-        private readonly Color _bgColor;
-        private readonly Color _fillColor;
-        private readonly Vector2 _position;
-        private readonly float _radius;
-        private readonly Vector2 _size;
-        private readonly Style _style;
+        Color _bgColor;
+        Color _fillColor;
+        Vector2 _position;
+        float _radius;
+        Vector2 _size;
+        Style _style;
+        readonly List<MySprite> _sprites = new List<MySprite>(6);
+
+        bool _layoutDirty = true;
+        bool _hasCachedState;
+        float _cachedFraction;
+        Color _cachedRenderFillColor;
 
         public BarPanel(
             Vector2 posTopLeft,
@@ -27,46 +36,88 @@ namespace Graph.Panels
             float cornerRadius = -1f,
             Style style = Style.PillBleed)
         {
-            _position = new Vector2(posTopLeft.X, posTopLeft.Y + (size.Y/2));
-            _size = new Vector2(MathHelper.Max(1f, size.X), MathHelper.Max(1f, size.Y));
-            _fillColor = fillColor;
-            _bgColor = bgColor;
-            _style = style;
-
-            var maxR = _size.Y * 0.5f;
-            _radius = cornerRadius > 0f ? MathHelper.Min(cornerRadius, maxR) : maxR;
+            SetLayout(posTopLeft, size, fillColor, bgColor, cornerRadius, style);
         }
 
-        public List<MySprite> GetSprites(float fraction, Color? colorOverride = null, bool drawBackground = true)
+        public void SetLayout(
+            Vector2 posTopLeft,
+            Vector2 size,
+            Color fillColor,
+            Color bgColor,
+            float cornerRadius = -1f,
+            Style style = Style.PillBleed)
         {
-            var list = new List<MySprite>();
-            var f = MathHelper.Clamp(fraction, 0f, 1f);
-            var fillCol = colorOverride ?? _fillColor;
+            var normalizedSize = new Vector2(MathHelper.Max(1f, size.X), MathHelper.Max(1f, size.Y));
+            var normalizedPosition = new Vector2(posTopLeft.X, posTopLeft.Y + (normalizedSize.Y / 2f));
+            var maxR = normalizedSize.Y * 0.5f;
+            var radius = cornerRadius > 0f ? MathHelper.Min(cornerRadius, maxR) : maxR;
+
+            if (_position == normalizedPosition &&
+                _size == normalizedSize &&
+                _fillColor == fillColor &&
+                _bgColor == bgColor &&
+                Math.Abs(_radius - radius) <= EPSILON &&
+                _style == style)
+            {
+                return;
+            }
+
+            _position = normalizedPosition;
+            _size = normalizedSize;
+            _fillColor = fillColor;
+            _bgColor = bgColor;
+            _radius = radius;
+            _style = style;
+            _layoutDirty = true;
+        }
+
+        public List<MySprite> GetSprites(float fraction, Color? fillColorOverride = null)
+        {
+
+            var f = fraction > .99f ? 1 : MathHelper.Clamp(fraction, 0f, 1f);
+            var renderFillColor = fillColorOverride ?? _fillColor;
+            if (!_layoutDirty &&
+                _hasCachedState &&
+                Math.Abs(_cachedFraction - f) <= EPSILON &&
+                _cachedRenderFillColor == renderFillColor)
+            {
+                return _sprites;
+            }
+
+            _sprites.Clear();
 
             if (_style == Style.Ellipse)
             {
-                if (drawBackground)
-                    list.Add(MakeTex("Circle", _position, _size, _bgColor));
+                if (f < 1f)
+                    _sprites.Add(MakeTex("Circle", _position, _size, _bgColor));
                 if (f > 0f)
                 {
                     var w = _size.X * f;
-                    list.Add(MakeTex("Circle", _position, new Vector2(w, _size.Y), fillCol));
+                    _sprites.Add(MakeTex("Circle", _position, new Vector2(w, _size.Y), renderFillColor));
                 }
 
-                return list;
+                _cachedFraction = f;
+                _cachedRenderFillColor = renderFillColor;
+                _layoutDirty = false;
+                _hasCachedState = true;
+                return _sprites;
             }
 
-            if (drawBackground)
-                AddPill(ref list, _size.X, _bgColor);
+            if (f < 1f)
+                AddPill(_size.X, _bgColor);
 
             var fillW = _size.X * f;
             if (fillW > 0.001f)
-                AddPill(ref list, fillW + 1f, fillCol, -1f);
+                AddPill(fillW + 1f, renderFillColor, -1f);
 
-            return list;
+            _cachedFraction = f;
+            _cachedRenderFillColor = renderFillColor;
+            _layoutDirty = false;
+            _hasCachedState = true;
+            return _sprites;
         }
 
-        private void AddPill(ref List<MySprite> list, float width, Color color, float xOffset = 0f)
+        private void AddPill(float width, Color color, float xOffset = 0f)
         {
             var w = MathHelper.Clamp(width, 0f, _size.X);
             var h = _size.Y;
@@ -78,17 +129,17 @@ namespace Graph.Panels
 
             if (w <= d + 0.001f)
             {
-                list.Add(MakeTex("Circle", _position + new Vector2(xOffset, 0f), new Vector2(w, h), color));
+                _sprites.Add(MakeTex("Circle", _position + new Vector2(xOffset, 0f), new Vector2(w, h), color));
                 return;
             }
 
-            list.Add(MakeTex("Circle", _position + new Vector2(xOffset, 0f), new Vector2(d, h), color));
-            list.Add(MakeTex("Circle", _position + new Vector2(xOffset + (w - d), 0), new Vector2(d, h), color));
+            _sprites.Add(MakeTex("Circle", _position + new Vector2(xOffset, 0f), new Vector2(d, h), color));
+            _sprites.Add(MakeTex("Circle", _position + new Vector2(xOffset + (w - d), 0), new Vector2(d, h), color));
 
             var rectX = r - bleed;
             var rectW = w - 2f * r + 2f * bleed;
             if (rectW > 0.25f)
-                list.Add(MakeTex("SquareSimple", _position + new Vector2(xOffset + rectX, 0f), new Vector2(rectW, h), color));
+                _sprites.Add(MakeTex("SquareSimple", _position + new Vector2(xOffset + rectX, 0f), new Vector2(rectW, h), color));
         }
 
         private static MySprite MakeTex(string name, Vector2 posTopLeft, Vector2 size, Color color)

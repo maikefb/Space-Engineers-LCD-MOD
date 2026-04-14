@@ -4,41 +4,41 @@ using Sandbox.ModAPI.Interfaces.Terminal;
 using VRage.Utils;
 using VRageMath;
 
-namespace Graph.System.TerminalControls.Generic
+namespace Graph.System.TerminalControls.Color
 {
     /// <summary>
-    /// Color picker for Header for many Scripts using <see cref="ScreenConfig"/> 
+    /// Color picker for Error for many Scripts using <see cref="ScreenConfig"/> 
     /// </summary>
-    public sealed class ColorPickerHeader : TerminalControlsWrapper
+    public sealed class ColorPickerError : TerminalControlsWrapper
     {
         public override IMyTerminalControl TerminalControl { get; }
 
-        public ColorPickerHeader()
+        public ColorPickerError()
         {
-            var colorPicker = CreateControl<IMyTerminalControlColor>("HeaderColor");
+            var colorPicker = CreateControl<IMyTerminalControlColor>("ErrorColor");
             colorPicker.Getter = Getter;
             colorPicker.Setter = Setter;
             colorPicker.Visible = Visible;
-            colorPicker.Title = MyStringId.GetOrCompute("BlockPropertyTitle_TextPanelPublicTitle");
+            colorPicker.Title = MyStringId.GetOrCompute("ContractScreen_Aministration_CreatinResultCaption_Error");
             TerminalControl = colorPicker;
         }
 
-        void Setter(IMyTerminalBlock block, Color color)
+        void Setter(IMyTerminalBlock block, VRageMath.Color color)
         {
             var config = ConfigManager.GetConfigForCurrentScreen(block);
             if(config == null)
                 return;
-            config.HeaderColor = color;
+            config.ErrorColor = color;
             ConfigManager.Sync(block);
         }
 
-        Color Getter(IMyTerminalBlock block)
+        VRageMath.Color Getter(IMyTerminalBlock block)
         {
             var config = ConfigManager.GetConfigForCurrentScreen(block);
-            if (config?.HeaderColor != null)
-                return config.HeaderColor;
+            if (config?.ErrorColor != null)
+                return config.ErrorColor;
             
-            return Color.White;
+            return VRageMath.Color.White;
         }
     }
 }

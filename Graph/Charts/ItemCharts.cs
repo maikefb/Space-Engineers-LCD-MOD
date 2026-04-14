@@ -306,7 +306,7 @@ namespace Graph.Charts
             string sprite;
             string localizedName;
 
-            var foreground = item.Value == 0 ? new Color(96, 32, 32) : Surface.ScriptForegroundColor;
+            var foreground = item.Value == 0 ? Config.ErrorColor: Surface.ScriptForegroundColor;
 
             if (!SpriteCache.TryGetValue(item.Key, out sprite))
             {
@@ -466,7 +466,7 @@ namespace Graph.Charts
                 Position = new Vector2(iconRect.X, iconRect.Y + iconRect.Height / 2f),
                 Size = new Vector2(iconRect.Width),
                 Alignment = TextAlignment.LEFT,
-                Color = item.Value == 0 ? new Color(96, 32, 32) : Color.White
+                Color = item.Value == 0 ? Config.ErrorColor: Color.White
             });
 
             if (!_locKeysCache.TryGetValue(item.Key, out localizedName))

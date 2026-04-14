@@ -7,6 +7,7 @@ using Graph.Networking;
 using Graph.System.Config;
 using Graph.System.TerminalControls;
 using Graph.System.TerminalControls.Blueprint;
+using Graph.System.TerminalControls.Color;
 using Graph.System.TerminalControls.Filter;
 using Graph.System.TerminalControls.Filter.Buttons;
 using Graph.System.TerminalControls.Filter.Listbox;
@@ -165,7 +166,10 @@ namespace Graph.System
                 TerminalControlsListbox source = new ListboxBlockCandidates();
                 TerminalControlsListbox target = new ListboxBlockSelected();
 
-                Controls.Add(new ColorPickerHeader());
+                Controls.Add(new ColorPickerAccent());
+                Controls.Add(new ColorPickerWarning());
+                Controls.Add(new ColorPickerError());
+
                 Controls.Add(new SwitchToggleHeader());
                 Controls.Add(new SliderChartScale());
 

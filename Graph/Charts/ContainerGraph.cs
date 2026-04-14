@@ -33,6 +33,8 @@ namespace Graph.Charts
         public override Dictionary<MyItemType, double> ItemSource => null;
 
         Color _scriptForegroundColor;
+        readonly List<BarPanel> _barPanels = new List<BarPanel>(8);
+        int _barPanelCursor;
         
         public override void Run()
         {
@@ -48,6 +50,7 @@ namespace Graph.Charts
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
+                _barPanelCursor = 0;
 
                 DrawTitle(sprites);
 
@@ -94,6 +97,7 @@ namespace Graph.Charts
         protected override void LayoutChanged()
         {
             _scriptForegroundColor = Surface.ScriptForegroundColor;
+            _barPanels.Clear();
             base.LayoutChanged();
         }
 
@@ -131,9 +135,12 @@ namespace Graph.Charts
             else
                 size = new Vector2(ViewBox.Width - position.X + (ViewBox.X), clip.Height) - barMargin;
 
-            var barPanel = new BarPanel(new Vector2(clip.Location.X, clip.Location.Y) + barMargin / 2, size,
-                Config.HeaderColor, BackgroundColor.DeriveAscentColor());
-            frame.AddRange(barPanel.GetSprites((float)pct));
+            var barPanel = GetNextBarPanel(
+                new Vector2(clip.Location.X, clip.Location.Y + 1 * Scale) + barMargin / 2f,
+                size,
+                Config.HeaderColor,
+                BackgroundColor.DeriveAscentColor());
+            frame.AddRange(barPanel.GetSprites((float)pct, GetContainerUsageColor((float)pct)));
 
             frame.Add(MySprite.CreateClipRect(clip));
 
@@ -340,14 +347,14 @@ namespace Graph.Charts
 
             var barInnerPaddingX = 2f * Scale;
             var barInnerPaddingY = bottomRect.Height * 0.2f;
-            var barPanel = new BarPanel(
+            var barPanel = GetNextBarPanel(
                 new Vector2(barRect.X + barInnerPaddingX, barRect.Y + barInnerPaddingY + (2f * Scale)),
                 new Vector2(
                     Math.Max(1f, barRect.Width - 2f * barInnerPaddingX),
                     Math.Max(1f, barRect.Height - 2f * barInnerPaddingY)),
                 Config.HeaderColor.DeriveAscentColor(),
                 BackgroundColor.DeriveAscentColor());
-            frame.AddRange(barPanel.GetSprites((float)pct));
+            frame.AddRange(barPanel.GetSprites((float)pct, GetContainerUsageColor((float)pct)));
 
             var pctText = ((float)pct).ToString("P0", CultureInfo.CurrentUICulture);
             var pctPos = new Vector2(textRect.Right - (2f * Scale), textRect.Y + 2f * Scale);
@@ -368,6 +375,28 @@ namespace Graph.Charts
             var max = ViewBox.Width - ViewBox.X;
             var perCol = MINIMUM_COL_WIDTH * Scale;
             return (int)Math.Max(1, Math.Round(max / perCol - .5, MidpointRounding.AwayFromZero));
+        }
+
+        BarPanel GetNextBarPanel(Vector2 posTopLeft, Vector2 size, Color fillColor, Color bgColor)
+        {
+            if (_barPanelCursor >= _barPanels.Count)
+                _barPanels.Add(BuildBarPanel(posTopLeft, size, fillColor, bgColor));
+
+            return _barPanels[_barPanelCursor++];
+        }
+
+        static BarPanel BuildBarPanel(Vector2 posTopLeft, Vector2 size, Color fillColor, Color bgColor)
+        {
+            return new BarPanel(posTopLeft, size, fillColor, bgColor);
+        }
+
+        Color? GetContainerUsageColor(float pct)
+        {
+            if (pct >= .99f)
+                return Config.ErrorColor;
+            if (pct > .90f)
+                return Config.WarningColor;
+            return null;
         }
 
         void DrawScrollBar(List<MySprite> frame, float scale, float initialY, float viewportHeight,

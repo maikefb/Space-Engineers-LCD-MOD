@@ -408,7 +408,7 @@ namespace Graph.Charts
             var rt = yStart + cellPadding / 2;
             var rb = yStart + cellHeight - cellPadding / 2;
 
-            var backgroundColor = item.Value == 0 ? new Color(96, 32, 32) : Config.HeaderColor;
+            var backgroundColor = item.Value == 0 ? Config.ErrorColor: Config.HeaderColor;
             var a = backgroundColor.MulValue(0.2f);
             var cellRect = new RectangleF(rl, rt, rr - rl, rb - rt);
             var dropShadow = new RectangleF(cellRect.Position + 2, cellRect.Size);

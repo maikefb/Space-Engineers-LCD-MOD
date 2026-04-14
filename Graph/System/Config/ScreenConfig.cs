@@ -76,6 +76,9 @@ namespace Graph.System.Config
         [ProtoMember(12)] public int DisplayInternal { get; set; }
 
         [ProtoMember(13)] public bool HideEmpty { get; set; } = true;
+        
+        [ProtoMember(14)] public Color ErrorColor { get; set; } = new Color(96, 32, 32);
+        [ProtoMember(15)] public Color WarningColor { get; set; } = new Color(224, 160, 16);
 
         public SortMethod SortMethod
         {
@@ -102,6 +105,8 @@ namespace Graph.System.Config
             SortInternal = newValue.SortInternal;
             DisplayInternal = newValue.DisplayInternal;
             HideEmpty = newValue.HideEmpty;
+            ErrorColor = newValue.ErrorColor;
+            WarningColor = newValue.WarningColor;
         }
     }
 }

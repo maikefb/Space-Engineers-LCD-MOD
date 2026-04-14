@@ -186,8 +186,8 @@ namespace Graph.Charts
 
             p += new Vector2(0, titleGap);
 
-            var bar = new BarPanel(p, new Vector2(barW, barH), fg, bg);
-            sprites.AddRange(bar.GetSprites(Fill(cap, amt), Config.HeaderColor));
+            var bar = new BarPanel(p, new Vector2(barW, barH), Config.HeaderColor, bg);
+            sprites.AddRange(bar.GetSprites(Fill(cap, amt)));
 
             p += new Vector2(0, afterBar);
             sprites.Add(Text("Atual/Total: " + Gas(amt) + " / " + Gas(cap), p, 0.9f * textScale));

@@ -1,0 +1,44 @@
+using Graph.System.Config;
+using Sandbox.ModAPI;
+using Sandbox.ModAPI.Interfaces.Terminal;
+using VRage.Utils;
+using VRageMath;
+
+namespace Graph.System.TerminalControls.Color
+{
+    /// <summary>
+    /// Color picker for Error for many Scripts using <see cref="ScreenConfig"/> 
+    /// </summary>
+    public sealed class ColorPickerWarning : TerminalControlsWrapper
+    {
+        public override IMyTerminalControl TerminalControl { get; }
+
+        public ColorPickerWarning()
+        {
+            var colorPicker = CreateControl<IMyTerminalControlColor>("ErrorColor");
+            colorPicker.Getter = Getter;
+            colorPicker.Setter = Setter;
+            colorPicker.Visible = Visible;
+            colorPicker.Title = MyStringId.GetOrCompute("ContractScreen_Aministration_CreatinResultCaption_Error");
+            TerminalControl = colorPicker;
+        }
+
+        void Setter(IMyTerminalBlock block, VRageMath.Color color)
+        {
+            var config = ConfigManager.GetConfigForCurrentScreen(block);
+            if(config == null)
+                return;
+            config.WarningColor = color;
+            ConfigManager.Sync(block);
+        }
+
+        VRageMath.Color Getter(IMyTerminalBlock block)
+        {
+            var config = ConfigManager.GetConfigForCurrentScreen(block);
+            if (config?.WarningColor != null)
+                return config.WarningColor;
+            
+            return VRageMath.Color.White;
+        }
+    }
+}

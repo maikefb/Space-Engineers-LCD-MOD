@@ -469,7 +469,7 @@ namespace Graph.Charts
 
             if (!drawAsLines)
             {
-                var backgroundColor = entry.Current <= 0 ? new Color(96, 32, 32) : Config.HeaderColor;
+                var backgroundColor = entry.Current <= 0 ? Config.ErrorColor: Config.HeaderColor;
                 var hsv = backgroundColor.ColorToHSV();
                 hsv.Z *= 0.2f;
 
@@ -486,7 +486,7 @@ namespace Graph.Charts
             var iconRect = slots.Item1;
             var numberRect = slots.Item2;
             var nameRect = slots.Item3;
-            var foreground = entry.Current <= 0 && drawAsLines ? new Color(96, 32, 32) : Surface.ScriptForegroundColor;
+            var foreground = entry.Current <= 0 && drawAsLines ? Config.ErrorColor: Surface.ScriptForegroundColor;
 
             DrawCellPie(sprites, iconRect, entry.Key, entry.Usage);
 

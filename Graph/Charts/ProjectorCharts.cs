@@ -346,7 +346,8 @@ namespace Graph.Charts
             }
 
             _previousType = item.Key.TypeId;
-            var hasShortage = HasShortage(item.Key, item.Value);
+            var shortageColor = GetShortageColor(item.Key, item.Value);
+            var rowColor = shortageColor ?? Surface.ScriptForegroundColor;
 
             frame.Add(new MySprite()
             {
@@ -354,7 +355,7 @@ namespace Graph.Charts
                 Data = sprite,
                 Position = position + new Vector2(20f, 15) * Scale,
                 Size = new Vector2(LINE_HEIGHT * Scale),
-                Color = hasShortage ? new Color(96, 32, 32) : Surface.ScriptForegroundColor,
+                Color = rowColor,
                 Alignment = TextAlignment.CENTER
             });
             position.X += ViewBox.Width / 8f;
@@ -383,7 +384,7 @@ namespace Graph.Charts
                 Data = localizedName,
                 Position = position,
                 RotationOrScale = Scale,
-                Color = hasShortage ? new Color(96, 32, 32) : Surface.ScriptForegroundColor,
+                Color = rowColor,
                 Alignment = TextAlignment.LEFT,
                 FontId = "White"
             });
@@ -396,7 +397,7 @@ namespace Graph.Charts
                 Data = FormatItemQty(GetNeededQty(item.Key)),
                 Position = position,
                 RotationOrScale = Scale,
-                Color = hasShortage ? new Color(96, 32, 32) : Surface.ScriptForegroundColor,
+                Color = rowColor,
                 Alignment = TextAlignment.RIGHT,
                 FontId = "White"
             });
@@ -407,7 +408,7 @@ namespace Graph.Charts
                 Data = FormatItemQty(GetAvailableQty(item.Key, item.Value)),
                 Position = position,
                 RotationOrScale = Scale,
-                Color = hasShortage ? new Color(96, 32, 32) : Surface.ScriptForegroundColor,
+                Color = rowColor,
                 Alignment = TextAlignment.RIGHT,
                 FontId = "White"
             });
@@ -422,9 +423,9 @@ namespace Graph.Charts
             var iconRect = slots.Item1;
             var numberRect = slots.Item2;
             var nameRect = slots.Item3;
-            var hasShortage = HasShortage(item.Key, item.Value);
-            var useAlertText = hasShortage && Config.DrawLines;
-            var color = useAlertText ? new Color(96, 32, 32) : foreground;
+            var shortageColor = GetShortageColor(item.Key, item.Value);
+            var useAlertText = shortageColor.HasValue && Config.DrawLines;
+            var color = useAlertText ? shortageColor.Value : foreground;
 
             frame.Add(new MySprite
             {
@@ -433,7 +434,7 @@ namespace Graph.Charts
                 Position = new Vector2(iconRect.X, iconRect.Y + iconRect.Height / 2f),
                 Size = new Vector2(iconRect.Width),
                 Alignment = TextAlignment.LEFT,
-                Color = useAlertText ? new Color(96, 32, 32) : Color.White
+                Color = useAlertText ? shortageColor.Value : Color.White
             });
 
             if (!_locKeysCache.TryGetValue(item.Key, out localizedName))
@@ -495,7 +496,8 @@ namespace Graph.Charts
             var rt = yStart + cellPadding / 2;
             var rb = yStart + cellHeight - cellPadding / 2;
 
-            var backgroundColor = HasShortage(item.Key, item.Value) ? new Color(96, 32, 32) : Config.HeaderColor;
+            var shortageColor = GetShortageColor(item.Key, item.Value);
+            var backgroundColor = shortageColor ?? Config.HeaderColor;
             var a = backgroundColor.ColorToHSV();
             a.Z *= 0.2f;
             var cellRect = new RectangleF(rl, rt, rr - rl, rb - rt);
@@ -517,9 +519,20 @@ namespace Graph.Charts
             return have < 0 ? 0 : have;
         }
 
-        bool HasShortage(MyItemType itemType, double missingQty)
+        Color? GetShortageColor(MyItemType itemType, double missingQty)
         {
-            return GetAvailableQty(itemType, missingQty) < GetNeededQty(itemType);
+            var needed = GetNeededQty(itemType);
+            if (needed <= 0)
+                return null;
+
+            var available = GetAvailableQty(itemType, missingQty);
+            if (available <= 0)
+                return Config.ErrorColor;
+
+            if (available < needed)
+                return Config.WarningColor;
+
+            return null;
         }
 
         float GetQuantityColumnWidth()
