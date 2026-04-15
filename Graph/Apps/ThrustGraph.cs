@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Graph.Apps.Abstract;
 using Graph.Helpers;
 using Graph.Panels;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
@@ -10,10 +11,10 @@ using VRage.Utils;
 using VRageMath;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
-namespace Graph.Charts
+namespace Graph.Apps
 {
     [MyTextSurfaceScript(ID, TITLE)]
-    public class ThrustGraph : ChartBase
+    public class ThrustSurfaceScript : SurfaceScriptBase
     {
         public const string ID    = "LCDMod_Thrust";
         public const string TITLE = "HelpScreen_JoystickThrust";
@@ -21,7 +22,7 @@ namespace Graph.Charts
         public override Dictionary<MyItemType, double> ItemSource => null;
         protected override string DefaultTitle => TITLE;
 
-        private static readonly string[] DirectionLabels =
+        static readonly string[] DirectionLabels =
         {
             "Forward",
             "Backward",
@@ -31,7 +32,7 @@ namespace Graph.Charts
             "Down",
         };
 
-        public ThrustGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
+        public ThrustSurfaceScript(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
             : base(surface, block, size)
         {
 
@@ -98,7 +99,7 @@ namespace Graph.Charts
             }
         }
 
-        private void DrawBars(List<MySprite> sprites, double[] maxThrust, double[] curThrust)
+        void DrawBars(List<MySprite> sprites, double[] maxThrust, double[] curThrust)
         {
             int activeCount = 0;
             for (int d = 0; d < 6; d++)
@@ -141,13 +142,13 @@ namespace Graph.Charts
                 sprites.AddRange(bar.GetSprites(fill));
                 x += barW + 6f * Scale;
 
-                sprites.Add(Text(PowForce(maxThrust[d]), new Vector2(x, textY), 0.8f * Scale));
+                sprites.Add(Text(FormatingHelper.NewtonForceToString(maxThrust[d]), new Vector2(x, textY), 0.8f * Scale));
 
                 y += rowH;
             }
         }
 
-        private static int DirIndex(Base6Directions.Direction dir)
+        static int DirIndex(Base6Directions.Direction dir)
         {
             switch (dir)
             {

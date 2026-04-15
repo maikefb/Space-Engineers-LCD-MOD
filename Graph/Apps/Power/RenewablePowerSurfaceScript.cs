@@ -1,14 +1,14 @@
-using System;
+using Graph.Apps.Abstract;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
 using SpaceEngineers.Game.ModAPI;
 using VRageMath;
 using IMyCubeBlock = VRage.Game.ModAPI.IMyCubeBlock;
 
-namespace Graph.Charts
+namespace Graph.Apps.Power
 {
     [MyTextSurfaceScript(ID, TITLE)]
-    public class RenewableGraph : PowerGraph
+    public class RenewablePowerSurfaceScript : PowerSurfaceScriptBase
     {
         public const string ID = "RenewableGraph";
         public const string TITLE = "DisplayName_BlockGroup_EnergyRenewableGroup";
@@ -22,9 +22,10 @@ namespace Graph.Charts
         protected override PowerEntryDefinition[] EntryDefinitions => Definitions;
         protected override string DefaultTitle => TITLE;
 
-        public RenewableGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
+        public RenewablePowerSurfaceScript(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
             : base(surface, block, size)
         {
+            InitializeEntries();
         }
 
         protected override bool TryMapProducerType(string typeId, IMyPowerProducer producer, out string entryKey)

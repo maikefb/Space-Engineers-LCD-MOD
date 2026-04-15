@@ -2,7 +2,6 @@ using Graph.System.Config;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
 using VRage.Utils;
-using VRageMath;
 
 namespace Graph.System.TerminalControls.Color
 {

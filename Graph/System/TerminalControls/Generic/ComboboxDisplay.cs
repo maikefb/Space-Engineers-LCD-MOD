@@ -1,10 +1,10 @@
 using System.Collections.Generic;
-using System.Text;
-using Graph.Charts;
+using Graph.Apps.Antenna;
+using Graph.Apps.Inventory;
+using Graph.Apps.Power;
 using Graph.System.Config;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
-using VRage;
 using VRage.ModAPI;
 using VRage.Utils;
 
@@ -14,12 +14,12 @@ namespace Graph.System.TerminalControls.Generic
     {
         protected override string[] VisibleForScripts { get; } =
         {
-            InventoryCharts.ID, 
-            ProjectorCharts.ID,
-            RenewableGraph.ID, 
-            GeneratorsGraph.ID, 
-            ContainerGraph.ID,
-            AntennaGraph.ID
+            InventoryLcdSurfaceScript.ID, 
+            ProjectorLcdSurfaceScript.ID,
+            RenewablePowerSurfaceScript.ID, 
+            GeneratorsSurfaceScript.ID, 
+            CargoFilledSurfaceScript.ID,
+            AntennaSurfaceScript.ID
         };
 
         public override IMyTerminalControl TerminalControl { get; }

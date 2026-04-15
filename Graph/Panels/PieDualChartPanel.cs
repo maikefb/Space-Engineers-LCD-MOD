@@ -20,24 +20,24 @@ namespace Graph.Panels
             bool turnDarkOnComplete = false)
         {
             if (color == null)
-                color = _surface.ScriptForegroundColor;
+                color = Surface.ScriptForegroundColor;
 
-            var backgroundColor = _surface.ScriptForegroundColor;
-            if (!_layoutDirty &&
-                _hasCachedState &&
+            var backgroundColor = Surface.ScriptForegroundColor;
+            if (!LayoutDirty &&
+                HasCachedState &&
                 _hasCachedSecondState &&
-                Math.Abs(_cachedValue - value) <= EPSILON &&
+                Math.Abs(CachedValue - value) <= EPSILON &&
                 Math.Abs(_cachedValue2 - value2) <= EPSILON &&
-                _cachedColor == color.Value &&
-                _cachedTurnDarkOnComplete == turnDarkOnComplete &&
-                _cachedBackgroundColor == backgroundColor)
+                CachedColor == color.Value &&
+                CachedTurnDarkOnComplete == turnDarkOnComplete &&
+                CachedBackgroundColor == backgroundColor)
             {
-                return _sprites;
+                return Sprites;
             }
 
-            _sprites.Clear();
+            Sprites.Clear();
 
-            if (_showTitle) DrawTitle(value, color.Value);
+            if (ShowTitle) DrawTitle(value, color.Value);
             DrawBackground(Math.Max(value, value2),
                 (value > value2) ? backgroundColor : color.Value, backgroundColor, turnDarkOnComplete);
 
@@ -47,21 +47,21 @@ namespace Graph.Panels
             if(value2 > 0 && value2 < .99)  // draw only if > 0 and not 100% (turnDarkOnComplete already draws 100%)
                 DrawPieWithTransparency(value2, color.Value);
 
-            _cachedValue = value;
+            CachedValue = value;
             _cachedValue2 = value2;
-            _cachedColor = color.Value;
-            _cachedTurnDarkOnComplete = turnDarkOnComplete;
-            _cachedBackgroundColor = backgroundColor;
-            _layoutDirty = false;
-            _hasCachedState = true;
+            CachedColor = color.Value;
+            CachedTurnDarkOnComplete = turnDarkOnComplete;
+            CachedBackgroundColor = backgroundColor;
+            LayoutDirty = false;
+            HasCachedState = true;
             _hasCachedSecondState = true;
 
-            return _sprites;
+            return Sprites;
         }
 
         protected virtual void DrawPieWithTransparency(float value, Color color)
         {
-            Vector2 position = _origo - (_size / 2);
+            Vector2 position = Origo - (Size / 2);
 
             float deg = 360 * value;
             float flip = value < 0.5f ? 1 : -1;
@@ -77,7 +77,7 @@ namespace Graph.Panels
                 Type = SpriteType.TEXTURE,
                 Data = "SemiCircle",
                 Position = position,
-                Size = _size,
+                Size = Size,
                 Color = color,
                 RotationOrScale = MathHelper.ToRadians((flip * 90) + deg - val),
                 Alignment = TextAlignment.LEFT
@@ -85,28 +85,28 @@ namespace Graph.Panels
 
             if (value < 0.5f)
             {
-                _sprites.Add(new MySprite(SpriteType.CLIP_RECT, null,
-                    new Vector2(position.X + _size.X / 2, position.Y - _size.Y / 2),
-                    _size // the X is bigger, but we don't care about width
+                Sprites.Add(new MySprite(SpriteType.CLIP_RECT, null,
+                    new Vector2(position.X + Size.X / 2, position.Y - Size.Y / 2),
+                    Size // the X is bigger, but we don't care about width
                 ));
-                _sprites.Add(semiCircle);
-                _sprites.Add(MySprite.CreateClearClipRect());
+                Sprites.Add(semiCircle);
+                Sprites.Add(MySprite.CreateClearClipRect());
             }
             else
             {
-                _sprites.Add(semiCircle);
+                Sprites.Add(semiCircle);
             }
 
             if (value <= 0.5f)
                 return;
 
             // Cover 2
-            _sprites.Add(new MySprite
+            Sprites.Add(new MySprite
             {
                 Type = SpriteType.TEXTURE,
                 Data = "SemiCircle",
                 Position = position,
-                Size = _size,
+                Size = Size,
                 Color = color,
                 RotationOrScale = MathHelper.ToRadians(flip * (-90)),
                 Alignment = TextAlignment.LEFT

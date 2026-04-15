@@ -6,7 +6,6 @@ using Sandbox.Definitions;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.ModAPI;
-using VRage.Utils;
 
 namespace Graph.System.TerminalControls.Filter.Listbox
 {

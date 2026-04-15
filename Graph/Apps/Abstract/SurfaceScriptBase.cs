@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -9,35 +8,34 @@ using Graph.Helpers;
 using Graph.Panels;
 using Graph.System;
 using Graph.System.Config;
-using Sandbox.Definitions;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Game;
-using VRage.Utils;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
+using VRage.Utils;
 using VRageMath;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 using IMyTextSurfaceProvider = Sandbox.ModAPI.Ingame.IMyTextSurfaceProvider;
 
-namespace Graph.Charts
+namespace Graph.Apps.Abstract
 {
-    public abstract class ChartBase : MyTextSurfaceScriptBase
+    public abstract class SurfaceScriptBase : MyTextSurfaceScriptBase
     {
-        static Dictionary<string, Vector2> _fontSizeCache = new Dictionary<string, Vector2>();
-        static Dictionary<MyDefinitionId, MyItemType> _typeCache = new Dictionary<MyDefinitionId, MyItemType>();
-        static StringBuilder _stringBuilderBuffer = new StringBuilder();
+        static readonly Dictionary<string, Vector2> FontSizeCache = new Dictionary<string, Vector2>();
+        static readonly Dictionary<MyDefinitionId, MyItemType> TypeCache = new Dictionary<MyDefinitionId, MyItemType>();
+        static readonly StringBuilder StringBuilderBuffer = new StringBuilder();
 
-        public static List<ChartBase> Instances = new List<ChartBase>();
+        public static List<SurfaceScriptBase> Instances = new List<SurfaceScriptBase>();
 
         public IMyFaction Faction { get; protected set; }
         protected string Icon { get; set; }
 
         protected virtual SortMethod SortMethod => Config.SortMethod;
 
-        Dictionary<MyItemType, double> _itemsCache = new Dictionary<MyItemType, double>();
+        readonly Dictionary<MyItemType, double> _itemsCache = new Dictionary<MyItemType, double>();
 
         /// <summary>
         /// Relative area of the <see cref="Sandbox.ModAPI.IMyTextSurface.TextureSize"/> That is Visible
@@ -51,7 +49,7 @@ namespace Graph.Charts
 
         protected float Margin = 0.02f;
 
-        protected const float TitleBarHeightBase = 40f;
+        protected const float TITLE_BAR_HEIGHT_BASE = 40f;
         public abstract Dictionary<MyItemType, double> ItemSource { get; }
         public virtual string Title => DefaultTitle;
         protected virtual string DefaultTitle => "|";
@@ -76,7 +74,7 @@ namespace Graph.Charts
 
         public ScreenProviderConfig ProviderConfig;
 
-        protected ChartBase(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
+        protected SurfaceScriptBase(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
             Instances.Add(this);
             UpdateViewBox();
@@ -90,11 +88,11 @@ namespace Graph.Charts
         {
             Vector2 size;
             var key = text + font + fontSize;
-            if (_fontSizeCache.TryGetValue(key, out size)) return size;
-            _stringBuilderBuffer.Clear();
-            _stringBuilderBuffer.Append(text);
-            size = surface.MeasureStringInPixels(_stringBuilderBuffer, font, fontSize);
-            _fontSizeCache[key] = size;
+            if (FontSizeCache.TryGetValue(key, out size)) return size;
+            StringBuilderBuffer.Clear();
+            StringBuilderBuffer.Append(text);
+            size = surface.MeasureStringInPixels(StringBuilderBuffer, font, fontSize);
+            FontSizeCache[key] = size;
             return size;
         }
 
@@ -136,7 +134,7 @@ namespace Graph.Charts
             base.Dispose();
         }
 
-        const float ServerExtraPadding = 4f;
+        const float SERVER_EXTRA_PADDING = 4f;
 
         protected void UpdateViewBox()
         {
@@ -149,11 +147,11 @@ namespace Graph.Charts
 
             if (MyAPIGateway.Session != null && MyAPIGateway.Session.IsServer)
             {
-                sizeOffset += new Vector2(ServerExtraPadding, ServerExtraPadding);
+                sizeOffset += new Vector2(SERVER_EXTRA_PADDING, SERVER_EXTRA_PADDING);
                 ViewBox = new RectangleF(
                     sizeOffset.X, sizeOffset.Y,
-                    Surface.SurfaceSize.X - padding.X - ServerExtraPadding * 2,
-                    Surface.SurfaceSize.Y - padding.Y - ServerExtraPadding * 2);
+                    Surface.SurfaceSize.X - padding.X - SERVER_EXTRA_PADDING * 2,
+                    Surface.SurfaceSize.Y - padding.Y - SERVER_EXTRA_PADDING * 2);
             }
             else
             {
@@ -221,10 +219,10 @@ namespace Graph.Charts
                 foreach (var configSelectedItem in Config.SelectedItems)
                 {
                     MyItemType type;
-                    if (!_typeCache.TryGetValue(configSelectedItem, out type))
+                    if (!TypeCache.TryGetValue(configSelectedItem, out type))
                     {
                         type = MyItemType.Parse(configSelectedItem.ToString());
-                        _typeCache[configSelectedItem] = type;
+                        TypeCache[configSelectedItem] = type;
                     }
 
                     _itemsCache[type] = 0;
@@ -332,7 +330,7 @@ namespace Graph.Charts
 
             frame.Add(MySprite.CreateClearClipRect());
 
-            CaretY += TitleBarHeightBase * Scale;
+            CaretY += TITLE_BAR_HEIGHT_BASE * Scale;
         }
 
         protected virtual void DrawFooter(List<MySprite> frame)
@@ -477,12 +475,6 @@ namespace Graph.Charts
             }
         }
 
-        protected static string FormatQty(double v)
-        {
-            if (v >= 1000.0) return Math.Round(v).ToString("#,0", CultureInfo.CurrentUICulture);
-            return v.ToString("0.##", CultureInfo.CurrentUICulture);
-        }
-
         protected static List<KeyValuePair<string, double>> SortedItems(Dictionary<string, double> source)
         {
             var list = new List<KeyValuePair<string, double>>();
@@ -513,59 +505,6 @@ namespace Graph.Charts
                 Type = SpriteType.TEXT, Data = s, Position = p,
                 Color = Surface.ScriptForegroundColor, Alignment = TextAlignment.CENTER, RotationOrScale = scale
             };
-        }
-
-        protected string Pow(double watts)
-        {
-            double a = Math.Abs(watts);
-            string sign = watts < 0 ? "-" : "";
-
-            if (a < 1e-12)
-                return "0 W";
-
-            if (a >= 1e24) return sign + (a / 1e24).ToString("0.##", CultureInfo.CurrentUICulture) + " YW";
-            if (a >= 1e21) return sign + (a / 1e21).ToString("0.##", CultureInfo.CurrentUICulture) + " ZW";
-            if (a >= 1e18) return sign + (a / 1e18).ToString("0.##", CultureInfo.CurrentUICulture) + " EW";
-            if (a >= 1e15) return sign + (a / 1e15).ToString("0.##", CultureInfo.CurrentUICulture) + " PW";
-            if (a >= 1e12) return sign + (a / 1e12).ToString("0.##", CultureInfo.CurrentUICulture) + " TW";
-            if (a >= 1e9) return sign + (a / 1e9).ToString("0.##", CultureInfo.CurrentUICulture) + " GW";
-            if (a >= 1e6) return sign + (a / 1e6).ToString("0.##", CultureInfo.CurrentUICulture) + " MW";
-            if (a >= 1e3) return sign + (a / 1e3).ToString("0.##", CultureInfo.CurrentUICulture) + " kW";
-            if (a >= 1.0) return sign + a.ToString("0.##", CultureInfo.CurrentUICulture) + " W";
-            if (a >= 1e-3) return sign + (a / 1e-3).ToString("0.##", CultureInfo.CurrentUICulture) + " mW";
-            if (a >= 1e-6) return sign + (a / 1e-6).ToString("0.##", CultureInfo.CurrentUICulture) + " uW";
-            if (a >= 1e-9) return sign + (a / 1e-9).ToString("0.##", CultureInfo.CurrentUICulture) + " nW";
-            if (a >= 1e-12) return sign + (a / 1e-12).ToString("0.##", CultureInfo.CurrentUICulture) + " pW";
-            return sign + a.ToString("0.##", CultureInfo.CurrentUICulture) + " W";
-        }
-
-
-        protected string PowForce(double newtons)
-        {
-            double a = Math.Abs(newtons);
-            string sign = newtons < 0 ? "-" : "";
-
-            if (a < 1e-12)
-                return "0 N";
-
-            if (a >= 1e24) return sign + (a / 1e24).ToString("0.##", CultureInfo.CurrentUICulture) + " YN";
-            if (a >= 1e21) return sign + (a / 1e21).ToString("0.##", CultureInfo.CurrentUICulture) + " ZN";
-            if (a >= 1e18) return sign + (a / 1e18).ToString("0.##", CultureInfo.CurrentUICulture) + " EN";
-            if (a >= 1e15) return sign + (a / 1e15).ToString("0.##", CultureInfo.CurrentUICulture) + " PN";
-            if (a >= 1e12) return sign + (a / 1e12).ToString("0.##", CultureInfo.CurrentUICulture) + " TN";
-            if (a >= 1e9) return sign + (a / 1e9).ToString("0.##", CultureInfo.CurrentUICulture) + " GN";
-            if (a >= 1e6) return sign + (a / 1e6).ToString("0.##", CultureInfo.CurrentUICulture) + " MN";
-            if (a >= 1e3) return sign + (a / 1e3).ToString("0.##", CultureInfo.CurrentUICulture) + " kN";
-            if (a >= 1e-3) return sign + (a / 1e-3).ToString("0.##", CultureInfo.CurrentUICulture) + " mN";
-            if (a >= 1e-6) return sign + (a / 1e-6).ToString("0.##", CultureInfo.CurrentUICulture) + " uN";
-            if (a >= 1e-9) return sign + (a / 1e-9).ToString("0.##", CultureInfo.CurrentUICulture) + " nN";
-            return sign + a.ToString("0.##", CultureInfo.CurrentUICulture) + " N";
-        }
-
-
-        protected string Pct(float f)
-        {
-            return f.ToString("P0", CultureInfo.CurrentUICulture);
         }
 
         protected Vector2 GetAutoScale2D(float logicalWidth = 512f, float logicalHeight = 512f)

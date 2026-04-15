@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using Graph.Charts;
+using Graph.Apps.Antenna;
 using Graph.Helpers;
 using Graph.System.Config;
 using Sandbox.ModAPI;
@@ -27,7 +27,7 @@ namespace Graph.System.TerminalControls.Filter.Listbox
                 return;
             
             var script = ((IMyTextSurfaceProvider)b).GetSurface(GetThisSurfaceIndex(b)).Script;
-            if (script != AntennaGraph.ID) // antenna does not support groups
+            if (script != AntennaSurfaceScript.ID) // antenna does not support groups
                 blockList.AddRange(screenSettings.SelectedGroups.Select(a => ListBoxItemHelper.GetOrComputeListBoxItem(
                     $"*{a}*",
                     $"{MyTexts.GetString("Terminal_GroupTitle")} {a}",

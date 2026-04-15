@@ -4,7 +4,7 @@ using ProtoBuf;
 namespace Graph.Networking
 {
     [ProtoContract]
-    class NetworkPackageSyncScreenConfig : NetworkPackage
+    internal class NetworkPackageSyncScreenConfig : NetworkPackage
     {
         public override PackageCode Code => PackageCode.SyncConfig;
         [ProtoMember(1)] public long BlockId { get; set; }

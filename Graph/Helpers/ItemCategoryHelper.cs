@@ -1,13 +1,10 @@
-using System;
-using System.Text.RegularExpressions;
 using VRage;
-using VRage.Utils;
 
 namespace Graph.Helpers
 {
     public class ItemCategoryHelper
     {
-        const string CategoryRegex = @"_(.*?)\\";
+        const string CATEGORY_REGEX = @"_(.*?)\\";
         
         public static string[] Groups = { "AmmoMagazine", "Component", "PhysicalGun", "Ingot", "Ore", "ConsumableItem", "SeedItem" };
         

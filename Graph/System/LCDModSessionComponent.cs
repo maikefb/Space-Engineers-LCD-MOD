@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Graph.Charts;
+using Graph.Apps.Abstract;
 using Graph.Helpers;
 using Graph.Networking;
 using Graph.System.Config;
@@ -60,14 +60,14 @@ namespace Graph.System
 
         void FactionUpdated(long obj)
         {
-            var affected = ChartBase.Instances.Where(a => a.Faction != null && a.Faction.FactionId == obj)
+            var affected = SurfaceScriptBase.Instances.Where(a => a.Faction != null && a.Faction.FactionId == obj)
                 .ToList();
 
             var faction = MyAPIGateway.Session.Factions.TryGetFactionById(obj);
 
             if (faction != null)
                 affected.AddRange(
-                    ChartBase.Instances.Where(a => a.Block != null &&
+                    SurfaceScriptBase.Instances.Where(a => a.Block != null &&
                                                    (faction.FounderId == a.Block.OwnerId ||
                                                     faction.Members.ContainsKey(a.Block.OwnerId))));
 
@@ -86,8 +86,8 @@ namespace Graph.System
             Components.Clear();
             Components = null;
 
-            ItemCharts.SpriteCache?.Clear();
-            ItemCharts.SpriteCache = null;
+            ItemsSurfaceScriptBase.SpriteCache?.Clear();
+            ItemsSurfaceScriptBase.SpriteCache = null;
 
             ListBoxItemHelper.PerTypeCache.Clear();
 
@@ -224,7 +224,7 @@ namespace Graph.System
                         }
                         else
                         {
-                            settings = ChartBase.Instances.FirstOrDefault(a => a.Block.Equals(block))?.ProviderConfig;
+                            settings = SurfaceScriptBase.Instances.FirstOrDefault(a => a.Block.Equals(block))?.ProviderConfig;
                         }
 
                         if (settings == null)

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
+using Graph.Apps.Abstract;
 using Graph.Helpers;
 using Graph.Panels;
 using Sandbox.Definitions;
@@ -15,23 +15,21 @@ using VRageMath;
 using IMyTerminalBlock = Sandbox.ModAPI.IMyTerminalBlock;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
-namespace Graph.Charts
+namespace Graph.Apps
 {
     [MyTextSurfaceScript("GasGraph", "Gas Graph")]
-    public class GasGraph : ChartBase
+    public class GasSurfaceScript : SurfaceScriptBase
     {
-        private static readonly Vector2 INFO_POS = new Vector2(16f, 56f);
+        static readonly Vector2 InfoPos = new Vector2(16f, 56f);
 
-        private bool _first = true;
-        private double _lastH2, _lastO2;
-        private double _lastSec;
+        bool _first = true;
+        double _lastH2, _lastO2;
+        double _lastSec;
 
-        private string _nameH2;
-        private string _nameO2;
+        string _nameH2;
+        string _nameO2;
         
-        
-
-        public GasGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
+        public GasSurfaceScript(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
             SetLocalizedTitleFromGame();
             Surface.DrawFrame().Add(new MySprite(SpriteType.TEXTURE, "AH_BoreSight"));
@@ -40,7 +38,7 @@ namespace Graph.Charts
         public override Dictionary<MyItemType, double> ItemSource => null;
 
         protected override string DefaultTitle => _localizedTitle;
-        private string _localizedTitle;
+        string _localizedTitle;
 
         public override void Run()
         {
@@ -49,7 +47,7 @@ namespace Graph.Charts
 
             if (_nameH2 == null) SetLocalizedTitleFromGame();
 
-            var Scale = GetAutoScaleUniform();
+            var scale = GetAutoScaleUniform();
 
             using (var frame = Surface.DrawFrame())
             {
@@ -90,29 +88,29 @@ namespace Graph.Charts
                 _lastSec = sec;
                 _first = false;
 
-                var padX = Clamp(ViewBox.Width * 0.06f * Scale, 10f * Scale, 32f * Scale);
-                var topBase = INFO_POS.Y * Scale;
-                var padBottom = Clamp(ViewBox.Height * 0.06f * Scale, 10f * Scale, 28f * Scale);
+                var padX = Clamp(ViewBox.Width * 0.06f * scale, 10f * scale, 32f * scale);
+                var topBase = InfoPos.Y * scale;
+                var padBottom = Clamp(ViewBox.Height * 0.06f * scale, 10f * scale, 28f * scale);
 
                 var contentLeft = ViewBox.Position.X + padX;
                 var contentTop = ViewBox.Position.Y + topBase;
-                var contentWidth = Math.Max(40f * Scale, (ViewBox.Width * Scale) - (padX * 2f));
-                var contentHeight = Math.Max(40f * Scale, (ViewBox.Height * Scale) - topBase - padBottom);
+                var contentWidth = Math.Max(40f * scale, (ViewBox.Width * scale) - (padX * 2f));
+                var contentHeight = Math.Max(40f * scale, (ViewBox.Height * scale) - topBase - padBottom);
 
-                var gapBetween = Clamp(contentHeight * 0.06f, 10f * Scale, 28f * Scale);
+                var gapBetween = Clamp(contentHeight * 0.06f, 10f * scale, 28f * scale);
 
                 var slotHeight = (contentHeight - gapBetween) * 0.5f;
-                if (slotHeight < 10f * Scale) slotHeight = 10f * Scale;
+                if (slotHeight < 10f * scale) slotHeight = 10f * scale;
 
-                var nameScale = Clamp(slotHeight / (130f * Scale), 0.70f, 1.15f);
-                var textScale = Clamp(slotHeight / (160f * Scale), 0.65f, 1.05f);
+                var nameScale = Clamp(slotHeight / (130f * scale), 0.70f, 1.15f);
+                var textScale = Clamp(slotHeight / (160f * scale), 0.65f, 1.05f);
 
-                var barW = Clamp(contentWidth * 0.70f, 40f * Scale, contentWidth);
-                var barH = Clamp(slotHeight * 0.10f, 6f * Scale, 14f * Scale);
+                var barW = Clamp(contentWidth * 0.70f, 40f * scale, contentWidth);
+                var barH = Clamp(slotHeight * 0.10f, 6f * scale, 14f * scale);
 
-                var titleGap = Clamp(slotHeight * 0.18f, 18f * Scale, 42f * Scale); 
-                var lineGap = Clamp(slotHeight * 0.10f, 10f * Scale, 26f * Scale);  
-                var afterBar = Clamp(slotHeight * 0.08f, 8f * Scale, 20f * Scale);  
+                var titleGap = Clamp(slotHeight * 0.18f, 18f * scale, 42f * scale); 
+                var lineGap = Clamp(slotHeight * 0.10f, 10f * scale, 26f * scale);  
+                var afterBar = Clamp(slotHeight * 0.08f, 8f * scale, 20f * scale);  
 
                 var bg = Config.HeaderColor;
                 var fg = Surface.ScriptForegroundColor;
@@ -126,8 +124,8 @@ namespace Graph.Charts
                     amt: amtH,
                     inRate: inH,
                     outRate: outH,
-                    nameScale: nameScale * Scale,
-                    textScale: textScale * Scale,
+                    nameScale: nameScale * scale,
+                    textScale: textScale * scale,
                     barW: barW,
                     barH: barH,
                     titleGap: titleGap,
@@ -146,8 +144,8 @@ namespace Graph.Charts
                     amt: amtO,
                     inRate: inO,
                     outRate: outO,
-                    nameScale: nameScale * Scale,
-                    textScale: textScale * Scale,
+                    nameScale: nameScale * scale,
+                    textScale: textScale * scale,
                     barW: barW,
                     barH: barH,
                     titleGap: titleGap,
@@ -162,7 +160,7 @@ namespace Graph.Charts
             }
         }
 
-        private void DrawGasBlock(
+        void DrawGasBlock(
             List<MySprite> sprites,
             Vector2 pTopLeft,
             string name,
@@ -190,20 +188,20 @@ namespace Graph.Charts
             sprites.AddRange(bar.GetSprites(Fill(cap, amt)));
 
             p += new Vector2(0, afterBar);
-            sprites.Add(Text("Atual/Total: " + Gas(amt) + " / " + Gas(cap), p, 0.9f * textScale));
+            sprites.Add(Text("Atual/Total: " + FormatingHelper.LitersToString(amt) + " / " + FormatingHelper.LitersToString(cap), p, 0.9f * textScale));
 
             p += new Vector2(0, lineGap);
-            sprites.Add(Text("Entrada: " + GasRate(inRate) + "   Saída: " + GasRate(outRate), p, 0.9f * textScale));
+            sprites.Add(Text("Entrada: " + FormatingHelper.LittersPerSecondToString(inRate) + "   Saída: " + FormatingHelper.LittersPerSecondToString(outRate), p, 0.9f * textScale));
         }
 
-        private void SetLocalizedTitleFromGame()
+        void SetLocalizedTitleFromGame()
         {
             _nameH2 = GetGasDisplayName("Hydrogen");
             _nameO2 = GetGasDisplayName("Oxygen");
             _localizedTitle = _nameH2 + " / " + _nameO2;
         }
 
-        private string GetGasDisplayName(string subtype)
+        string GetGasDisplayName(string subtype)
         {
             try
             {
@@ -239,14 +237,14 @@ namespace Graph.Charts
             return subtype;
         }
 
-        private static float Clamp(float value, float min, float max)
+        static float Clamp(float value, float min, float max)
         {
             if (value < min) return min;
             if (value > max) return max;
             return value;
         }
 
-        private float Fill(double cap, double amt)
+        float Fill(double cap, double amt)
         {
             if (cap <= 0) return 0f;
             var f = amt / cap;
@@ -254,26 +252,8 @@ namespace Graph.Charts
             if (f > 1) f = 1;
             return (float)f;
         }
-
-        private string Gas(double liters)
-        {
-            var a = Math.Abs(liters);
-            var sign = liters < 0 ? "-" : "";
-            if (a >= 1000000.0) return sign + (a / 1000000.0).ToString("0.##", CultureInfo.CurrentUICulture) + " ML";
-            if (a >= 1000.0) return sign + (a / 1000.0).ToString("0.##", CultureInfo.CurrentUICulture) + " kL";
-            return sign + a.ToString("0.#", CultureInfo.CurrentUICulture) + " L";
-        }
-
-        private string GasRate(double lps)
-        {
-            var a = Math.Abs(lps);
-            var sign = lps < 0 ? "-" : "";
-            if (a >= 1000000.0) return sign + (a / 1000000.0).ToString("0.##", CultureInfo.CurrentUICulture) + " ML/s";
-            if (a >= 1000.0) return sign + (a / 1000.0).ToString("0.##", CultureInfo.CurrentUICulture) + " kL/s";
-            return sign + a.ToString("0.#", CultureInfo.CurrentUICulture) + " L/s";
-        }
-
-        private void SumFluids(
+        
+        void SumFluids(
             IMyCubeGrid grid, string token,
             ref double capH, ref double amtH,
             ref double capO, ref double amtO)
@@ -351,21 +331,21 @@ namespace Graph.Charts
                 }
                 else
                 {
-                    var subTypeID = "";
+                    var subTypeId = "";
                     try
                     {
-                        subTypeID = fat.BlockDefinition.SubtypeName ?? "";
+                        subTypeId = fat.BlockDefinition.SubtypeName ?? "";
                     }
                     catch
                     {
                     }
 
-                    if (subTypeID.IndexOf("Hydrogen", StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (subTypeId.IndexOf("Hydrogen", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         capH += cap;
                         amtH += amt;
                     }
-                    else if (subTypeID.IndexOf("Oxygen", StringComparison.OrdinalIgnoreCase) >= 0)
+                    else if (subTypeId.IndexOf("Oxygen", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         capO += cap;
                         amtO += amt;

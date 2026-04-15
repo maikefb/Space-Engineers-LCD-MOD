@@ -1,14 +1,15 @@
 using System;
+using Graph.Apps.Abstract;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
 using SpaceEngineers.Game.ModAPI;
 using VRageMath;
 using IMyCubeBlock = VRage.Game.ModAPI.IMyCubeBlock;
 
-namespace Graph.Charts
+namespace Graph.Apps.Power
 {
     [MyTextSurfaceScript(ID, TITLE)]
-    public class GeneratorsGraph : PowerGraph
+    public class GeneratorsSurfaceScript : PowerSurfaceScriptBase
     {
         public const string ID = "GeneratorsGraph";
         public const string TITLE = "RadialMenuGroupTitle_Power";
@@ -25,9 +26,10 @@ namespace Graph.Charts
         protected override PowerEntryDefinition[] EntryDefinitions => Definitions;
         protected override string DefaultTitle => TITLE;
 
-        public GeneratorsGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
+        public GeneratorsSurfaceScript(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
             : base(surface, block, size)
         {
+            InitializeEntries();
         }
 
         protected override bool TryMapProducerType(string typeId, IMyPowerProducer producer, out string entryKey)

@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using Graph.Helpers;
-using Graph.Panels;
 using Graph.System;
 using Sandbox.Definitions;
 using Sandbox.ModAPI;
@@ -15,28 +13,28 @@ using VRage.Utils;
 using VRageMath;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
-namespace Graph.Charts
+namespace Graph.Apps.Abstract
 {
-    public abstract class ItemCharts : ChartBase
+    public abstract class ItemsSurfaceScriptBase : SurfaceScriptBase
     {
         public static Dictionary<MyItemType, string> SpriteCache =
             new Dictionary<MyItemType, string>();
 
-        private const int SpriteCacheMaxSize = 256;
+        const int SPRITE_CACHE_MAX_SIZE = 256;
 
         protected static void AddToSpriteCache(MyItemType key, string sprite)
         {
             SpriteCache[key] = sprite;
-            if (SpriteCache.Count > SpriteCacheMaxSize)
+            if (SpriteCache.Count > SPRITE_CACHE_MAX_SIZE)
             {
                 var oldest = SpriteCache.Keys.First();
                 SpriteCache.Remove(oldest);
             }
         }
 
-        protected string LocalizedTitleCache = string.Empty;
+        string _localizedTitleCache = string.Empty;
 
-        protected readonly Dictionary<MyItemType, string> _locKeysCache = new Dictionary<MyItemType, string>();
+        protected readonly Dictionary<MyItemType, string> LocKeysCache = new Dictionary<MyItemType, string>();
 
         string[] _selectedCategories;
 
@@ -45,10 +43,10 @@ namespace Graph.Charts
             get
             {
                 if (_selectedCategories != Config?.SelectedCategories)
-                    LocalizedTitleCache = string.Empty;
+                    _localizedTitleCache = string.Empty;
 
-                if (!string.IsNullOrEmpty(LocalizedTitleCache))
-                    return LocalizedTitleCache;
+                if (!string.IsNullOrEmpty(_localizedTitleCache))
+                    return _localizedTitleCache;
 
                 if (Config?.SelectedCategories != null)
                 {
@@ -60,14 +58,14 @@ namespace Graph.Charts
                     if (sb.Length != 0)
                     {
                         sb.Length -= 2;
-                        LocalizedTitleCache = sb.ToString();
+                        _localizedTitleCache = sb.ToString();
                     }
                 }
 
-                if (string.IsNullOrEmpty(LocalizedTitleCache))
-                    LocalizedTitleCache = MyTexts.GetString(DefaultTitle);
+                if (string.IsNullOrEmpty(_localizedTitleCache))
+                    _localizedTitleCache = MyTexts.GetString(DefaultTitle);
 
-                return LocalizedTitleCache;
+                return _localizedTitleCache;
             }
         }
 
@@ -77,9 +75,9 @@ namespace Graph.Charts
         protected const int SCROLLER_WIDTH = 8;
         const int SCROLL_DELAY = 12; 
         long _clock;
-        protected string _previousType = "";
+        protected string PreviousType = "";
 
-        protected ItemCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
+        protected ItemsSurfaceScriptBase(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
         }
 
@@ -107,8 +105,8 @@ namespace Graph.Charts
         protected override void LayoutChanged()
         {
             base.LayoutChanged();
-            _locKeysCache.Clear();
-            LocalizedTitleCache = string.Empty;
+            LocKeysCache.Clear();
+            _localizedTitleCache = string.Empty;
         }
 
         public virtual void DrawItems()
@@ -185,7 +183,7 @@ namespace Graph.Charts
 
             int showCount = Math.Min(maxRows, items.Count);
 
-            _previousType = items[start].Key.TypeId;
+            PreviousType = items[start].Key.TypeId;
 
             for (int visIdx = start; visIdx < start + showCount; visIdx++)
                 DrawRow(sprites, items[visIdx], shouldScroll);
@@ -273,7 +271,7 @@ namespace Graph.Charts
                 }
             }
 
-            _previousType = items[start].Key.TypeId;
+            PreviousType = items[start].Key.TypeId;
 
             for (int gridIdx = 0; gridIdx < showCount; gridIdx++)
             {
@@ -312,14 +310,14 @@ namespace Graph.Charts
             {
                 var reference = new List<string>();
                 var color = "ColorfulIcons_" + item.Key.ToString().Substring(16);
-                const string NOT_FOUND = "Textures\\FactionLogo\\Unknown.dds";
+                const string notFound = "Textures\\FactionLogo\\Unknown.dds";
 
                 Surface.GetSprites(reference);
                 if (reference.Contains(color))
                     sprite = color;
                 else if (reference.Contains(item.Key.ToString()))
                     sprite = item.Key.ToString();
-                else sprite = NOT_FOUND;
+                else sprite = notFound;
 
                 AddToSpriteCache(item.Key, sprite);
             }
@@ -331,7 +329,7 @@ namespace Graph.Charts
             position.X = xStart;
             position.Y = CaretY;
 
-            bool drawSeparatorLine = Config.SortMethod == SortMethod.Type && _previousType != item.Key.TypeId;
+            bool drawSeparatorLine = Config.SortMethod == SortMethod.Type && PreviousType != item.Key.TypeId;
 
             if (Config.DrawLines || drawSeparatorLine)
             {
@@ -346,7 +344,7 @@ namespace Graph.Charts
                 });
             }
 
-            _previousType = item.Key.TypeId;
+            PreviousType = item.Key.TypeId;
 
             frame.Add(new MySprite
             {
@@ -365,7 +363,7 @@ namespace Graph.Charts
 
             frame.Add(MySprite.CreateClipRect(clip));
 
-            if (!_locKeysCache.TryGetValue(item.Key, out localizedName))
+            if (!LocKeysCache.TryGetValue(item.Key, out localizedName))
             {
                 var key =
                     MyDefinitionManager.Static.TryGetPhysicalItemDefinition(item.Key).DisplayNameEnum?.ToString() ??
@@ -373,7 +371,7 @@ namespace Graph.Charts
                 var sb = new StringBuilder(MyTexts.GetString(key));
                 TrimText(ref sb, clip.Width);
                 localizedName = sb.ToString();
-                _locKeysCache[item.Key] = sb.ToString();
+                LocKeysCache[item.Key] = sb.ToString();
             }
 
             frame.Add(new MySprite()
@@ -393,7 +391,7 @@ namespace Graph.Charts
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
-                Data = FormatItemQty(item.Value),
+                Data =  FormatingHelper.FormatItemQty(item.Value),
                 Position = position,
                 RotationOrScale = Scale,
                 Color = foreground,
@@ -405,7 +403,7 @@ namespace Graph.Charts
         }
 
         protected virtual void DrawGridCell(List<MySprite> frame,
-            KeyValuePair<MyItemType, double> item, float xStart, float xEnd, bool MoveToNextLine)
+            KeyValuePair<MyItemType, double> item, float xStart, float xEnd, bool moveToNextLine)
         {
             var gridCellHeight = 3 * LINE_HEIGHT * Scale;
             var cellPadding = (LINE_HEIGHT * Scale) / 2f;
@@ -416,14 +414,14 @@ namespace Graph.Charts
             {
                 var reference = new List<string>();
                 var color = "ColorfulIcons_" + item.Key.ToString().Substring(16);
-                const string NOT_FOUND = "Textures\\FactionLogo\\Unknown.dds";
+                const string notFound = "Textures\\FactionLogo\\Unknown.dds";
 
                 Surface.GetSprites(reference);
                 if (reference.Contains(color))
                     sprite = color;
                 else if (reference.Contains(item.Key.ToString()))
                     sprite = item.Key.ToString();
-                else sprite = NOT_FOUND;
+                else sprite = notFound;
 
                 AddToSpriteCache(item.Key, sprite);
             }
@@ -442,11 +440,11 @@ namespace Graph.Charts
                 foreground = new Color(96, 32, 32);
             }
 
-            _previousType = item.Key.TypeId;
+            PreviousType = item.Key.TypeId;
             var slots = GetCellSlots(cellViewBox.X, cellViewBox.Right, cellViewBox.Y, cellViewBox.Bottom, LINE_HEIGHT);
             DrawCellContent(frame, item, sprite, foreground, slots);
 
-            if (MoveToNextLine)
+            if (moveToNextLine)
                 CaretY += gridCellHeight;
         }
 
@@ -469,7 +467,7 @@ namespace Graph.Charts
                 Color = item.Value == 0 ? Config.ErrorColor: Color.White
             });
 
-            if (!_locKeysCache.TryGetValue(item.Key, out localizedName))
+            if (!LocKeysCache.TryGetValue(item.Key, out localizedName))
             {
                 var key =
                     MyDefinitionManager.Static.TryGetPhysicalItemDefinition(item.Key).DisplayNameEnum?.ToString() ??
@@ -477,7 +475,7 @@ namespace Graph.Charts
                 var sb = new StringBuilder(MyTexts.GetString(key));
                 TrimText(ref sb, nameRect.Width);
                 localizedName = sb.ToString();
-                _locKeysCache[item.Key] = sb.ToString();
+                LocKeysCache[item.Key] = sb.ToString();
             }
 
             Vector2 size = GetSizeInPixel(localizedName, "White", 1, Surface);
@@ -499,7 +497,7 @@ namespace Graph.Charts
                 fontSize * .95f
             ));
 
-            var qty = FormatItemQty(item.Value);
+            var qty = FormatingHelper.FormatItemQty(item.Value);
             size = GetSizeInPixel(qty, "White", 1, Surface);
             minProportion = Math.Min(numberRect.Width / size.X, numberRect.Height / size.Y);
             fontSize = minProportion;
@@ -542,7 +540,7 @@ namespace Graph.Charts
         /// <summary>
         /// Draws a "capsule": a rectangle plus two half-circles.
         /// </summary>
-        private void DrawCapsule(List<MySprite> frame, Vector2 center, int width, float height, Color color)
+        void DrawCapsule(List<MySprite> frame, Vector2 center, int width, float height, Color color)
         {
             // Base rectangle
             frame.Add(new MySprite()
@@ -616,7 +614,7 @@ namespace Graph.Charts
             frame.Add(MySprite.CreateClipRect(availableSize));
 
 
-            var displayName = GetCachedTitleText(availableSize.Width, 1.3f, false);
+            var displayName = GetCachedTitleText(availableSize.Width);
 
             AddHeaderSprite(frame, new MySprite()
             {
@@ -643,20 +641,7 @@ namespace Graph.Charts
                 FontId = "White"
             });
 
-            CaretY += TitleBarHeightBase * Scale;
-        }
-
-        protected static string FormatItemQty(double input)
-        {
-            if (input >= 1000000000)
-                // Congratulations, you've successfully created a singularity
-                return (input / 1000000000d).ToString("0.00", CultureInfo.CurrentUICulture) + "G";
-            if (input >= 1000000)
-                return (input / 1000000d).ToString("0.00", CultureInfo.CurrentUICulture) + "M";
-            if (input >= 10000)
-                return (input / 1000d).ToString("0.00", CultureInfo.CurrentUICulture) + "k";
-
-            return input.ToString("0.##", CultureInfo.CurrentUICulture);
+            CaretY += TITLE_BAR_HEIGHT_BASE * Scale;
         }
     }
 }

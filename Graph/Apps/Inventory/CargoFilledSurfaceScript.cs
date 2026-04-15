@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using Graph.Apps.Abstract;
 using Graph.Extensions;
 using Graph.Helpers;
 using Graph.Panels;
@@ -16,15 +17,15 @@ using IMyCubeBlock = VRage.Game.ModAPI.IMyCubeBlock;
 using IMyCubeGrid = VRage.Game.ModAPI.IMyCubeGrid;
 using IMySlimBlock = VRage.Game.ModAPI.IMySlimBlock;
 
-namespace Graph.Charts
+namespace Graph.Apps.Inventory
 {
     [MyTextSurfaceScript(ID, TITLE)]
-    public class ContainerGraph : ChartBase
+    public class CargoFilledSurfaceScript : SurfaceScriptBase
     {
         public const string ID = "ContainerCharts";
         public const string TITLE = "DisplayName_CargoFilledEntityComponent";
 
-        public ContainerGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
+        public CargoFilledSurfaceScript(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
 
         }
@@ -464,7 +465,7 @@ namespace Graph.Charts
             AggregateAllContainersInLogicalGroup(rootGrid, details);
         }
 
-        private void AggregateAllContainersInLogicalGroup(IMyCubeGrid rootGrid, List<Entry> details)
+        void AggregateAllContainersInLogicalGroup(IMyCubeGrid rootGrid, List<Entry> details)
         {
             if (rootGrid == null) return;
 

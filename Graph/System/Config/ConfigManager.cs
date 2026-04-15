@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using Graph.Charts;
+using Graph.Apps.Abstract;
 using Graph.Helpers;
 using Graph.Networking;
 using Sandbox.Game.EntityComponents;
@@ -20,8 +20,8 @@ namespace Graph.System.Config
 
         public static void Init()
         {
-            MyLog.Default.Log(MyLogSeverity.Info, $"{nameof(Graph)}: Setting up Network Manager using port {Constants.PORT}");
-            NetworkManager = new NetworkManager(Constants.PORT);
+            MyLog.Default.Log(MyLogSeverity.Info, $"{nameof(Graph)}: Setting up Network Manager using port {Constants.Port}");
+            NetworkManager = new NetworkManager(Constants.Port);
             NetworkManager.Init();
         }
 
@@ -36,7 +36,7 @@ namespace Graph.System.Config
         {
             try
             {
-                foreach (var screen in ChartBase.Instances)
+                foreach (var screen in SurfaceScriptBase.Instances)
                     Save((IMyEntity)screen.Block, screen.ProviderConfig);
             }
             catch (Exception e)
@@ -49,7 +49,7 @@ namespace Graph.System.Config
         {
             try
             {
-                foreach (var screen in ChartBase.Instances)
+                foreach (var screen in SurfaceScriptBase.Instances)
                     Sync((IMyEntity)screen.Block, screen.ProviderConfig);
             }
             catch (Exception e)
@@ -70,7 +70,7 @@ namespace Graph.System.Config
                 if (string.IsNullOrEmpty(base64))
                     throw new Exception("Invalid storage config");
 
-                storageEntity.Storage[Constants.STORAGE_GUID] = base64;
+                storageEntity.Storage[Constants.StorageGuid] = base64;
             }
             catch (Exception e)
             {
@@ -137,7 +137,7 @@ namespace Graph.System.Config
                 return null;
 
             string value;
-            if (block.Storage.TryGetValue(Constants.STORAGE_GUID, out value) && !string.IsNullOrEmpty(value))
+            if (block.Storage.TryGetValue(Constants.StorageGuid, out value) && !string.IsNullOrEmpty(value))
             {
                 var provider =
                     MyAPIGateway.Utilities.SerializeFromBinary<ScreenProviderConfig>(Convert.FromBase64String(value));
@@ -160,8 +160,8 @@ namespace Graph.System.Config
 
         public static ScreenProviderConfig CreateSettings(IMyCubeBlock block) => new ScreenProviderConfig(block is IMyTextPanel ? 1 : ((IMyTextSurfaceProvider)block).SurfaceCount, block as IMyTerminalBlock);
 
-        public static ChartBase GetAppForBlock(IMyTerminalBlock block) =>
-            ChartBase.Instances.FirstOrDefault(a => a.Block.Equals(block));
+        public static SurfaceScriptBase GetAppForBlock(IMyTerminalBlock block) =>
+            SurfaceScriptBase.Instances.FirstOrDefault(a => a.Block.Equals(block));
 
         public static ScreenProviderConfig GetConfigForBlock(IMyTerminalBlock block) =>
             GetAppForBlock(block)?.ProviderConfig;

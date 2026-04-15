@@ -1,11 +1,12 @@
-using Graph.Charts;
+using Graph.Apps.Antenna;
+using Graph.Apps.Inventory;
 
 namespace Graph.System.TerminalControls.Filter
 {
     public abstract class TerminalControlFilter : TerminalControlsWrapper
     {
         protected override string[] VisibleForScripts => DefaultVisibility;
-        protected string[] InventoryOnlyVisibility { get; } = { InventoryCharts.ID };
-        protected string[] DefaultVisibility { get; } = { InventoryCharts.ID, ProjectorCharts.ID, ContainerGraph.ID, AntennaGraph.ID };
+        protected string[] InventoryOnlyVisibility { get; } = { InventoryLcdSurfaceScript.ID };
+        protected string[] DefaultVisibility { get; } = { InventoryLcdSurfaceScript.ID, ProjectorLcdSurfaceScript.ID, CargoFilledSurfaceScript.ID, AntennaSurfaceScript.ID };
     }
 }

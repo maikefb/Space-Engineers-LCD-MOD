@@ -1,6 +1,6 @@
 using VRageMath;
 
-namespace Graph.Charts.Antenna
+namespace Graph.System.Antenna
 {
     internal struct AntennaEntry
     {

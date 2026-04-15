@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Sandbox.Graphics.GUI;
 using VRage.Game.GUI.TextPanel;
 using Color = VRageMath.Color;
 

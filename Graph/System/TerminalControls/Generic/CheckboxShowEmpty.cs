@@ -1,4 +1,5 @@
-using Graph.Charts;
+using Graph.Apps.Inventory;
+using Graph.Apps.Power;
 using Graph.System.Config;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
@@ -8,7 +9,7 @@ namespace Graph.System.TerminalControls.Generic
 {
     public class CheckboxHideEmpty : TerminalControlsWrapper
     {
-        protected override string[] VisibleForScripts { get; } = { InventoryCharts.ID,  RenewableGraph.ID, GeneratorsGraph.ID };
+        protected override string[] VisibleForScripts { get; } = { InventoryLcdSurfaceScript.ID,  RenewablePowerSurfaceScript.ID, GeneratorsSurfaceScript.ID };
         public override IMyTerminalControl TerminalControl { get; }
 
         public CheckboxHideEmpty()

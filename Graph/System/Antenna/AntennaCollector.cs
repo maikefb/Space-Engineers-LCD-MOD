@@ -1,13 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
+using Graph.Apps.Antenna;
 using Graph.Helpers;
-using Graph.System;
 using Graph.System.Config;
 using Sandbox.ModAPI;
-using VRage.Game.ModAPI;
 using VRageMath;
 
-namespace Graph.Charts.Antenna
+namespace Graph.System.Antenna
 {
     internal abstract class AntennaCollector
     {
@@ -18,11 +17,11 @@ namespace Graph.Charts.Antenna
         
         public abstract void Collect(GridLogic grid, List<AntennaEntry> entries);
 
-        protected AntennaCollector(AntennaGraph antennaGraph)
+        protected AntennaCollector(AntennaSurfaceScript antennaSurfaceScript)
         {
-            ForegroundColor = antennaGraph.ForegroundColor;
-            WarningColor = antennaGraph.Config.WarningColor;
-            ScreenConfig = antennaGraph.Config;
+            ForegroundColor = antennaSurfaceScript.ForegroundColor;
+            WarningColor = antennaSurfaceScript.Config.WarningColor;
+            ScreenConfig = antennaSurfaceScript.Config;
         }
         
         protected string GetLocCached(string key)

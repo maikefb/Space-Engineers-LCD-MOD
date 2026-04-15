@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
+using Graph.Apps.Abstract;
 using Graph.Helpers;
 using Graph.Panels;
 using Graph.System;
@@ -11,17 +10,16 @@ using Sandbox.Definitions;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
 using VRage;
-using VRage.Game;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
 using VRage.Utils;
 using VRageMath;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
-namespace Graph.Charts
+namespace Graph.Apps.Inventory
 {
     [MyTextSurfaceScript(ID, "DisplayName_Block_Projector")]
-    public class ProjectorCharts : ItemCharts
+    public class ProjectorLcdSurfaceScript : ItemsSurfaceScriptBase
     {
         public const string ID = "ProjectorCharts";
         public const string TITLE = "DisplayName_Block_Projector";
@@ -47,16 +45,16 @@ namespace Graph.Charts
         int _totalComponents;
         int _missingComponents;
         
-        string Required = "Req";
-        string Available = "Ava";
+        string _required = "Req";
+        string _available = "Ava";
 
-        float RequiredX;
-        float AvailableX;
+        float _requiredX;
+        float _availableX;
         
         const float PIE_RADIUS = 40;
         readonly PieDualChartPanel _pieBlueprint;
 
-        public ProjectorCharts(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
+        public ProjectorLcdSurfaceScript(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
             : base(surface, block, size)
         {
             _pieBlueprint = new PieDualChartPanel(
@@ -77,15 +75,15 @@ namespace Graph.Charts
 
             _customTitle = _projector?.CustomName;
 
-            var RaA = MyTexts.Get(MyStringId.GetOrCompute("ScreenTerminalProduction_RequiredAndAvailable")).ToString().Split('/');
-            if (RaA.Length == 2)
+            var raA = MyTexts.Get(MyStringId.GetOrCompute("ScreenTerminalProduction_RequiredAndAvailable")).ToString().Split('/');
+            if (raA.Length == 2)
             {
-                Required = RaA.First().Trim();
-                Available = RaA.Last().Trim();
+                _required = raA.First().Trim();
+                _available = raA.Last().Trim();
             }
             
-            RequiredX = Surface.MeasureStringInPixels(new StringBuilder(Required), "White", 1).X;
-            AvailableX = Surface.MeasureStringInPixels(new StringBuilder(Available), "White", 1).X;
+            _requiredX = Surface.MeasureStringInPixels(new StringBuilder(_required), "White", 1).X;
+            _availableX = Surface.MeasureStringInPixels(new StringBuilder(_available), "White", 1).X;
         }
 
         protected override void DrawTitle(List<MySprite> frame)
@@ -121,7 +119,7 @@ namespace Graph.Charts
             frame.Add(MySprite.CreateClipRect(availableSize));
 
 
-            var displayName = GetCachedTitleText(availableSize.Width, 1.3f, false);
+            var displayName = GetCachedTitleText(availableSize.Width);
 
             AddHeaderSprite(frame, new MySprite()
             {
@@ -143,7 +141,7 @@ namespace Graph.Charts
             AddHeaderSprite(frame, new MySprite
             {
                 Type = SpriteType.TEXT,
-                Data = Required,
+                Data = _required,
                 Position = position,
                 RotationOrScale = Scale * 1.3f,
                 Color = Config.HeaderColor,
@@ -166,7 +164,7 @@ namespace Graph.Charts
             AddHeaderSprite(frame, new MySprite
             {
                 Type = SpriteType.TEXT,
-                Data = Available,
+                Data = _available,
                 Position = position,
                 RotationOrScale = Scale * 1.3f,
                 Color = Config.HeaderColor,
@@ -174,7 +172,7 @@ namespace Graph.Charts
                 FontId = "White"
             });
 
-            CaretY += TitleBarHeightBase * Scale;
+            CaretY += TITLE_BAR_HEIGHT_BASE * Scale;
         }
 
         protected override void DrawFooter(List<MySprite> frame)
@@ -233,8 +231,8 @@ namespace Graph.Charts
 
             sb.Clear();
             sb.Append(
-                $"{components}: {componentsPct:P2}  ({(_totalComponents - _missingComponents).ToString(CultureInfo.CurrentUICulture)}" +
-                $"/{_totalComponents.ToString(CultureInfo.CurrentUICulture)})");
+                $"{components}: {componentsPct:P2}  ({FormatingHelper.FormatItemQty(_totalComponents - _missingComponents)}" +
+                $"/{FormatingHelper.FormatItemQty(_totalComponents)})");
 
 
             TrimText(ref sb, ViewBox.Width - pos.X - ViewBox.X, 0.9f);
@@ -313,14 +311,14 @@ namespace Graph.Charts
             {
                 var reference = new List<string>();
                 var color = "ColorfulIcons_" + item.Key.ToString().Substring(16);
-                const string NOT_FOUND = "Textures\\FactionLogo\\Unknown.dds";
+                const string notFound = "Textures\\FactionLogo\\Unknown.dds";
 
                 Surface.GetSprites(reference);
                 if (reference.Contains(color))
                     sprite = color;
                 else if (reference.Contains(item.Key.ToString()))
                     sprite = item.Key.ToString();
-                else sprite = NOT_FOUND;
+                else sprite = notFound;
 
                 AddToSpriteCache(item.Key, sprite);
             }
@@ -330,7 +328,7 @@ namespace Graph.Charts
             position.X += margin;
             position.Y = CaretY;
 
-            bool drawSeparatorLine = Config.SortMethod == SortMethod.Type && _previousType != item.Key.TypeId;
+            bool drawSeparatorLine = Config.SortMethod == SortMethod.Type && PreviousType != item.Key.TypeId;
 
             if (Config.DrawLines || drawSeparatorLine)
             {
@@ -345,7 +343,7 @@ namespace Graph.Charts
                 });
             }
 
-            _previousType = item.Key.TypeId;
+            PreviousType = item.Key.TypeId;
             var shortageColor = GetShortageColor(item.Key, item.Value);
             var rowColor = shortageColor ?? Surface.ScriptForegroundColor;
 
@@ -367,7 +365,7 @@ namespace Graph.Charts
 
             frame.Add(MySprite.CreateClipRect(clip));
 
-            if (!_locKeysCache.TryGetValue(item.Key, out localizedName))
+            if (!LocKeysCache.TryGetValue(item.Key, out localizedName))
             {
                 var key =
                     MyDefinitionManager.Static.TryGetPhysicalItemDefinition(item.Key).DisplayNameEnum?.ToString() ??
@@ -375,7 +373,7 @@ namespace Graph.Charts
                 var sb = new StringBuilder(MyTexts.GetString(key));
                 TrimText(ref sb, clip.Width);
                 localizedName = sb.ToString();
-                _locKeysCache[item.Key] = sb.ToString();
+                LocKeysCache[item.Key] = sb.ToString();
             }
 
             frame.Add(new MySprite()
@@ -394,7 +392,7 @@ namespace Graph.Charts
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
-                Data = FormatItemQty(GetNeededQty(item.Key)),
+                Data =  FormatingHelper.FormatItemQty(GetNeededQty(item.Key)),
                 Position = position,
                 RotationOrScale = Scale,
                 Color = rowColor,
@@ -405,7 +403,7 @@ namespace Graph.Charts
             frame.Add(new MySprite()
             {
                 Type = SpriteType.TEXT,
-                Data = FormatItemQty(GetAvailableQty(item.Key, item.Value)),
+                Data =  FormatingHelper.FormatItemQty(GetAvailableQty(item.Key, item.Value)),
                 Position = position,
                 RotationOrScale = Scale,
                 Color = rowColor,
@@ -437,7 +435,7 @@ namespace Graph.Charts
                 Color = useAlertText ? shortageColor.Value : Color.White
             });
 
-            if (!_locKeysCache.TryGetValue(item.Key, out localizedName))
+            if (!LocKeysCache.TryGetValue(item.Key, out localizedName))
             {
                 var key =
                     MyDefinitionManager.Static.TryGetPhysicalItemDefinition(item.Key).DisplayNameEnum?.ToString() ??
@@ -445,7 +443,7 @@ namespace Graph.Charts
                 var sb = new StringBuilder(MyTexts.GetString(key));
                 TrimText(ref sb, nameRect.Width);
                 localizedName = sb.ToString();
-                _locKeysCache[item.Key] = sb.ToString();
+                LocKeysCache[item.Key] = sb.ToString();
             }
 
             Vector2 size = GetSizeInPixel(localizedName, "White", 1, Surface);
@@ -467,7 +465,7 @@ namespace Graph.Charts
                 fontSize * .95f
             ));
 
-            var qty = FormatItemQty(GetAvailableQty(item.Key, item.Value)) + "/" + FormatItemQty(GetNeededQty(item.Key));
+            var qty =  FormatingHelper.FormatItemQty(GetAvailableQty(item.Key, item.Value)) + "/" +  FormatingHelper.FormatItemQty(GetNeededQty(item.Key));
             size = GetSizeInPixel(qty, "White", 1, Surface);
             minProportion = Math.Min(numberRect.Width / size.X, numberRect.Height / size.Y);
             fontSize = minProportion;
@@ -537,7 +535,7 @@ namespace Graph.Charts
 
         float GetQuantityColumnWidth()
         {
-            var labelWidth = Math.Max(RequiredX, AvailableX) * Scale * 1.3f + (8f * Scale);
+            var labelWidth = Math.Max(_requiredX, _availableX) * Scale * 1.3f + (8f * Scale);
             return Math.Max(100f * Scale, labelWidth);
         }
 

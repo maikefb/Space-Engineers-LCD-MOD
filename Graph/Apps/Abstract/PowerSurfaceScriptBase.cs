@@ -14,9 +14,9 @@ using VRageMath;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 using IMyCubeGrid = VRage.Game.ModAPI.IMyCubeGrid;
 
-namespace Graph.Charts
+namespace Graph.Apps.Abstract
 {
-    public abstract class PowerGraph : ChartBase
+    public abstract class PowerSurfaceScriptBase : SurfaceScriptBase
     {
         protected const float LINE = 22f;
         protected const float MINIMUM_COL_WIDTH = 400f;
@@ -83,8 +83,8 @@ namespace Graph.Charts
         readonly Dictionary<string, PowerEntry> _entriesByKey = new Dictionary<string, PowerEntry>();
         readonly Dictionary<string, PowerTotals> _totalsByKey = new Dictionary<string, PowerTotals>();
         readonly Dictionary<string, PiePanelState> _piePanelsByKey = new Dictionary<string, PiePanelState>();
-        readonly string[] _entryOrder;
-        readonly PowerEntry[] _entriesOrdered;
+        string[] _entryOrder;
+        PowerEntry[] _entriesOrdered;
         readonly List<PowerEntry> _visibleEntries = new List<PowerEntry>();
         readonly List<IMyPowerProducer> _producers = new List<IMyPowerProducer>();
 
@@ -95,16 +95,8 @@ namespace Graph.Charts
 
         protected abstract PowerEntryDefinition[] EntryDefinitions { get; }
 
-        protected PowerGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
-        {
-
-
-            var definitions = EntryDefinitions;
-            _entryOrder = new string[definitions.Length];
-            _entriesOrdered = new PowerEntry[definitions.Length];
-
-            InitializeEntries();
-        }
+        protected PowerSurfaceScriptBase(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
+        { }
 
         public override Dictionary<MyItemType, double> ItemSource => null;
 
@@ -170,13 +162,17 @@ namespace Graph.Charts
 
         protected abstract bool TryMapProducerType(string typeId, IMyPowerProducer producer, out string entryKey);
 
-        void InitializeEntries()
+        protected void InitializeEntries()
         {
+            var definitions = EntryDefinitions;
+
+            _entryOrder = new string[definitions.Length];
+            _entriesOrdered = new PowerEntry[definitions.Length];
+            
             _entriesByKey.Clear();
             _totalsByKey.Clear();
             _piePanelsByKey.Clear();
 
-            var definitions = EntryDefinitions;
             for (int i = 0; i < definitions.Length; i++)
             {
                 var definition = definitions[i];
@@ -231,7 +227,7 @@ namespace Graph.Charts
                 entry.Usage = usage;
                 entry.Current = totals.Current;
                 entry.Max = totals.Max;
-                entry.UsageLine = _usagePrefix + Pct(usage);
+                entry.UsageLine = _usagePrefix + FormatingHelper.PercentageToString(usage);
                 entry.DetectedBlocks = totals.Count;
                 _entriesByKey[key] = entry;
             }
@@ -508,8 +504,8 @@ namespace Graph.Charts
             ));
 
             var info = new StringBuilder();
-            info.AppendLine(maxLabel + Pow(entry.Max));
-            info.AppendLine(currentLabel + Pow(entry.Current));
+            info.AppendLine(maxLabel + FormatingHelper.WattsToString(entry.Max));
+            info.AppendLine(currentLabel + FormatingHelper.WattsToString(entry.Current));
             info.AppendLine(entry.UsageLine);
             TrimText(ref info, nameRect.Width, 0.7f);
 

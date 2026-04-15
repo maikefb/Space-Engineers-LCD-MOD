@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Graph.Charts;
+using Graph.Apps.Antenna;
+using Graph.Apps.Inventory;
 using Graph.Helpers;
 using Graph.System.Config;
 using Sandbox.ModAPI;
@@ -39,7 +40,7 @@ namespace Graph.System.TerminalControls.Filter.Listbox
 
             var referenceGrid = b.CubeGrid;
             
-            if (script != AntennaGraph.ID) // antenna does not support groups
+            if (script != AntennaSurfaceScript.ID) // antenna does not support groups
             {
                 MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(b.CubeGrid).GetBlockGroups(_groups,
                     g => !screenSettings.SelectedGroups.Contains(g.Name));
@@ -90,12 +91,12 @@ namespace Graph.System.TerminalControls.Filter.Listbox
 
             switch (script)
             {
-                case InventoryCharts.ID:
-                case ProjectorCharts.ID:
-                case ContainerGraph.ID:
+                case InventoryLcdSurfaceScript.ID:
+                case ProjectorLcdSurfaceScript.ID:
+                case CargoFilledSurfaceScript.ID:
                     return fat.HasInventory; // Check if block that have inventory
                 
-                case AntennaGraph.ID:
+                case AntennaSurfaceScript.ID:
                     return fat is IMyLaserAntenna || fat is IMyRadioAntenna || fat is IMyBeacon; // check if block is a valid antenna
 
                 default:

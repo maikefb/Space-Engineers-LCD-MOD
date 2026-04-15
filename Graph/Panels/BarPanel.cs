@@ -117,7 +117,7 @@ namespace Graph.Panels
             return _sprites;
         }
 
-        private void AddPill(float width, Color color, float xOffset = 0f)
+        void AddPill(float width, Color color, float xOffset = 0f)
         {
             var w = MathHelper.Clamp(width, 0f, _size.X);
             var h = _size.Y;
@@ -142,7 +142,7 @@ namespace Graph.Panels
                 _sprites.Add(MakeTex("SquareSimple", _position + new Vector2(xOffset + rectX, 0f), new Vector2(rectW, h), color));
         }
 
-        private static MySprite MakeTex(string name, Vector2 posTopLeft, Vector2 size, Color color)
+        static MySprite MakeTex(string name, Vector2 posTopLeft, Vector2 size, Color color)
         {
             return new MySprite
             {

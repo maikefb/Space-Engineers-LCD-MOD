@@ -1,10 +1,8 @@
 using System.Collections.Generic;
-using System.Text;
-using Graph.Charts;
+using Graph.Apps.Inventory;
 using Graph.System.Config;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
-using VRage;
 using VRage.ModAPI;
 using VRage.Utils;
 
@@ -12,7 +10,7 @@ namespace Graph.System.TerminalControls.Generic
 {
     public sealed class ComboboxSorting : TerminalControlsWrapper
     {
-        protected override string[] VisibleForScripts { get; } = { InventoryCharts.ID };
+        protected override string[] VisibleForScripts { get; } = { InventoryLcdSurfaceScript.ID };
 
         public override IMyTerminalControl TerminalControl { get; }
 

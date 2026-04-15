@@ -1,5 +1,3 @@
-using System;
-
 namespace Graph.System
 {
     public enum DisplayMode

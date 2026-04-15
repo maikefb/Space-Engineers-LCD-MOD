@@ -2,24 +2,23 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Graph.Charts.Antenna;
+using Graph.Apps.Abstract;
 using Graph.Helpers;
 using Graph.Panels;
 using Graph.System;
+using Graph.System.Antenna;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
-using VRage;
 using VRage.Game.GUI.TextPanel;
-using VRage.Game.ModAPI;
 using VRageMath;
 using IMyCubeBlock = VRage.Game.ModAPI.IMyCubeBlock;
 using IMyCubeGrid = VRage.Game.ModAPI.IMyCubeGrid;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
-namespace Graph.Charts
+namespace Graph.Apps.Antenna
 {
     [MyTextSurfaceScript(ID, TITLE)]
-    public class AntennaGraph : ChartBase
+    public class AntennaSurfaceScript : SurfaceScriptBase
     {
         const float LINE = 22f;
         const float MINIMUM_COL_WIDTH = 400f;
@@ -38,7 +37,7 @@ namespace Graph.Charts
         protected override string DefaultTitle => TITLE;
         public override Dictionary<MyItemType, double> ItemSource => null;
 
-        public AntennaGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
+        public AntennaSurfaceScript(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
             : base(surface, block, size)
         {
         }

@@ -2,19 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Graph.Apps.Antenna;
 using Graph.Helpers;
-using Graph.System;
 using Sandbox.ModAPI.Ingame;
 using VRageMath;
 using IMyLaserAntenna = Sandbox.ModAPI.IMyLaserAntenna;
 
-namespace Graph.Charts.Antenna
+namespace Graph.System.Antenna
 {
     internal sealed class LaserAntennaCollector : AntennaCollector
     {
         long _statusAnimTick;
 
-        public LaserAntennaCollector(AntennaGraph antennaGraph) : base(antennaGraph)
+        public LaserAntennaCollector(AntennaSurfaceScript antennaSurfaceScript) : base(antennaSurfaceScript)
         {
             
         }

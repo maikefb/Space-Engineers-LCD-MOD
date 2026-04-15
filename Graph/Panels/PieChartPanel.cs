@@ -11,56 +11,56 @@ namespace Graph.Panels
     {
         protected const float EPSILON = 0.0001f;
 
-        protected readonly IMyTextSurface _surface;
-        protected readonly string _title;
-        protected Vector2 _origo;
-        protected Vector2 _size;
-        protected readonly bool _showTitle;
-        protected readonly List<MySprite> _sprites = new List<MySprite>();
-        protected bool _layoutDirty = true;
-        protected bool _hasCachedState;
-        protected float _cachedValue;
-        protected Color _cachedColor;
-        protected bool _cachedTurnDarkOnComplete;
-        protected Color _cachedBackgroundColor;
+        protected readonly IMyTextSurface Surface;
+        protected readonly string Title;
+        protected Vector2 Origo;
+        protected Vector2 Size;
+        protected readonly bool ShowTitle;
+        protected readonly List<MySprite> Sprites = new List<MySprite>();
+        protected bool LayoutDirty = true;
+        protected bool HasCachedState;
+        protected float CachedValue;
+        protected Color CachedColor;
+        protected bool CachedTurnDarkOnComplete;
+        protected Color CachedBackgroundColor;
 
         public PieChartPanel(string title, IMyTextSurface surface, Vector2 margin, Vector2 size, bool showTitle = true)
         {
-            _title = title ?? "";
-            _surface = surface;
-            _showTitle = showTitle;
+            Title = title ?? "";
+            Surface = surface;
+            ShowTitle = showTitle;
             SetMargin(margin, size);
         }
 
         public void SetMargin(Vector2 margin, Vector2 size)
         {
             var newOrigo = new Vector2(margin.X, 512 - margin.Y);
-            if (_origo != newOrigo || _size != size)
+            if (Origo != newOrigo || Size != size)
             {
-                _origo = newOrigo;
-                _size = size;
-                _layoutDirty = true;
+                Origo = newOrigo;
+                Size = size;
+                LayoutDirty = true;
             }
         }
 
         public virtual List<MySprite> GetSprites(float value, Color? color = null, bool turnDarkOnComplete = false)
         {
             if (color == null)
-                color = _surface.ScriptForegroundColor;
+                color = Surface.ScriptForegroundColor;
 
-            var backgroundColor = _surface.ScriptForegroundColor;
-            if (!_layoutDirty &&
-                _hasCachedState &&
-                Math.Abs(_cachedValue - value) <= EPSILON &&
-                _cachedColor == color.Value &&
-                _cachedTurnDarkOnComplete == turnDarkOnComplete &&
-                _cachedBackgroundColor == backgroundColor)
+            var backgroundColor = Surface.ScriptForegroundColor;
+            if (!LayoutDirty &&
+                HasCachedState &&
+                Math.Abs(CachedValue - value) <= EPSILON &&
+                CachedColor == color.Value &&
+                CachedTurnDarkOnComplete == turnDarkOnComplete &&
+                CachedBackgroundColor == backgroundColor)
             {
-                return _sprites;
+                return Sprites;
             }
 
-            _sprites.Clear();
-            if (_showTitle) DrawTitle(value, color.Value);
+            Sprites.Clear();
+            if (ShowTitle) DrawTitle(value, color.Value);
             DrawBackground(value, color.Value, backgroundColor, turnDarkOnComplete);
             
             if (value <= .01f)
@@ -69,27 +69,27 @@ namespace Graph.Panels
                 DrawPie(value, color.Value, backgroundColor);
 
             
-            _cachedValue = value;
-            _cachedColor = color.Value;
-            _cachedTurnDarkOnComplete = turnDarkOnComplete;
-            _cachedBackgroundColor = backgroundColor;
-            _layoutDirty = false;
-            _hasCachedState = true;
-            return _sprites;
+            CachedValue = value;
+            CachedColor = color.Value;
+            CachedTurnDarkOnComplete = turnDarkOnComplete;
+            CachedBackgroundColor = backgroundColor;
+            LayoutDirty = false;
+            HasCachedState = true;
+            return Sprites;
         }
 
         protected virtual void DrawBackground(float value, Color color, Color backgroundColor, bool turnDarkOnComplete)
         {
-            Vector2 position = _origo - (_size / 2);
+            Vector2 position = Origo - (Size / 2);
 
             float deg = 360 * value;
 
-            _sprites.Add(new MySprite
+            Sprites.Add(new MySprite
             {
                 Type = SpriteType.TEXTURE,
                 Data = "Circle",
                 Position = position,
-                Size = _size,
+                Size = Size,
                 Color = deg > 358 && turnDarkOnComplete ? color : DarkenColor(backgroundColor),
                 Alignment = TextAlignment.LEFT
             });
@@ -97,7 +97,7 @@ namespace Graph.Panels
         
         protected virtual void DrawPie(float value, Color color, Color backgroundColor)
         {
-            Vector2 position = _origo - (_size / 2);
+            Vector2 position = Origo - (Size / 2);
 
             float deg = 360 * value;
             float flip = value < 0.5f ? 1 : -1;
@@ -108,24 +108,24 @@ namespace Graph.Panels
             float val = value < 0.5f ? 180 : 0;
 
             // Cover 1
-            _sprites.Add(new MySprite
+            Sprites.Add(new MySprite
             {
                 Type = SpriteType.TEXTURE,
                 Data = "SemiCircle",
                 Position = position,
-                Size = _size,
+                Size = Size,
                 Color = color,
                 RotationOrScale = MathHelper.ToRadians((flip * 90) + deg - val),
                 Alignment = TextAlignment.LEFT
             });
 
             // Cover 2
-            _sprites.Add(new MySprite
+            Sprites.Add(new MySprite
             {
                 Type = SpriteType.TEXTURE,
                 Data = "SemiCircle",
                 Position = position,
-                Size = _size,
+                Size = Size,
                 Color = value > 0.5f ? color : DarkenColor(backgroundColor),
                 RotationOrScale = MathHelper.ToRadians(flip * (-90)),
                 Alignment = TextAlignment.LEFT
@@ -136,22 +136,22 @@ namespace Graph.Panels
 
         protected virtual void DrawTitle(float value, Color color)
         {
-            Vector2 titleSize = new Vector2(_size.X, 18);
-            _sprites.Add(new MySprite
+            Vector2 titleSize = new Vector2(Size.X, 18);
+            Sprites.Add(new MySprite
             {
                 Type = SpriteType.TEXTURE,
                 Data = "SquareSimple",
-                Position = _origo - new Vector2(_size.X, _size.Y + (titleSize.Y / 2) + 10),
-                Size = new Vector2(_size.X * 2, titleSize.Y),
+                Position = Origo - new Vector2(Size.X, Size.Y + (titleSize.Y / 2) + 10),
+                Size = new Vector2(Size.X * 2, titleSize.Y),
                 Color = new Color(0, 0, 0, 140),
                 Alignment = TextAlignment.LEFT
             });
 
-            _sprites.Add(new MySprite
+            Sprites.Add(new MySprite
             {
                 Type = SpriteType.TEXT,
-                Data = _title + value.ToString("P0", CultureInfo.CurrentUICulture),
-                Position = _origo - new Vector2(_size.X - 4, _size.Y + (titleSize.Y / 2) + 16),
+                Data = Title + value.ToString("P0", CultureInfo.CurrentUICulture),
+                Position = Origo - new Vector2(Size.X - 4, Size.Y + (titleSize.Y / 2) + 16),
                 Color = color,
                 Alignment = TextAlignment.LEFT,
                 RotationOrScale = 0.55f
