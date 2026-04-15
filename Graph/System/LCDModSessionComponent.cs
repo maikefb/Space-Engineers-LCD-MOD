@@ -289,7 +289,7 @@ namespace Graph.System
             if (provider == null)
                 return;
 
-            LastSelected = ((IMyTextSurfaceProvider)block).GetSurface(GetThisSurfaceIndex(block)).Script;
+            LastSelected = provider.GetSurface(GetThisSurfaceIndex(block))?.Script ?? string.Empty;
             
             if (provider is IMyTextPanel)
             {
