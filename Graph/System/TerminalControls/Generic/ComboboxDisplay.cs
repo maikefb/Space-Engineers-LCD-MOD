@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Graph.Apps.Antenna;
+using Graph.Apps.Diagnostic;
 using Graph.Apps.Inventory;
 using Graph.Apps.Power;
 using Graph.System.Config;
@@ -14,12 +15,13 @@ namespace Graph.System.TerminalControls.Generic
     {
         protected override string[] VisibleForScripts { get; } =
         {
-            InventoryLcdSurfaceScript.ID, 
+            InventoryLcdSurfaceScript.ID,
             ProjectorLcdSurfaceScript.ID,
-            RenewablePowerSurfaceScript.ID, 
-            GeneratorsSurfaceScript.ID, 
+            RenewablePowerSurfaceScript.ID,
+            GeneratorsSurfaceScript.ID,
             CargoFilledSurfaceScript.ID,
-            AntennaSurfaceScript.ID
+            AntennaSurfaceScript.ID,
+            IntegrityMonitorSurfaceScript.ID
         };
 
         public override IMyTerminalControl TerminalControl { get; }
@@ -38,12 +40,53 @@ namespace Graph.System.TerminalControls.Generic
 
         void Content(List<MyTerminalControlComboBoxItem> obj)
         {
+            if (LcdModSessionComponent.LastSelected == IntegrityMonitorSurfaceScript.ID)
+            {
+                obj.Add(new MyTerminalControlComboBoxItem
+                {
+                    Key = 0,
+                    Value = MyStringId.GetOrCompute("X+")
+                });
+
+                obj.Add(new MyTerminalControlComboBoxItem
+                {
+                    Key = 1,
+                    Value = MyStringId.GetOrCompute("X-")
+                });
+
+
+                obj.Add(new MyTerminalControlComboBoxItem
+                {
+                    Key = 2,
+                    Value = MyStringId.GetOrCompute("Y+")
+                });
+
+                obj.Add(new MyTerminalControlComboBoxItem
+                {
+                    Key = 3,
+                    Value = MyStringId.GetOrCompute("Y-")
+                });
+
+                obj.Add(new MyTerminalControlComboBoxItem
+                {
+                    Key = 4,
+                    Value = MyStringId.GetOrCompute("Z+")
+                });
+
+                obj.Add(new MyTerminalControlComboBoxItem
+                {
+                    Key = 5,
+                    Value = MyStringId.GetOrCompute("Z-")
+                });
+                return;
+            }
+
             obj.Add(new MyTerminalControlComboBoxItem
             {
                 Key = 0,
                 Value = MyStringId.GetOrCompute("GamepadScheme_Default")
             });
-            
+
             obj.Add(new MyTerminalControlComboBoxItem
             {
                 Key = 1,

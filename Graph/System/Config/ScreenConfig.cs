@@ -79,7 +79,7 @@ namespace Graph.System.Config
         
         [ProtoMember(14)] public Color ErrorColor { get; set; } = new Color(96, 32, 32);
         [ProtoMember(15)] public Color WarningColor { get; set; } = new Color(224, 160, 16);
-
+        [ProtoMember(16)] public float Rotation { get; set; }
         public SortMethod SortMethod
         {
             get { return (SortMethod)SortInternal; }
@@ -91,6 +91,7 @@ namespace Graph.System.Config
             get { return (DisplayMode)DisplayInternal; }
             set { DisplayInternal = (int)value; }
         }
+
 
         public void CopyFrom(ScreenConfig newValue)
         {
@@ -107,6 +108,7 @@ namespace Graph.System.Config
             HideEmpty = newValue.HideEmpty;
             ErrorColor = newValue.ErrorColor;
             WarningColor = newValue.WarningColor;
+            Rotation = newValue.Rotation;
         }
     }
 }

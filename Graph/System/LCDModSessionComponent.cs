@@ -34,6 +34,8 @@ namespace Graph.System
         MyLanguagesEnum _language;
         public static event Action OnLanguageChanged;
 
+        public static string LastSelected;
+        
         public static Dictionary<long, GridLogic> Components = new Dictionary<long, GridLogic>();
         public static List<TerminalControlsWrapper> Controls = new List<TerminalControlsWrapper>();
 
@@ -188,7 +190,8 @@ namespace Graph.System
                 Controls.Add(new ColorPickerError());
 
                 Controls.Add(new SwitchToggleHeader());
-                Controls.Add(new SliderChartScale());
+                Controls.Add(new SliderScale());
+                Controls.Add(new SliderRotation());
 
                 Controls.Add(new ComboboxDisplayMode());
                 Controls.Add(new SwitchToggleLines());
@@ -286,6 +289,8 @@ namespace Graph.System
             if (provider == null)
                 return;
 
+            LastSelected = ((IMyTextSurfaceProvider)block).GetSurface(GetThisSurfaceIndex(block)).Script;
+            
             if (provider is IMyTextPanel)
             {
                 controls.AddRange(Controls.Select(control => control.TerminalControl));
@@ -300,6 +305,12 @@ namespace Graph.System
                     index++;
                 }
             }
+        }
+
+        public int GetThisSurfaceIndex(IMyTerminalBlock block)
+        {
+            var multiTextPanel = block.Components.Get<MyMultiTextPanelComponent>();
+            return multiTextPanel?.SelectedPanelIndex ?? 0;
         }
     }
 }

@@ -18,17 +18,15 @@ using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
 namespace Graph.Apps.Inventory
 {
-    [MyTextSurfaceScript(ID, "DisplayName_Block_Projector")]
+    [MyTextSurfaceScript(ID, TITLE)]
     public class ProjectorLcdSurfaceScript : ItemsSurfaceScriptBase
     {
         public const string ID = "ProjectorCharts";
         public const string TITLE = "DisplayName_Block_Projector";
 
-        protected const int NUMBER_WIDTH = 104;
-
         public string[] AllowedTypes = { "Component" };
 
-        protected override string DefaultTitle => _customTitle ?? TITLE;
+        public override string Title => TITLE;
 
         string _customTitle;
 
@@ -567,7 +565,7 @@ namespace Graph.Apps.Inventory
             if (grid == null)
                 return;
 
-            _projector = FindProjector(grid);
+            FindProjector(grid, ref _projector);
 
             if (_projector == null)
                 return;
@@ -642,18 +640,19 @@ namespace Graph.Apps.Inventory
             return new Dictionary<MyItemType, double>();
         }
 
-        IMyProjector FindProjector(IMyCubeGrid grid)
+        void FindProjector(IMyCubeGrid grid, ref IMyProjector projector)
         {
             if (Config.ReferenceBlock == 0)
-                return null;
+            {
+                projector = null;
+                return;
+            }
 
-            var entity = MyAPIGateway.Entities.GetEntityById(Config.ReferenceBlock);
-
-            var projector = entity as IMyProjector;
-            if (projector == null)
-                return null;
-
-            return projector.CubeGrid.IsInSameLogicalGroupAs(grid) ? projector : null;
+            if(projector != null && projector.EntityId == Config.ReferenceBlock)
+                return;
+            
+            var entity = MyAPIGateway.Entities.GetEntityById(Config.ReferenceBlock) as IMyProjector;
+            projector = entity?.CubeGrid.IsInSameLogicalGroupAs(grid) ?? false ? entity : null;
         }
     }
 }

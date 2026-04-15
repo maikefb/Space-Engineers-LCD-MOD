@@ -1,6 +1,7 @@
 using System;
 using Graph.Apps;
 using Graph.Apps.Antenna;
+using Graph.Apps.Diagnostic;
 using Graph.Apps.Inventory;
 using Graph.Apps.Power;
 using Sandbox.Game.EntityComponents;
@@ -26,7 +27,17 @@ namespace Graph.System.TerminalControls
         ///     List of which scripts should be selected for this control be visible
         /// </summary>
         protected virtual string[] VisibleForScripts { get; } =
-            { InventoryLcdSurfaceScript.ID, ThrustSurfaceScript.ID, RenewablePowerSurfaceScript.ID, GeneratorsSurfaceScript.ID, "GasGraph", ProjectorLcdSurfaceScript.ID, CargoFilledSurfaceScript.ID, AntennaSurfaceScript.ID };
+            { 
+                InventoryLcdSurfaceScript.ID,
+                ThrustSurfaceScript.ID,
+                RenewablePowerSurfaceScript.ID, 
+                GeneratorsSurfaceScript.ID, 
+                "GasGraph", 
+                ProjectorLcdSurfaceScript.ID, 
+                CargoFilledSurfaceScript.ID,
+                AntennaSurfaceScript.ID,
+                IntegrityMonitorSurfaceScript.ID
+            };
 
         /// <summary>
         ///     Prefix for ID of every control
