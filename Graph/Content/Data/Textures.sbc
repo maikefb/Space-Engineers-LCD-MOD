@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <LCDTextures>
+        <LCDTextureDefinition>
+            <Id Type="LCDTextureDefinition" Subtype="BroadcastingOn"/>
+            <SpritePath>Textures/GUI/Icons/HUD 2017/GridBroadcastingOn.png</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+        <LCDTextureDefinition>
+            <Id Type="LCDTextureDefinition" Subtype="BroadcastingOff"/>
+            <SpritePath>Textures/GUI/Icons/HUD 2017/GridBroadcastingOff.png</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+        
+        <LCDTextureDefinition>
+            <Id Type="LCDTextureDefinition" Subtype="RadioAntenna"/>
+            <SpritePath>Textures/GUI/Icons/HUD 2017/SignalMode.png</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+
+        <LCDTextureDefinition>
+            <Id Type="LCDTextureDefinition" Subtype="RadioAntennaDisabled"/>
+            <SpritePath>Textures/Sprites/SignalModeOff.dds</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+        
+        <LCDTextureDefinition>
+            <Id Type="LCDTextureDefinition" Subtype="GridPower"/>
+            <SpritePath>Textures/GUI/Icons/HUD 2017/GridPowerOnCenter.png</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+        
+        <LCDTextureDefinition>
+            <Id Type="LCDTextureDefinition" Subtype="Warning"/>
+            <SpritePath>Textures/GUI/Icons/HUD 2017/Notification_badge.png</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition> 
+        
+        <LCDTextureDefinition>
+            <Id Type="LCDTextureDefinition" Subtype="Search"/>
+            <SpritePath>Textures/GUI/Icons/HUD 2017/F1Icon.png</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+        
+        <LCDTextureDefinition>
+            <Id Type="LCDTextureDefinition" Subtype="RotationPlane"/>
+            <SpritePath>Textures/GUI/Icons/HUD 2017/RotationPlane.png</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+        
+        <LCDTextureDefinition>
+            <Id Type="LCDTextureDefinition" Subtype="Disconnected"/>
+            <SpritePath>Textures/GUI/Icons/HUD 2017/ToggleConnectors.png</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+    </LCDTextures>
+</Definitions>

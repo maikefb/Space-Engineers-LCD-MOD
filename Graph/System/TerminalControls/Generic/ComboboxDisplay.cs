@@ -12,7 +12,15 @@ namespace Graph.System.TerminalControls.Generic
 {
     public sealed class ComboboxDisplayMode : TerminalControlsWrapper
     {
-        protected override string[] VisibleForScripts { get; } = { InventoryCharts.ID, ProjectorCharts.ID, RenewableGraph.ID, GeneratorsGraph.ID, ContainerGraph.ID };
+        protected override string[] VisibleForScripts { get; } =
+        {
+            InventoryCharts.ID, 
+            ProjectorCharts.ID,
+            RenewableGraph.ID, 
+            GeneratorsGraph.ID, 
+            ContainerGraph.ID,
+            AntennaGraph.ID
+        };
 
         public override IMyTerminalControl TerminalControl { get; }
 

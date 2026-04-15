@@ -97,7 +97,7 @@ namespace Graph.Charts
 
         protected PowerGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
-            Surface.ContentType = ContentType.SCRIPT;
+
 
             var definitions = EntryDefinitions;
             _entryOrder = new string[definitions.Length];

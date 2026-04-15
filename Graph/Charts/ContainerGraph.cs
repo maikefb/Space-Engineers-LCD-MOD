@@ -26,7 +26,7 @@ namespace Graph.Charts
 
         public ContainerGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
-            Surface.ContentType = ContentType.SCRIPT;
+
         }
 
         protected override string DefaultTitle => TITLE;

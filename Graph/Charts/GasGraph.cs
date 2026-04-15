@@ -33,8 +33,8 @@ namespace Graph.Charts
 
         public GasGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
-            Surface.ContentType = ContentType.SCRIPT;
             SetLocalizedTitleFromGame();
+            Surface.DrawFrame().Add(new MySprite(SpriteType.TEXTURE, "AH_BoreSight"));
         }
 
         public override Dictionary<MyItemType, double> ItemSource => null;

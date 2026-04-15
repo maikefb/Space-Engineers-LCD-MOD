@@ -9,7 +9,16 @@ namespace Graph.System.TerminalControls.Generic
 {
     public class SwitchToggleLines : TerminalControlsWrapper
     {
-        protected override string[] VisibleForScripts { get; } = { InventoryCharts.ID, ProjectorCharts.ID, RenewableGraph.ID, GeneratorsGraph.ID, ContainerGraph.ID };
+        protected override string[] VisibleForScripts { get; } =
+        {
+            InventoryCharts.ID,
+            ProjectorCharts.ID,
+            RenewableGraph.ID,
+            GeneratorsGraph.ID,
+            ContainerGraph.ID,
+            AntennaGraph.ID
+        };
+
         public override IMyTerminalControl TerminalControl { get; }
 
         public SwitchToggleLines()
@@ -21,7 +30,7 @@ namespace Graph.System.TerminalControls.Generic
             slider.Title = MyStringId.GetOrCompute("SafeZone_Texture_Lines");
             slider.OnText = MyStringId.GetOrCompute("HudInfoOn");
             slider.OffText = MyStringId.GetOrCompute("HudInfoOff");
-            
+
             TerminalControl = slider;
         }
 

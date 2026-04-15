@@ -461,12 +461,12 @@ namespace Graph.Charts
 
             if (textSize.X > availableWidth)
             {
-                const string ELLIPSIS = "...";
+                const string ellipsis = "...";
 
                 for (int i = sb.Length - 1; i > 0; i--)
                 {
                     sb.Length = i;
-                    sb.Append(ELLIPSIS);
+                    sb.Append(ellipsis);
                     textSize = Surface.MeasureStringInPixels(sb, "White", fontSize * Scale);
 
                     if (textSize.X <= availableWidth)

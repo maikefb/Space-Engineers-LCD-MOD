@@ -34,7 +34,7 @@ namespace Graph.Charts
         public ThrustGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
             : base(surface, block, size)
         {
-            Surface.ContentType = ContentType.SCRIPT;
+
         }
 
         public override void Run()
