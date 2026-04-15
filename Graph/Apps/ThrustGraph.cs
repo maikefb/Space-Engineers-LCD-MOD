@@ -18,8 +18,7 @@ namespace Graph.Apps
     {
         public const string ID    = "LCDMod_Thrust";
         public const string TITLE = "HelpScreen_JoystickThrust";
-
-        public override Dictionary<MyItemType, double> ItemSource => null;
+        
         protected override string DefaultTitle => TITLE;
 
         static readonly string[] DirectionLabels =

@@ -98,8 +98,6 @@ namespace Graph.Apps.Abstract
         protected PowerSurfaceScriptBase(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         { }
 
-        public override Dictionary<MyItemType, double> ItemSource => null;
-
         protected override void LayoutChanged()
         {
             base.LayoutChanged();

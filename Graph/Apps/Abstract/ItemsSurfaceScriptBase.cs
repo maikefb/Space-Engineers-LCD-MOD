@@ -7,6 +7,7 @@ using Graph.System;
 using Sandbox.Definitions;
 using Sandbox.ModAPI;
 using VRage;
+using VRage.Game;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
 using VRage.Utils;
@@ -19,7 +20,13 @@ namespace Graph.Apps.Abstract
     {
         public static Dictionary<MyItemType, string> SpriteCache =
             new Dictionary<MyItemType, string>();
+        
+        static readonly Dictionary<MyDefinitionId, MyItemType> TypeCache = new Dictionary<MyDefinitionId, MyItemType>();
 
+        readonly Dictionary<MyItemType, double> _itemsCache = new Dictionary<MyItemType, double>();
+        
+        public abstract Dictionary<MyItemType, double> ItemSource { get; }
+        
         const int SPRITE_CACHE_MAX_SIZE = 256;
 
         protected static void AddToSpriteCache(MyItemType key, string sprite)
@@ -79,6 +86,72 @@ namespace Graph.Apps.Abstract
 
         protected ItemsSurfaceScriptBase(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
+        }
+        
+        
+        protected virtual List<KeyValuePair<MyItemType, double>> ReadItems(IMyTerminalBlock lcd)
+        {
+            if (Config.HideEmpty || Config.SelectedItems.Any())
+                _itemsCache.Clear();
+
+            if (lcd == null || ItemSource == null)
+                return new List<KeyValuePair<MyItemType, double>>();
+
+            if (_itemsCache.Any())
+            {
+                var ar = _itemsCache.Keys.ToArray();
+                foreach (var key in ar) // will be 0 unless Clear() was NOT called
+                    _itemsCache[key] = 0;
+            }
+
+
+            if (!Config.HideEmpty)
+            {
+                foreach (var configSelectedItem in Config.SelectedItems)
+                {
+                    MyItemType type;
+                    if (!TypeCache.TryGetValue(configSelectedItem, out type))
+                    {
+                        type = MyItemType.Parse(configSelectedItem.ToString());
+                        TypeCache[configSelectedItem] = type;
+                    }
+
+                    _itemsCache[type] = 0;
+                }
+            }
+
+            foreach (var keyValuePair in ItemSource)
+                _itemsCache[keyValuePair.Key] = (keyValuePair.Value);
+
+
+            switch (SortMethod)
+            {
+                case SortMethod.Type:
+                    var sortedByType = new SortedDictionary<MyItemType, double>(ItemTypeComparer.Instance);
+                    foreach (var entry in _itemsCache)
+                    {
+                        sortedByType[entry.Key] = entry.Value;
+                    }
+
+                    return sortedByType.ToList();
+                default:
+                    var sortedByValue = new SortedDictionary<double, List<KeyValuePair<MyItemType, double>>>(
+                        DescendingDoubleComparer.Instance);
+                    foreach (var entry in _itemsCache)
+                    {
+                        List<KeyValuePair<MyItemType, double>> bucket;
+                        if (!sortedByValue.TryGetValue(entry.Value, out bucket))
+                        {
+                            bucket = new List<KeyValuePair<MyItemType, double>>();
+                            sortedByValue[entry.Value] = bucket;
+                        }
+
+                        bucket.Add(entry);
+                    }
+
+                    return sortedByValue.SelectMany(b => b.Value).ToList();
+                    ;
+            }
         }
 
         public override void Run()
@@ -644,4 +717,26 @@ namespace Graph.Apps.Abstract
             CaretY += TITLE_BAR_HEIGHT_BASE * Scale;
         }
     }
+    
+    
+    sealed class ItemTypeComparer : IComparer<MyItemType>
+    {
+        public static readonly ItemTypeComparer Instance = new ItemTypeComparer();
+
+        public int Compare(MyItemType a, MyItemType b)
+        {
+            int typeCmp = string.Compare(a.TypeId, b.TypeId, StringComparison.CurrentCulture);
+            if (typeCmp != 0)
+                return typeCmp;
+            return string.Compare(a.SubtypeId, b.SubtypeId, StringComparison.CurrentCulture);
+        }
+    }
+
+    sealed class DescendingDoubleComparer : IComparer<double>
+    {
+        public static readonly DescendingDoubleComparer Instance = new DescendingDoubleComparer();
+
+        public int Compare(double a, double b) => b.CompareTo(a);
+    }
+
 }

@@ -25,7 +25,6 @@ namespace Graph.Apps.Abstract
     public abstract class SurfaceScriptBase : MyTextSurfaceScriptBase
     {
         static readonly Dictionary<string, Vector2> FontSizeCache = new Dictionary<string, Vector2>();
-        static readonly Dictionary<MyDefinitionId, MyItemType> TypeCache = new Dictionary<MyDefinitionId, MyItemType>();
         static readonly StringBuilder StringBuilderBuffer = new StringBuilder();
 
         public static List<SurfaceScriptBase> Instances = new List<SurfaceScriptBase>();
@@ -34,8 +33,6 @@ namespace Graph.Apps.Abstract
         protected string Icon { get; set; }
 
         protected virtual SortMethod SortMethod => Config.SortMethod;
-
-        readonly Dictionary<MyItemType, double> _itemsCache = new Dictionary<MyItemType, double>();
 
         /// <summary>
         /// Relative area of the <see cref="Sandbox.ModAPI.IMyTextSurface.TextureSize"/> That is Visible
@@ -50,7 +47,7 @@ namespace Graph.Apps.Abstract
         protected float Margin = 0.02f;
 
         protected const float TITLE_BAR_HEIGHT_BASE = 40f;
-        public abstract Dictionary<MyItemType, double> ItemSource { get; }
+
         public virtual string Title => DefaultTitle;
         protected virtual string DefaultTitle => "|";
 
@@ -197,91 +194,6 @@ namespace Graph.Apps.Abstract
 
                 index++;
             }
-        }
-
-        protected virtual List<KeyValuePair<MyItemType, double>> ReadItems(IMyTerminalBlock lcd)
-        {
-            if (Config.HideEmpty || Config.SelectedItems.Any())
-                _itemsCache.Clear();
-
-            if (lcd == null || ItemSource == null)
-                return new List<KeyValuePair<MyItemType, double>>();
-
-            if (_itemsCache.Any())
-            {
-                var ar = _itemsCache.Keys.ToArray();
-                foreach (var key in ar) // will be 0 unless Clear() was NOT called
-                    _itemsCache[key] = 0;
-            }
-
-
-            if (!Config.HideEmpty)
-            {
-                foreach (var configSelectedItem in Config.SelectedItems)
-                {
-                    MyItemType type;
-                    if (!TypeCache.TryGetValue(configSelectedItem, out type))
-                    {
-                        type = MyItemType.Parse(configSelectedItem.ToString());
-                        TypeCache[configSelectedItem] = type;
-                    }
-
-                    _itemsCache[type] = 0;
-                }
-            }
-
-            foreach (var keyValuePair in ItemSource)
-                _itemsCache[keyValuePair.Key] = (keyValuePair.Value);
-
-
-            switch (SortMethod)
-            {
-                case SortMethod.Type:
-                    var sortedByType = new SortedDictionary<MyItemType, double>(ItemTypeComparer.Instance);
-                    foreach (var entry in _itemsCache)
-                    {
-                        sortedByType[entry.Key] = entry.Value;
-                    }
-
-                    return sortedByType.ToList();
-                default:
-                    var sortedByValue = new SortedDictionary<double, List<KeyValuePair<MyItemType, double>>>(
-                        DescendingDoubleComparer.Instance);
-                    foreach (var entry in _itemsCache)
-                    {
-                        List<KeyValuePair<MyItemType, double>> bucket;
-                        if (!sortedByValue.TryGetValue(entry.Value, out bucket))
-                        {
-                            bucket = new List<KeyValuePair<MyItemType, double>>();
-                            sortedByValue[entry.Value] = bucket;
-                        }
-
-                        bucket.Add(entry);
-                    }
-
-                    return sortedByValue.SelectMany(b => b.Value).ToList();
-                    ;
-            }
-        }
-
-        sealed class ItemTypeComparer : IComparer<MyItemType>
-        {
-            public static readonly ItemTypeComparer Instance = new ItemTypeComparer();
-
-            public int Compare(MyItemType a, MyItemType b)
-            {
-                int typeCmp = string.Compare(a.TypeId, b.TypeId, StringComparison.CurrentCulture);
-                if (typeCmp != 0)
-                    return typeCmp;
-                return string.Compare(a.SubtypeId, b.SubtypeId, StringComparison.CurrentCulture);
-            }
-        }
-
-        sealed class DescendingDoubleComparer : IComparer<double>
-        {
-            public static readonly DescendingDoubleComparer Instance = new DescendingDoubleComparer();
-
-            public int Compare(double a, double b) => b.CompareTo(a);
         }
 
         /// <summary>

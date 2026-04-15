@@ -35,7 +35,6 @@ namespace Graph.Apps.Antenna
         public const string TITLE = "Antenna";
 
         protected override string DefaultTitle => TITLE;
-        public override Dictionary<MyItemType, double> ItemSource => null;
 
         public AntennaSurfaceScript(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
             : base(surface, block, size)

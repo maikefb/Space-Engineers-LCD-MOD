@@ -34,9 +34,7 @@ namespace Graph.Apps
             SetLocalizedTitleFromGame();
             Surface.DrawFrame().Add(new MySprite(SpriteType.TEXTURE, "AH_BoreSight"));
         }
-
-        public override Dictionary<MyItemType, double> ItemSource => null;
-
+        
         protected override string DefaultTitle => _localizedTitle;
         string _localizedTitle;
 

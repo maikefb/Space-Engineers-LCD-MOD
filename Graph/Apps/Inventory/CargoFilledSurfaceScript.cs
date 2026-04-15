@@ -31,7 +31,6 @@ namespace Graph.Apps.Inventory
         }
 
         protected override string DefaultTitle => TITLE;
-        public override Dictionary<MyItemType, double> ItemSource => null;
 
         Color _scriptForegroundColor;
         readonly List<BarPanel> _barPanels = new List<BarPanel>(8);
