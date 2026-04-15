@@ -166,7 +166,7 @@ namespace Graph.Apps.Antenna
                 int idx = start + gridIdx;
                 int row = gridIdx;
                 float yStart = CaretY + row * rowHeight;
-                DrawLaserCell(sprites, entries[idx], contentStart, contentEnd, yStart, rowHeight, true);
+                DrawAntennaCell(sprites, entries[idx], contentStart, contentEnd, yStart, rowHeight, true);
             }
         }
 
@@ -255,11 +255,11 @@ namespace Graph.Apps.Antenna
                 float xStart = contentStart + col * columnWidth;
                 float xEnd = (col == maxCols - 1) ? contentEnd : xStart + columnWidth;
                 float yStart = CaretY + row * rowHeight;
-                DrawLaserCell(sprites, entries[idx], xStart, xEnd, yStart, rowHeight, drawCellsAsLines);
+                DrawAntennaCell(sprites, entries[idx], xStart, xEnd, yStart, rowHeight, drawCellsAsLines);
             }
         }
 
-        void DrawLaserCell(List<MySprite> sprites, AntennaEntry entry, float xStart, float xEnd,
+        void DrawAntennaCell(List<MySprite> sprites, AntennaEntry entry, float xStart, float xEnd,
             float yStart, float rowHeight, bool drawAsLines)
         {
             var cellPadding = LINE * Scale / 2f;

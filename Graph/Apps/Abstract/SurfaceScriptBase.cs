@@ -58,7 +58,6 @@ namespace Graph.Apps.Abstract
 
         float _userScale;
         float _userPadding;
-        string _languageWord;
         string _cachedTitleSource;
         string _cachedTitleText;
         float _cachedTitleAvailableWidth = -1f;
@@ -80,6 +79,8 @@ namespace Graph.Apps.Abstract
             UpdateViewBox();
             UpdateFaction(FactionHelper.GetOwnerFaction(Block as IMyTerminalBlock));
             DrawSplash();
+            
+            LcdModSessionComponent.OnLanguageChanged += LayoutChanged;
         }
 
 
@@ -131,6 +132,7 @@ namespace Graph.Apps.Abstract
             }
 
             Instances.Remove(this);
+            LcdModSessionComponent.OnLanguageChanged -= LayoutChanged;
             base.Dispose();
         }
 
@@ -170,8 +172,7 @@ namespace Graph.Apps.Abstract
 
             if (Math.Abs(_userPadding - Surface.TextPadding) > .01f ||
                 Math.Abs(_userScale - Config.Scale) > .001f ||
-                TitleVisible != Config.TitleVisible ||
-                _languageWord != MyTexts.GetString("Language"))
+                TitleVisible != Config.TitleVisible)
                 LayoutChanged();
 
             if (GridLogic == null)
@@ -525,7 +526,6 @@ namespace Graph.Apps.Abstract
             _userPadding = Surface.TextPadding;
             _userScale = Config.Scale;
             TitleVisible = Config.TitleVisible;
-            _languageWord = MyTexts.GetString("Language");
             InvalidateTitleCache();
             Scale = GetAutoScaleUniform();
             UpdateViewBox();

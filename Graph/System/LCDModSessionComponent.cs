@@ -31,10 +31,12 @@ namespace Graph.System
             new Dictionary<long, MyTuple<IMyCubeGrid, GridLogic>>();
 
         int _updateTick;
+        MyLanguagesEnum _language;
+        public static event Action OnLanguageChanged;
 
         public static Dictionary<long, GridLogic> Components = new Dictionary<long, GridLogic>();
         public static List<TerminalControlsWrapper> Controls = new List<TerminalControlsWrapper>();
-        
+
         public override void LoadData()
         {
             if (MyAPIGateway.Utilities.IsDedicated && MyAPIGateway.Session.IsServer)
@@ -44,9 +46,9 @@ namespace Graph.System
             MyAPIGateway.Entities.OnEntityAdd += EntityAdded;
 
             MyAPIGateway.Session.Factions.FactionCreated += FactionUpdated;
-            MyAPIGateway.Session.Factions.FactionEdited += FactionUpdated; 
+            MyAPIGateway.Session.Factions.FactionEdited += FactionUpdated;
             MyAPIGateway.Session.Factions.FactionStateChanged +=
-                FactionStateChanged; 
+                FactionStateChanged;
         }
 
         void FactionStateChanged(MyFactionStateChange change, long faction1, long faction2, long player, long client)
@@ -68,8 +70,8 @@ namespace Graph.System
             if (faction != null)
                 affected.AddRange(
                     SurfaceScriptBase.Instances.Where(a => a.Block != null &&
-                                                   (faction.FounderId == a.Block.OwnerId ||
-                                                    faction.Members.ContainsKey(a.Block.OwnerId))));
+                                                           (faction.FounderId == a.Block.OwnerId ||
+                                                            faction.Members.ContainsKey(a.Block.OwnerId))));
 
             affected.ForEach(a => a.UpdateFaction(faction));
         }
@@ -88,10 +90,23 @@ namespace Graph.System
 
             ItemsSurfaceScriptBase.SpriteCache?.Clear();
             ItemsSurfaceScriptBase.SpriteCache = null;
+            OnLanguageChanged = null;
 
             ListBoxItemHelper.PerTypeCache.Clear();
 
             ConfigManager.Close();
+        }
+
+        void OnGuiControlRemoved(object obj)
+        {
+            if (obj.ToString().EndsWith("ScreenOptionsSpace"))
+            {
+                if (_language == MyAPIGateway.Session.Config.Language) 
+                    return;
+
+                _language = MyAPIGateway.Session.Config.Language;
+                OnLanguageChanged?.Invoke();
+            }
         }
 
         void EntityAdded(IMyEntity ent)
@@ -161,7 +176,9 @@ namespace Graph.System
                 if (MyAPIGateway.Utilities.IsDedicated && MyAPIGateway.Session.IsServer)
                     return;
 
+                _language = MyAPIGateway.Session.Config.Language;
                 MyAPIGateway.TerminalControls.CustomControlGetter += CustomControlGetter;
+                MyAPIGateway.Gui.GuiControlRemoved += OnGuiControlRemoved;
 
                 TerminalControlsListbox source = new ListboxBlockCandidates();
                 TerminalControlsListbox target = new ListboxBlockSelected();
@@ -187,7 +204,7 @@ namespace Graph.System
 
                 source = new ListboxItemsCandidates();
                 target = new ListboxItemsSelected();
-                
+
                 Controls.Add(source);
                 Controls.Add(new ButtonItemAddToSelection(source, target));
                 Controls.Add(target);
@@ -224,7 +241,8 @@ namespace Graph.System
                         }
                         else
                         {
-                            settings = SurfaceScriptBase.Instances.FirstOrDefault(a => a.Block.Equals(block))?.ProviderConfig;
+                            settings = SurfaceScriptBase.Instances.FirstOrDefault(a => a.Block.Equals(block))
+                                ?.ProviderConfig;
                         }
 
                         if (settings == null)
