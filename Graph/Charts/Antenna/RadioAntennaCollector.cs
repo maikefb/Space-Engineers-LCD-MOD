@@ -22,7 +22,7 @@ namespace Graph.Charts.Antenna
             for (int i = 0; i < radios.Count; i++)
             {
                 var radio = radios[i];
-                if (radio == null || radio.Closed || (ScreenConfig.SelectedBlocks.Any() && !ScreenConfig.SelectedBlocks.Contains(radio.EntityId)))
+                if(!IsValid(radio))
                     continue;
 
                 entries.Add(new AntennaEntry

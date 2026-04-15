@@ -21,7 +21,7 @@ namespace Graph.System.TerminalControls.Filter.Listbox
 
         public ListboxBlockCandidates()
         {
-            CreateListbox("CandidatesBlocks", "ScreenTerminalInventory_FilterGamepadHelp_AllInventories");
+            CreateListbox("CandidatesBlocks", "EventControllerBlock_AvailableBlocks_Title");
         }
 
         protected override void Getter(IMyTerminalBlock b, List<MyTerminalControlListBoxItem> blockList,
@@ -38,15 +38,16 @@ namespace Graph.System.TerminalControls.Filter.Listbox
             var script = ((IMyTextSurfaceProvider)b).GetSurface(GetThisSurfaceIndex(b)).Script;
 
             var referenceGrid = b.CubeGrid;
-
-            MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(b.CubeGrid).GetBlockGroups(_groups,
-                g => !screenSettings.SelectedGroups.Contains(g.Name));
-            blockList.AddRange(_groups.Select(a => ListBoxItemHelper.GetOrComputeListBoxItem(
-                $"*{a.Name}*",
-                $"{MyStringId.GetOrCompute("Terminal_GroupTitle")} {a.Name}",
-                a.Name)));
             
-            MyAPIGateway.GridGroups.GetGroup(referenceGrid, GridLinkTypeEnum.Logical, _grids);
+            if (script != AntennaGraph.ID) // antenna does not support groups
+            {
+                MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(b.CubeGrid).GetBlockGroups(_groups,
+                    g => !screenSettings.SelectedGroups.Contains(g.Name));
+                blockList.AddRange(_groups.Select(a => ListBoxItemHelper.GetOrComputeListBoxItem(
+                    $"*{a.Name}*",
+                    $"{MyStringId.GetOrCompute("Terminal_GroupTitle")} {a.Name}",
+                    a.Name)));
+            }
 
             _blocks.Clear();
 
@@ -56,6 +57,8 @@ namespace Graph.System.TerminalControls.Filter.Listbox
                 a.FatBlock.DisplayNameText,
                 a.FatBlock.EntityId)));
 
+            MyAPIGateway.GridGroups.GetGroup(referenceGrid, GridLinkTypeEnum.Logical, _grids);
+            
             foreach (var grid in _grids)
             {
                 if (grid == b.CubeGrid)
@@ -72,7 +75,7 @@ namespace Graph.System.TerminalControls.Filter.Listbox
 
                 _blocks.Clear();
             }
-            
+
             base.Getter(b, blockList, selected);
         }
 
@@ -80,28 +83,24 @@ namespace Graph.System.TerminalControls.Filter.Listbox
         {
             var fat = block?.FatBlock;
 
-            if(fat == null) // Check if is a Terminal block
+            if (fat == null ||  // Check if is a Terminal block
+                config.SelectedBlocks.Contains(fat.EntityId) || // Block isn't already selected
+                fat.GetUserRelationToOwner(referenceBlock.OwnerId) > MyRelationsBetweenPlayerAndBlock.FactionShare)  // Checking if it has access
                 return false;
-            
+
             switch (script)
             {
                 case InventoryCharts.ID:
                 case ProjectorCharts.ID:
                 case ContainerGraph.ID:
-                    return 
-                           fat.HasInventory && // Checking block that have inventory
-                           fat.GetUserRelationToOwner(referenceBlock.OwnerId) <=
-                           MyRelationsBetweenPlayerAndBlock.FactionShare && // Checking if it has access
-                           !config.SelectedBlocks.Contains(fat.EntityId); // Block isn't already selected
+                    return fat.HasInventory; // Check if block that have inventory
                 
                 case AntennaGraph.ID:
-                    return fat is IMyLaserAntenna || fat is IMyRadioAntenna || fat is IMyBeacon;
-                
+                    return fat is IMyLaserAntenna || fat is IMyRadioAntenna || fat is IMyBeacon; // check if block is a valid antenna
+
                 default:
                     throw new Exception("Unhandled filter for script type: " + script);
             }
-            
-
         }
     }
 }

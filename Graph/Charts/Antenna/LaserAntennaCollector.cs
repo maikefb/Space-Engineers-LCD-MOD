@@ -26,7 +26,7 @@ namespace Graph.Charts.Antenna
             for (int i = 0; i < lasers.Count; i++)
             {
                 var laser = lasers[i];
-                if (laser == null || laser.Closed)
+                if(!IsValid(laser))
                     continue;
 
                 entries.Add(new AntennaEntry

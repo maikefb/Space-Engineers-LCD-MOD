@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Graph.Helpers;
 using Graph.System;
+using Sandbox.ModAPI;
 using VRageMath;
 using IMyBeacon = Sandbox.ModAPI.IMyBeacon;
 
@@ -23,9 +24,10 @@ namespace Graph.Charts.Antenna
             for (int i = 0; i < beacons.Count; i++)
             {
                 var beacon = beacons[i];
-                if (beacon == null || beacon.Closed || (ScreenConfig.SelectedBlocks.Any() && !ScreenConfig.SelectedBlocks.Contains(beacon.EntityId)))
-                    continue;
 
+                if(!IsValid(beacon))
+                    continue;
+                
                 entries.Add(new AntennaEntry
                 {
                     Name = GetName(beacon),

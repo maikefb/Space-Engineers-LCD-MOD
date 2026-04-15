@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Linq;
 using Graph.Helpers;
 using Graph.System;
 using Graph.System.Config;
+using Sandbox.ModAPI;
 using VRage.Game.ModAPI;
 using VRageMath;
 
@@ -33,5 +35,8 @@ namespace Graph.Charts.Antenna
             _locCache[key] = value;
             return value;
         }
+        
+        
+        protected bool IsValid(IMyTerminalBlock block) => block != null && !block.Closed && (!ScreenConfig.SelectedBlocks.Any() || ScreenConfig.SelectedBlocks.Contains(block.EntityId));
     }
 }
