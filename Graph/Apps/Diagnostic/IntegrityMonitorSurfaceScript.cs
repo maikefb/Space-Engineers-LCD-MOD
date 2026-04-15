@@ -34,6 +34,12 @@ namespace Graph.Apps.Diagnostic
         {
         }
 
+        protected override void LayoutChanged()
+        {
+            base.LayoutChanged();
+            CachedVersion = new DateTime();
+        }
+
         public override void Run()
         {
             base.Run();
@@ -66,6 +72,24 @@ namespace Graph.Apps.Diagnostic
             {
                 var map3D = GetOrUpdate3DMap(_projector);
 
+                if (map3D.LastUpdate.Ticks == 0)
+                {
+                    using (var frame = Surface.DrawFrame())
+                    {
+                        var sprites = new List<MySprite>();
+                        DrawTitle(sprites);
+                        DrawNotReady(sprites);
+                        DrawFooter(sprites);
+                        frame.AddRange(sprites);
+                    }
+                    return;
+                }
+                
+                if (map3D.LastUpdate == CachedVersion)
+                    return;
+                
+                CachedVersion = map3D.LastUpdate;
+                
                 DepthMap2D depth = BuildDepthMap(map3D.Cells, map3D.DamagedCells, map3D.CellTypes, (View)Config.DisplayInternal);
 
                 using (var frame = Surface.DrawFrame())
@@ -79,8 +103,19 @@ namespace Graph.Apps.Diagnostic
             }
             catch (Exception e)
             {
+                using (var frame = Surface.DrawFrame())
+                {
+                    var sprites = new List<MySprite>();
+                    DrawTitle(sprites);
+                    DrawError(sprites, e);
+                    DrawFooter(sprites);
+                    frame.AddRange(sprites);
+                }
+                return;
             }
         }
+
+        public DateTime CachedVersion { get; set; }
 
         static CachedGridMap GetOrUpdate3DMap(IMyProjector projector)
         {
@@ -184,7 +219,7 @@ namespace Graph.Apps.Diagnostic
                 }
             }
 
-            entry.Current = new CachedGridMap(cells, damagedCells, cellTypes);
+            entry.Current = new CachedGridMap(cells, damagedCells, cellTypes, DateTime.Now);
         }
 
         void DrawDepthMap(List<MySprite> sprites, DepthMap2D depthMap, float rotation = 0f, float scale = 1f)
@@ -249,6 +284,111 @@ namespace Graph.Apps.Diagnostic
                     });
                 }
             }
+        }
+
+        void DrawNotReady(List<MySprite> sprites)
+        {
+            float contentTop = CaretY;
+            float contentBottom = ViewBox.Bottom - FooterHeight;
+            float contentHeight = Math.Max(0f, contentBottom - contentTop);
+            if (contentHeight <= 0f)
+                return;
+
+            var center = new Vector2(ViewBox.Center.X, contentTop + contentHeight * 0.45f);
+            float outerSize = Math.Min(ViewBox.Width, contentHeight) * 0.28f;
+            float innerSize = outerSize * 0.6f;
+
+            double seconds = 0;
+            try
+            {
+                if (MyAPIGateway.Session != null)
+                    seconds = MyAPIGateway.Session.ElapsedPlayTime.TotalSeconds;
+            }
+            catch
+            {
+            }
+
+            float outerRotation = (float)(seconds * 2.4);
+            float innerRotation = -outerRotation;
+
+            sprites.Add(new MySprite
+            {
+                Type = SpriteType.TEXTURE,
+                Data = "Screen_LoadingBar",
+                Position = center,
+                Size = new Vector2(outerSize),
+                Color = Surface.ScriptForegroundColor,
+                Alignment = TextAlignment.CENTER,
+                RotationOrScale = outerRotation
+            });
+
+            sprites.Add(new MySprite
+            {
+                Type = SpriteType.TEXTURE,
+                Data = "Screen_LoadingBar",
+                Position = center,
+                Size = new Vector2(innerSize),
+                Color = Surface.ScriptForegroundColor,
+                Alignment = TextAlignment.CENTER,
+                RotationOrScale = innerRotation
+            });
+
+            sprites.Add(new MySprite
+            {
+                Type = SpriteType.TEXT,
+                Data = LocHelper.GetLoc("LoadingPleaseWait"),
+                Position = new Vector2(center.X, center.Y + outerSize * 0.9f),
+                Color = Surface.ScriptForegroundColor,
+                Alignment = TextAlignment.CENTER,
+                FontId = "White",
+                RotationOrScale = Scale
+            });
+        }
+
+        void DrawError(List<MySprite> sprites, Exception exception)
+        {
+            float contentTop = CaretY;
+            float contentBottom = ViewBox.Bottom - FooterHeight;
+            float contentHeight = Math.Max(0f, contentBottom - contentTop);
+            if (contentHeight <= 0f)
+                return;
+
+            var center = new Vector2(ViewBox.Center.X, contentTop + contentHeight * 0.4f);
+            float iconSize = Math.Min(ViewBox.Width, contentHeight) * 0.2f;
+            var caption = LocHelper.GetLoc("ScreenDebugOfficial_ErrorLogCaption");
+            var message = exception?.Message ?? "Unknown error";
+
+            sprites.Add(new MySprite
+            {
+                Type = SpriteType.TEXTURE,
+                Data = "Warning",
+                Position = center,
+                Size = new Vector2(iconSize),
+                Color = Config.ErrorColor,
+                Alignment = TextAlignment.CENTER
+            });
+
+            sprites.Add(new MySprite
+            {
+                Type = SpriteType.TEXT,
+                Data = caption,
+                Position = new Vector2(center.X, center.Y + iconSize * 0.8f),
+                Color = Config.ErrorColor,
+                Alignment = TextAlignment.CENTER,
+                FontId = "White",
+                RotationOrScale = Scale
+            });
+
+            sprites.Add(new MySprite
+            {
+                Type = SpriteType.TEXT,
+                Data = message,
+                Position = new Vector2(center.X, center.Y + iconSize * 1.35f),
+                Color = Surface.ScriptForegroundColor,
+                Alignment = TextAlignment.CENTER,
+                FontId = "White",
+                RotationOrScale = Scale * 0.9f
+            });
         }
 
         static Vector2 RotateAround(Vector2 point, Vector2 origin, float rotation)
@@ -584,20 +724,22 @@ namespace Graph.Apps.Diagnostic
         public static readonly CachedGridMap Empty = new CachedGridMap(
             new List<Vector3I>(),
             new List<Vector3I>(),
-            new Dictionary<Vector3I, CellKind>());
+            new Dictionary<Vector3I, CellKind>(),
+            new DateTime(0));
 
         public readonly List<Vector3I> Cells;
         public readonly List<Vector3I> DamagedCells;
         public readonly Dictionary<Vector3I, CellKind> CellTypes;
+        public readonly DateTime LastUpdate;
 
-        public CachedGridMap(
-            List<Vector3I> cells,
+        public CachedGridMap(List<Vector3I> cells,
             List<Vector3I> damagedCells,
-            Dictionary<Vector3I, CellKind> cellTypes)
+            Dictionary<Vector3I, CellKind> cellTypes, DateTime now)
         {
             Cells = cells;
             DamagedCells = damagedCells;
             CellTypes = cellTypes;
+            LastUpdate = now;
         }
     }
 
