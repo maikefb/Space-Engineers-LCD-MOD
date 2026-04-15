@@ -1,22 +1,19 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
+using System.Linq;
 using System.Text;
+using Graph.Charts.Antenna;
 using Graph.Helpers;
 using Graph.Panels;
 using Graph.System;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
-using Sandbox.ModAPI.Ingame;
 using VRage;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
-using VRage.Utils;
 using VRageMath;
 using IMyCubeBlock = VRage.Game.ModAPI.IMyCubeBlock;
 using IMyCubeGrid = VRage.Game.ModAPI.IMyCubeGrid;
-using IMyLaserAntenna = Sandbox.ModAPI.IMyLaserAntenna;
-using IMyRadioAntenna = Sandbox.ModAPI.IMyRadioAntenna;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
 namespace Graph.Charts
@@ -32,20 +29,8 @@ namespace Graph.Charts
         const float LASER_ICON_SOURCE_SIZE = 190f;
         const float LASER_ICON_TOP_PADDING = 64f;
         const float LASER_ICON_BOTTOM_PADDING = 22f;
-
-        struct AntennaEntry
-        {
-            public string Name;
-            public string StatusIcon;
-            public string StatusText;
-            public Color StatusColor;
-            public bool UseLaserIconCompensation;
-        }
-
-        readonly List<IMyLaserAntenna> _lasers = new List<IMyLaserAntenna>();
-        readonly List<IMyRadioAntenna> _radios = new List<IMyRadioAntenna>();
         readonly List<AntennaEntry> _entries = new List<AntennaEntry>();
-        long _statusAnimTick;
+        readonly List<AntennaCollector> _collectors = new List<AntennaCollector>();
 
         public const string ID = "AntennaGraph";
         public const string TITLE = "Antenna";
@@ -53,10 +38,22 @@ namespace Graph.Charts
         protected override string DefaultTitle => TITLE;
         public override Dictionary<MyItemType, double> ItemSource => null;
 
-        public AntennaGraph(Sandbox.ModAPI.IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
+        public AntennaGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
             : base(surface, block, size)
         {
-            Surface.ContentType = ContentType.SCRIPT;
+        }
+
+        void BuildCollectors()
+        {
+            _collectors.Add(new LaserAntennaCollector(this));
+            _collectors.Add(new RadioAntennaCollector(this));
+            _collectors.Add(new BeaconCollector(this));
+        }
+
+        protected override void LayoutChanged()
+        {
+            base.LayoutChanged();
+            _collectors.Clear();
         }
 
         public override void Run()
@@ -65,6 +62,9 @@ namespace Graph.Charts
             if (Config == null)
                 return;
 
+            if (!_collectors.Any())
+                BuildCollectors();
+            
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
@@ -75,7 +75,7 @@ namespace Graph.Charts
 
                 if (_entries.Count == 0)
                 {
-                    sprites.Add(MakeText((Sandbox.ModAPI.IMyTextSurface)Surface, LocHelper.Empty, ViewBox.Center, Scale, TextAlignment.CENTER));
+                    sprites.Add(MakeText((IMyTextSurface)Surface, LocHelper.Empty, ViewBox.Center, Scale, TextAlignment.CENTER));
                 }
                 else
                 {
@@ -97,65 +97,12 @@ namespace Graph.Charts
         void BuildEntries(IMyCubeGrid grid, List<AntennaEntry> entries)
         {
             entries.Clear();
-            _lasers.Clear();
-            _radios.Clear();
 
-            if (grid == null)
+            if (GridLogic == null)
                 return;
 
-            GridGroupsHelper.GetAllLogicBlocksOfType(grid, _lasers, GridLinkTypeEnum.Logical);
-            for (int i = 0; i < _lasers.Count; i++)
-            {
-                var laser = _lasers[i];
-                if (laser == null)
-                    continue;
-
-                string name;
-                try
-                {
-                    name = !string.IsNullOrWhiteSpace(laser.CustomName) ? laser.CustomName : laser.DisplayNameText;
-                }
-                catch
-                {
-                    name = "Laser Antenna";
-                }
-
-                entries.Add(new AntennaEntry
-                {
-                    Name = name,
-                    StatusIcon = GetLaserStatusIcon(laser),
-                    StatusText = GetLaserStatusText(laser),
-                    StatusColor = GetLaserStatusColor(laser),
-                    UseLaserIconCompensation = true,
-                });
-            }
-
-            GridGroupsHelper.GetAllLogicBlocksOfType(grid, _radios, GridLinkTypeEnum.Logical);
-            for (int i = 0; i < _radios.Count; i++)
-            {
-                var radio = _radios[i];
-                if (radio == null)
-                    continue;
-
-                string name;
-                try
-                {
-                    name = !string.IsNullOrWhiteSpace(radio.CustomName) ? radio.CustomName : radio.DisplayNameText;
-                }
-                catch
-                {
-                    name = "Radio Antenna";
-                }
-
-                entries.Add(new AntennaEntry
-                {
-                    Name = name,
-                    StatusIcon = GetRadioStatusIcon(radio),
-                    StatusText = GetRadioStatusText(radio),
-                    StatusColor = GetRadioStatusColor(radio),
-                    UseLaserIconCompensation = false
-                });
-            }
+            for (int i = 0; i < _collectors.Count; i++)
+                _collectors[i].Collect(GridLogic, entries);
 
             entries.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase));
         }
@@ -316,13 +263,13 @@ namespace Graph.Charts
         void DrawLaserCell(List<MySprite> sprites, AntennaEntry entry, float xStart, float xEnd,
             float yStart, float rowHeight, bool drawAsLines)
         {
-            var cellPadding = (LINE * Scale) / 2f;
+            var cellPadding = LINE * Scale / 2f;
             var cellView = GetCellViewBox(xStart, xEnd, yStart, rowHeight, cellPadding);
             var slots = GetCellSlots(cellView.X, cellView.Right, cellView.Y, cellView.Bottom, LINE);
 
             if (!drawAsLines)
             {
-                var backgroundColor = entry.StatusColor == Config.ErrorColor ? Config.ErrorColor : Config.HeaderColor;
+                var backgroundColor = !entry.IsFunctional ? Config.ErrorColor : Config.HeaderColor;
                 var hsv = backgroundColor.ColorToHSV();
                 hsv.Z *= 0.2f;
 
@@ -493,159 +440,5 @@ namespace Graph.Charts
             });
         }
 
-        public string GetLaserStatusIcon(IMyLaserAntenna laserAntenna)
-        {
-            if (laserAntenna == null || !laserAntenna.Enabled)
-                return "GridPower";
-
-            if (!laserAntenna.IsFunctional)
-                return "Warning";
-
-            switch (laserAntenna.Status)
-            {
-                case MyLaserAntennaStatus.RotatingToTarget:
-                    return "RotationPlane";
-                case MyLaserAntennaStatus.SearchingTargetForAntenna:
-                    return "Search";
-                case MyLaserAntennaStatus.Connecting:
-                {
-                    _statusAnimTick++;
-                    if(_statusAnimTick >= 7)
-                        _statusAnimTick = 0;
-                    return _statusAnimTick >=4 ? "BroadcastingOff" : "BroadcastingOn";
-                }
-                case MyLaserAntennaStatus.Connected:
-                    return "BroadcastingOn";
-                case MyLaserAntennaStatus.OutOfRange:
-                    return "Disconnected";
-            }
-
-            return "BroadcastingOff";
-        }
-
-        public string GetLaserStatusText(IMyLaserAntenna laserAntenna)
-        {
-            if (laserAntenna == null)
-                return GetLoc("LaserAntennaModeIdle");
-
-            if (!laserAntenna.Enabled)
-                return GetLoc("LaserAntennaModeIdle");
-
-            if (!laserAntenna.IsFunctional)
-                return GetLoc("Module_Damaged");
-
-            switch (laserAntenna.Status)
-            {
-                case MyLaserAntennaStatus.RotatingToTarget:
-                    return GetLoc("LaserAntennaModeRotRec").TrimEnd();
-                case MyLaserAntennaStatus.OutOfRange:
-                case MyLaserAntennaStatus.SearchingTargetForAntenna:
-                    return GetLoc("LaserAntennaModeSearchGPS").TrimEnd();
-                case MyLaserAntennaStatus.Connecting:
-                    return GetLoc("LaserAntennaModeContactRec") + GetOtherName(laserAntenna);
-                case MyLaserAntennaStatus.Connected:
-                {
-                    var sb = new StringBuilder();
-                    var other = laserAntenna.Other;
-                    sb.AppendLine(GetLoc("LaserAntennaModeConnectedTo") + GetOtherName(laserAntenna));
-
-                    if (other == null)
-                        return sb.ToString();
-
-                    var distance = Vector3.Distance(other.GetPosition(), laserAntenna.GetPosition());
-                    sb.AppendLine(GetLoc("TerminalDistance") + " " + DistanceToString(distance));
-                    sb.AppendLine(other.CubeGrid.CustomName);
-
-                    return sb.ToString();
-                }
-            }
-
-            return GetLoc("LaserAntennaModeIdle");
-        }
-
-        string GetRadioStatusIcon(IMyRadioAntenna radioAntenna)
-        {
-            if (radioAntenna == null || !radioAntenna.Enabled)
-                return "GridPower";
-
-            if (!radioAntenna.IsFunctional)
-                return "Warning";
-
-            return radioAntenna.IsBroadcasting ? "RadioAntenna" : "RadioAntennaDisabled";
-        }
-
-        string GetRadioStatusText(IMyRadioAntenna radioAntenna)
-        {
-            if (radioAntenna == null || !radioAntenna.Enabled)
-                return GetLoc("LaserAntennaModeIdle");
-
-            if (!radioAntenna.IsFunctional)
-                return GetLoc("Module_Damaged");
-
-            var sb = new StringBuilder();
-            sb.AppendLine(radioAntenna.IsBroadcasting ? GetLoc("NotificationCharacterBroadcastingOn") : GetLoc("NotificationCharacterBroadcastingOff"));
-            sb.Append(GetLoc("BlockPropertyDescription_BroadcastRadius")+": "+DistanceToString(radioAntenna.Radius));
-            return sb.ToString();
-        }
-
-        Color GetRadioStatusColor(IMyRadioAntenna radioAntenna)
-        {
-            if (radioAntenna == null || !radioAntenna.Enabled)
-                return Surface.ScriptForegroundColor;
-
-            if (!radioAntenna.IsFunctional)
-                return Config.ErrorColor;
-
-            return radioAntenna.IsBroadcasting ? Surface.ScriptForegroundColor : Config.WarningColor;
-        }
-
-        string GetLoc(string key) => MyTexts.Get(MyStringId.GetOrCompute(key)).ToString();
-
-        string GetOtherName(IMyLaserAntenna laserAntenna)
-        {
-            var other = laserAntenna?.Other;
-            if (other == null)
-                return "Unknown";
-
-            return !string.IsNullOrWhiteSpace(other.CustomName) ? other.CustomName : other.DisplayNameText;
-        }
-
-        string DistanceToString(float meters)
-        {
-            var distance = (double)meters;
-            var abs = Math.Abs(distance);
-            var sign = distance < 0d ? "-" : "";
-
-            if (abs >= 299792458d)
-                return sign + (abs / 299792458d).ToString("0.##", CultureInfo.CurrentUICulture) + " ls";
-            if (abs >= 1000000000d)
-                return sign + (abs / 1000000000d).ToString("0.##", CultureInfo.CurrentUICulture) + " Gm";
-            if (abs >= 1000000d)
-                return sign + (abs / 1000000d).ToString("0.##", CultureInfo.CurrentUICulture) + " Mm";
-            if (abs >= 1000d)
-                return sign + (abs / 1000d).ToString("0.##", CultureInfo.CurrentUICulture) + " km";
-            if (abs >= 1d)
-                return sign + abs.ToString("0.##", CultureInfo.CurrentUICulture) + " m";
-
-            return sign + (abs * 100d).ToString("0.##", CultureInfo.CurrentUICulture) + " cm";
-        }
-
-        Color GetLaserStatusColor(IMyLaserAntenna laserAntenna)
-        {
-            if (!laserAntenna.Enabled)
-                return Surface.ScriptForegroundColor;
-
-            if (!laserAntenna.IsFunctional)
-                return Config.ErrorColor;
-
-            switch (laserAntenna.Status)
-            {
-                case MyLaserAntennaStatus.Connected:
-                case MyLaserAntennaStatus.Idle:
-                    return Surface.ScriptForegroundColor;
-                default:
-                    return Config.WarningColor;
-            }
-        }
     }
 }

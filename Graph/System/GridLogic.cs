@@ -23,6 +23,10 @@ namespace Graph.System
         public readonly IMyCubeGrid Grid;
         List<IMySlimBlock> _blocks = new List<IMySlimBlock>();
         List<IMyTerminalBlock> _invBlocks = new List<IMyTerminalBlock>();
+        
+        List<IMyLaserAntenna> _lasers = new List<IMyLaserAntenna>();
+        List<IMyRadioAntenna> _radio = new List<IMyRadioAntenna>();
+        List<IMyBeacon> _beacons = new List<IMyBeacon>();
 
         IMyGridTerminalSystem GridTerminalSystem => MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(Grid);
 
@@ -31,7 +35,7 @@ namespace Graph.System
             get
             {
                 if (!_compCache.Any())
-                    AggregateItems(GetAllInventories(), _compCache, new[] { "Component" },
+                    AggregateItems(GetInventories(), _compCache, new[] { "Component" },
                         Array.Empty<MyDefinitionId>());
 
                 return _compCache;
@@ -69,6 +73,9 @@ namespace Graph.System
                 _compCache.Clear();
                 _invBlocks.Clear();
                 _queryCache.Clear();
+                _lasers.Clear();
+                _radio.Clear();
+                _beacons.Clear();
             }
             catch (Exception e)
             {
@@ -149,7 +156,7 @@ namespace Graph.System
 
                     List<IMyTerminalBlock> blocks =
                         config.SelectedBlocks.Length == 0 && config.SelectedGroups.Length == 0
-                            ? GetAllInventories()
+                            ? GetInventories()
                             : new List<IMyTerminalBlock>();
 
                     blocks.AddRange(config.SelectedBlocks.Select(id => MyAPIGateway.Entities.GetEntityById(id))
@@ -187,19 +194,59 @@ namespace Graph.System
             }
         }
 
-        public List<IMyTerminalBlock> GetAllInventories()
+        public List<IMyTerminalBlock> GetInventories()
         {
-            if (_invBlocks.Any())
-                return _invBlocks;
-
-            Grid.GetBlocks(_blocks, a => a.FatBlock?.InventoryCount != 0 && a.FatBlock is IMyTerminalBlock);
-            _invBlocks = _blocks.Where(a =>
-            {
-                var block = a?.FatBlock as IMyTerminalBlock;
-                return block != null && block.HasInventory;
-            }).Select(a => (IMyTerminalBlock)a.FatBlock).ToList();
-
+            RefreshIfNeeded();
             return _invBlocks;
+        }
+
+        public void RefreshIfNeeded()
+        {
+            if(_blocks.Any())
+                return;
+            
+            Grid.GetBlocks(_blocks, a => a.FatBlock is IMyTerminalBlock);
+            
+            
+            _invBlocks = _blocks
+                .Where(slim => slim.FatBlock is IMyTerminalBlock)
+                .Select(slim => (IMyTerminalBlock)slim.FatBlock)
+                .Where(block =>
+            {
+                var antenna = block as IMyRadioAntenna;
+                if(antenna != null)
+                    _radio.Add(antenna);
+
+                var beacon = block as IMyBeacon;
+                if(beacon != null)
+                    _beacons.Add(beacon);
+
+                var lase = block as IMyLaserAntenna;
+                if(lase != null)
+                    _lasers.Add(lase);
+                
+                return block.HasInventory && block.InventoryCount != 0 ;
+            }).Select(a => a).ToList();
+
+        }
+        
+
+        public List<IMyLaserAntenna> GetLaserAntennae()
+        {
+            RefreshIfNeeded();
+            return _lasers;
+        }
+        
+        public List<IMyRadioAntenna> GetAntenna()
+        {
+            RefreshIfNeeded();
+            return _radio;
+        }
+        
+        public List<IMyBeacon> GetBeacons()
+        {
+            RefreshIfNeeded();
+            return _beacons;
         }
     }
 }

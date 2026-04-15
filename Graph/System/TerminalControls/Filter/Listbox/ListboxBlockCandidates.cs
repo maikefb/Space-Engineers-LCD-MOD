@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Graph.Charts;
 using Graph.Helpers;
 using Graph.System.Config;
 using Sandbox.ModAPI;
@@ -34,6 +35,8 @@ namespace Graph.System.TerminalControls.Filter.Listbox
             _grids.Clear();
             _groups.Clear();
 
+            var script = ((IMyTextSurfaceProvider)b).GetSurface(GetThisSurfaceIndex(b)).Script;
+
             var referenceGrid = b.CubeGrid;
 
             MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(b.CubeGrid).GetBlockGroups(_groups,
@@ -42,12 +45,12 @@ namespace Graph.System.TerminalControls.Filter.Listbox
                 $"*{a.Name}*",
                 $"{MyStringId.GetOrCompute("Terminal_GroupTitle")} {a.Name}",
                 a.Name)));
-
+            
             MyAPIGateway.GridGroups.GetGroup(referenceGrid, GridLinkTypeEnum.Logical, _grids);
 
             _blocks.Clear();
 
-            referenceGrid.GetBlocks(_blocks, c => IsValidBlock(c, b, screenSettings));
+            referenceGrid.GetBlocks(_blocks, c => IsValidBlock(c, b, screenSettings, script));
             blockList.AddRange(_blocks.Select(a => ListBoxItemHelper.GetOrComputeListBoxItem(
                 a.FatBlock.DisplayNameText,
                 a.FatBlock.DisplayNameText,
@@ -60,7 +63,7 @@ namespace Graph.System.TerminalControls.Filter.Listbox
 
                 _blocks.Clear();
 
-                grid.GetBlocks(_blocks, c => IsValidBlock(c, b, screenSettings));
+                grid.GetBlocks(_blocks, c => IsValidBlock(c, b, screenSettings, script));
 
                 blockList.AddRange(_blocks.Select(a => ListBoxItemHelper.GetOrComputeListBoxItem(
                     $"@{a.FatBlock.DisplayNameText}@",
@@ -73,14 +76,32 @@ namespace Graph.System.TerminalControls.Filter.Listbox
             base.Getter(b, blockList, selected);
         }
 
-        bool IsValidBlock(IMySlimBlock block, IMyTerminalBlock referenceBlock, ScreenConfig config)
+        bool IsValidBlock(IMySlimBlock block, IMyTerminalBlock referenceBlock, ScreenConfig config, string script)
         {
             var fat = block?.FatBlock;
-            return fat != null && // Check if is a Terminal block
-                   fat.HasInventory && // Checking block that have inventory
-                   fat.GetUserRelationToOwner(referenceBlock.OwnerId) <=
-                   MyRelationsBetweenPlayerAndBlock.FactionShare && // Checking if it has access
-                   !config.SelectedBlocks.Contains(fat.EntityId); // Block isn't already selected
+
+            if(fat == null) // Check if is a Terminal block
+                return false;
+            
+            switch (script)
+            {
+                case InventoryCharts.ID:
+                case ProjectorCharts.ID:
+                case ContainerGraph.ID:
+                    return 
+                           fat.HasInventory && // Checking block that have inventory
+                           fat.GetUserRelationToOwner(referenceBlock.OwnerId) <=
+                           MyRelationsBetweenPlayerAndBlock.FactionShare && // Checking if it has access
+                           !config.SelectedBlocks.Contains(fat.EntityId); // Block isn't already selected
+                
+                case AntennaGraph.ID:
+                    return fat is IMyLaserAntenna || fat is IMyRadioAntenna || fat is IMyBeacon;
+                
+                default:
+                    throw new Exception("Unhandled filter for script type: " + script);
+            }
+            
+
         }
     }
 }

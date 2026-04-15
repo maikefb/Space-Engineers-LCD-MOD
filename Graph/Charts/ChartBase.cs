@@ -517,7 +517,7 @@ namespace Graph.Charts
 
         protected string Pow(double watts)
         {
-            double a = global::System.Math.Abs(watts);
+            double a = Math.Abs(watts);
             string sign = watts < 0 ? "-" : "";
 
             if (a < 1e-12)
@@ -542,7 +542,7 @@ namespace Graph.Charts
 
         protected string PowForce(double newtons)
         {
-            double a = global::System.Math.Abs(newtons);
+            double a = Math.Abs(newtons);
             string sign = newtons < 0 ? "-" : "";
 
             if (a < 1e-12)

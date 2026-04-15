@@ -1,0 +1,37 @@
+using System.Collections.Generic;
+using Graph.Helpers;
+using Graph.System;
+using Graph.System.Config;
+using VRage.Game.ModAPI;
+using VRageMath;
+
+namespace Graph.Charts.Antenna
+{
+    internal abstract class AntennaCollector
+    {
+        protected readonly Color ForegroundColor;
+        protected readonly Color WarningColor;
+        protected readonly ScreenConfig ScreenConfig;
+        readonly Dictionary<string, string> _locCache = new Dictionary<string, string>();
+        
+        public abstract void Collect(GridLogic grid, List<AntennaEntry> entries);
+
+        protected AntennaCollector(AntennaGraph antennaGraph)
+        {
+            ForegroundColor = antennaGraph.ForegroundColor;
+            WarningColor = antennaGraph.Config.WarningColor;
+            ScreenConfig = antennaGraph.Config;
+        }
+        
+        protected string GetLocCached(string key)
+        {
+            string value;
+            if (_locCache.TryGetValue(key, out value))
+                return value;
+
+            value = LocHelper.GetLoc(key);
+            _locCache[key] = value;
+            return value;
+        }
+    }
+}

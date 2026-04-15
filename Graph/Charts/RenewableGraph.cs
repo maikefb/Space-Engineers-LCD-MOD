@@ -22,7 +22,7 @@ namespace Graph.Charts
         protected override PowerEntryDefinition[] EntryDefinitions => Definitions;
         protected override string DefaultTitle => TITLE;
 
-        public RenewableGraph(Sandbox.ModAPI.IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
+        public RenewableGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
             : base(surface, block, size)
         {
         }

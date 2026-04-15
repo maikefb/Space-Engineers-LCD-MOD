@@ -25,7 +25,7 @@ namespace Graph.Charts
         protected override PowerEntryDefinition[] EntryDefinitions => Definitions;
         protected override string DefaultTitle => TITLE;
 
-        public GeneratorsGraph(Sandbox.ModAPI.IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
+        public GeneratorsGraph(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
             : base(surface, block, size)
         {
         }
