@@ -46,6 +46,10 @@ namespace Graph.Apps.Diagnostic
 
         const string MISSING_BLOCK_LOCKEY = "MissingBlock";
         const string DAMAGED_BLOCK_LOCKEY = "UnfinishedBlock";
+
+        readonly Color _damagedColor = new Color(Color.Red, .75f);
+        readonly Color _missingColor = new Color(Color.DarkRed, .95f);
+
         List<MySprite> _frameBuffer = new List<MySprite>();
         DepthMap2D? _depthCache;
         View _view;
@@ -85,7 +89,7 @@ namespace Graph.Apps.Diagnostic
             FindProjector(grid, ref _projector);
 
             if ((_projector == null || !_projector.IsFunctional || _projector.Closed)
-                && Config.ReferenceBlock != 0 
+                && Config.ReferenceBlock != 0
                 && _depthCache != null)
             {
                 if (tick % 3 == 0)
@@ -257,7 +261,7 @@ namespace Graph.Apps.Diagnostic
                 entry.Updater.Dispose();
                 entry.Updater = null;
             }
-               
+
 
             return entry.Current;
         }
@@ -310,13 +314,13 @@ namespace Graph.Apps.Diagnostic
                             {
                                 var reference = projector.ProjectedGrid.GetCubeBlock(projectedPos);
                                 var real = projector.CubeGrid.GetCubeBlock(realPos);
-                                
+
                                 var targetIntegrity = reference.Integrity;
                                 var realIntegrity = real.Integrity;
 
-                                if (targetIntegrity > realIntegrity) 
+                                if (targetIntegrity > realIntegrity)
                                     damagedCells.Add(realPos);
-                                
+
                                 isBroken = reference.GetType() != real.GetType();
 
                                 if (reference.FatBlock != null)
@@ -380,14 +384,16 @@ namespace Graph.Apps.Diagnostic
                     bool isDamaged = depthMap.Damaged[x, y];
                     bool isMissing = depthMap.Missing[x, y];
 
-                    if(isMissing)
+                    if (isMissing)
                         hasMissing = true;
                     else if (isDamaged)
                         hasDamaged = true;
                     else
                         usedKinds.Add(depthMap.CellType[x, y]);
 
-                    var color = (isMissing ? Color.Red : isDamaged ? Color.OrangeRed : GetColorForType(depthMap.CellType[x, y])).MulValue(value);
+                    var color = BlendWithAlpha(Color.Gray.MulValue(value),
+                        (isMissing ? _missingColor :
+                            isDamaged ? _damagedColor : GetColorForType(depthMap.CellType[x, y])));
                     cellColors[x, y] = color;
                 }
             }
@@ -427,6 +433,24 @@ namespace Graph.Apps.Diagnostic
             _legendHasDamaged = hasDamaged;
         }
 
+        public static Color BlendWithAlpha(Color bottom, Color top)
+        {
+            float topA = top.A / 255f;
+            float bottomA = bottom.A / 255f;
+
+            float outA = topA + bottomA * (1f - topA);
+
+            if (outA <= 0f)
+                return new Color(0, 0, 0, 0);
+
+            byte r = (byte)Math.Round((top.R * topA + bottom.R * bottomA * (1f - topA)) / outA);
+            byte g = (byte)Math.Round((top.G * topA + bottom.G * bottomA * (1f - topA)) / outA);
+            byte b = (byte)Math.Round((top.B * topA + bottom.B * bottomA * (1f - topA)) / outA);
+            byte a = (byte)Math.Round(outA * 255f);
+
+            return new Color(r, g, b, a);
+        }
+
         protected override void DrawFooter(List<MySprite> sprites)
         {
             if (!_legendHasMissing && _legendUsedKinds.Count == 0)
@@ -457,13 +481,13 @@ namespace Graph.Apps.Diagnostic
                 DrawLegendEntryAt(sprites, idx++, cols, x, y, colWidth, rowHeight, squareSize, Color.Gray,
                     GetLegendCaption(CellKind.None));
 
-                        
+
             if (_legendHasMissing)
-                DrawLegendEntryAt(sprites, idx++, cols, x, y, colWidth, rowHeight, squareSize, Color.Red,
+                DrawLegendEntryAt(sprites, idx++, cols, x, y, colWidth, rowHeight, squareSize, _missingColor,
                     LocHelper.GetLoc(MISSING_BLOCK_LOCKEY));
-            
+
             if (_legendHasDamaged)
-                DrawLegendEntryAt(sprites, idx++, cols, x, y, colWidth, rowHeight, squareSize, Color.OrangeRed,
+                DrawLegendEntryAt(sprites, idx++, cols, x, y, colWidth, rowHeight, squareSize, _damagedColor,
                     LocHelper.GetLoc(DAMAGED_BLOCK_LOCKEY));
 
 
@@ -498,7 +522,7 @@ namespace Graph.Apps.Diagnostic
         void AddLegendRow(List<MySprite> sprites, float x, float y, float colWidth, float squareSize, Color color,
             string caption)
         {
-            var solid = new Color(color.R, color.G, color.B, 255);
+            ;
             float textScale = 0.75f * Scale;
             float labelX = x + squareSize + 6f * Scale;
             float availableTextWidth = Math.Max(0f, colWidth - (labelX - x) - 4f * Scale);
@@ -513,7 +537,7 @@ namespace Graph.Apps.Diagnostic
                 Data = "SquareSimple",
                 Position = new Vector2(x + squareSize * 0.5f, y + squareSize * 0.5f),
                 Size = new Vector2(squareSize, squareSize),
-                Color = solid,
+                Color = color,
                 Alignment = TextAlignment.CENTER
             });
 
@@ -870,17 +894,17 @@ namespace Graph.Apps.Diagnostic
             if (_colors.TryGetValue(topType, out color))
                 return color;
 
-            return Color.Gray;
+            return Color.Transparent;
         }
 
-        Dictionary<CellKind, Color> _colors = new Dictionary<CellKind, Color>()
+        Dictionary<CellKind, Color> _colors = new Dictionary<CellKind, Color>
         {
-            { CellKind.Thruster, new Color(0, 0, 255, 127) },
-            { CellKind.Power, new Color(0, 255, 0, 127) },
-            { CellKind.Gyro, new Color(255, 255, 0, 127) },
-            { CellKind.Weapons, new Color(255, 127, 0, 127) },
-            { CellKind.Gravity, new Color(127, 0, 127, 127) },
-            { CellKind.Production, new Color(0, 127, 127, 127) }
+            { CellKind.Thruster, new Color(0, 64, 255, 100) }, // blue
+            { CellKind.Power, new Color(0, 255, 0, 100) }, // green
+            { CellKind.Gyro, new Color(255, 255, 0, 100) }, // yellow
+            { CellKind.Weapons, new Color(255, 64, 0, 100) }, // orange
+            { CellKind.Gravity, new Color(108, 0, 128, 100) }, // violet 
+            { CellKind.Production, new Color(0, 170, 110, 100) } // cyan
         };
 
 
@@ -967,7 +991,7 @@ namespace Graph.Apps.Diagnostic
                 // Damaged scans the whole column
                 if (p.Damaged)
                     damaged[x, y] = true;
-                
+
                 if (p.Missing)
                     missing[x, y] = true;
 
