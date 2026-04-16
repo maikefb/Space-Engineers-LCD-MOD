@@ -47,6 +47,24 @@ namespace Graph.Apps.Inventory
             Scale = GetAutoScaleUniform();
             UpdateViewBox();
 
+            var details = new List<Entry>(128);
+            GetContainers((IMyCubeGrid)Block?.CubeGrid, details);
+
+            details.Sort((a, b) =>
+            {
+                var fa = a.Cap > 0 ? a.Used / a.Cap : 0;
+                var fb = b.Cap > 0 ? b.Used / b.Cap : 0;
+                var cmp = fb.CompareTo(fa);
+                if (cmp != 0) return cmp;
+                return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+            });
+
+            if (details.Count == 0)
+            {
+                Empty();
+                return;
+            }
+            
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
@@ -55,41 +73,16 @@ namespace Graph.Apps.Inventory
                 AddBackground(sprites);
                 DrawTitle(sprites);
 
-                var details = new List<Entry>(128);
-                GetContainers((IMyCubeGrid)Block?.CubeGrid, details);
-
-                details.Sort((a, b) =>
+                switch (Config.DisplayMode)
                 {
-                    var fa = a.Cap > 0 ? a.Used / a.Cap : 0;
-                    var fb = b.Cap > 0 ? b.Used / b.Cap : 0;
-                    var cmp = fb.CompareTo(fa);
-                    if (cmp != 0) return cmp;
-                    return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
-                });
-
-
-                if (details.Count == 0)
-                    sprites.Add(new MySprite
-                    {
-                        Type = SpriteType.TEXT,
-                        Data = LocHelper.Empty,
-                        Position = new Vector2(ViewBox.Position.X + 12f * Scale, CaretY),
-                        Color = Surface.ScriptForegroundColor,
-                        Alignment = TextAlignment.LEFT,
-                        RotationOrScale = 0.88f * Scale
-                    });
-                else
-                {
-                    switch (Config.DisplayMode)
-                    {
-                        case DisplayMode.Grid:
-                            DrawGrid(sprites, details);
-                            break;
-                        default:
-                            DrawList(sprites, details);
-                            break;
-                    }
+                    case DisplayMode.Grid:
+                        DrawGrid(sprites, details);
+                        break;
+                    default:
+                        DrawList(sprites, details);
+                        break;
                 }
+                
 
                 frame.AddRange(sprites);
             }

@@ -42,59 +42,55 @@ namespace Graph.Apps
             base.Run();
             if (Config == null) return;
 
+            var maxThrust = new double[6];
+            var curThrust = new double[6];
+            bool hasAny   = false;
+            
+            try
+            {
+                var grid = Block?.CubeGrid as IMyCubeGrid;
+                if (grid != null)
+                {
+                    var slims = new List<IMySlimBlock>();
+                    grid.GetBlocks(slims, b => b.FatBlock is IMyThrust);
+
+                    for (int i = 0; i < slims.Count; i++)
+                    {
+                        var thr = slims[i].FatBlock as IMyThrust;
+                        if (thr == null) continue;
+
+                        // A thruster pushes the ship OPPOSITE to the direction its front face points.
+                        var pushDir = Base6Directions.GetOppositeDirection(thr.Orientation.Forward);
+                        int idx = DirIndex(pushDir);
+                        if (idx < 0) continue;
+
+                        double max = 0, cur = 0;
+                        try { max = thr.MaxThrust; }     catch { }
+                        try { cur = thr.CurrentThrust; } catch { }
+
+                        maxThrust[idx] += max;
+                        curThrust[idx] += cur;
+                        if (max > 0) hasAny = true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MyLog.Default.WriteLine($"[LCDMod] ThrustGraph error: {ex.Message}");
+            }
+            
+            if (!hasAny)
+            {
+                Empty();
+                return;
+            }
+            
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
                 AddBackground(sprites);
                 DrawTitle(sprites);
-
-                var maxThrust = new double[6];
-                var curThrust = new double[6];
-                bool hasAny   = false;
-
-                try
-                {
-                    var grid = Block?.CubeGrid as IMyCubeGrid;
-                    if (grid != null)
-                    {
-                        var slims = new List<IMySlimBlock>();
-                        grid.GetBlocks(slims, b => b.FatBlock is IMyThrust);
-
-                        for (int i = 0; i < slims.Count; i++)
-                        {
-                            var thr = slims[i].FatBlock as IMyThrust;
-                            if (thr == null) continue;
-
-                            // A thruster pushes the ship OPPOSITE to the direction its front face points.
-                            var pushDir = Base6Directions.GetOppositeDirection(thr.Orientation.Forward);
-                            int idx = DirIndex(pushDir);
-                            if (idx < 0) continue;
-
-                            double max = 0, cur = 0;
-                            try { max = thr.MaxThrust; }     catch { }
-                            try { cur = thr.CurrentThrust; } catch { }
-
-                            maxThrust[idx] += max;
-                            curThrust[idx] += cur;
-                            if (max > 0) hasAny = true;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MyLog.Default.WriteLine($"[LCDMod] ThrustGraph error: {ex.Message}");
-                }
-
-                if (!hasAny)
-                {
-                    sprites.Add(MakeText((IMyTextSurface)Surface, LocHelper.Empty,
-                        ViewBox.Center, Scale, TextAlignment.CENTER));
-                }
-                else
-                {
-                    DrawBars(sprites, maxThrust, curThrust);
-                }
-
+                DrawBars(sprites, maxThrust, curThrust);
                 frame.AddRange(sprites);
             }
         }

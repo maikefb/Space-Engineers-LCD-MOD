@@ -83,7 +83,11 @@ namespace Graph.Apps.Diagnostic
                 return;
 
             if (Config.ReferenceBlock == 0)
+            {
+                EmptyWithFilters();
                 return;
+            }
+
 
             IMyCubeGrid grid = Block?.CubeGrid as IMyCubeGrid;
             FindProjector(grid, ref _projector);
@@ -152,17 +156,7 @@ namespace Graph.Apps.Diagnostic
 
             if (_projector?.ProjectedGrid == null || _projector.Closed)
             {
-                using (var frame = Surface.DrawFrame())
-                {
-                    var sprites = new List<MySprite>();
-                    AddBackground(sprites);
-                    DrawTitle(sprites);
-                    sprites.Add(MakeText((IMyTextSurface)Surface, LocHelper.Empty, ViewBox.Center, Scale,
-                        TextAlignment.CENTER));
-                    DrawFooter(sprites);
-                    frame.AddRange(sprites);
-                }
-
+                Empty();
                 return;
             }
 
@@ -604,45 +598,7 @@ namespace Graph.Apps.Diagnostic
             });
         }
 
-        void DrawMessage(List<MySprite> sprites, string message, string icon, Color color, float scale = 1f)
-        {
-            float contentTop = CaretY;
-            float contentBottom = ViewBox.Bottom - FooterHeight;
-            float contentHeight = Math.Max(0f, contentBottom - contentTop);
-            if (contentHeight <= 0f)
-                return;
-
-            var center = new Vector2(ViewBox.Center.X, contentTop + contentHeight * 0.45f);
-            float iconSize = Math.Min(ViewBox.Width, contentHeight) * .6f * scale;
-
-            var iconSprite = new MySprite
-            {
-                Type = SpriteType.TEXTURE,
-                Data = icon,
-                Position = center,
-                Size = new Vector2(iconSize),
-                Color = color,
-                Alignment = TextAlignment.CENTER
-            };
-
-            var TextSprite = new MySprite
-            {
-                Type = SpriteType.TEXT,
-                Data = message,
-                Position = new Vector2(center.X, center.Y + (iconSize / 2)),
-                Color = color,
-                Alignment = TextAlignment.CENTER,
-                FontId = "White",
-                RotationOrScale = 1.5f * Scale
-            };
-
-            sprites.Add(iconSprite.Shadow(2 * Scale));
-            sprites.Add(iconSprite);
-
-            sprites.Add(TextSprite.Shadow(2 * Scale));
-            sprites.Add(TextSprite);
-        }
-
+        
         static Vector2 RotateAround(Vector2 point, Vector2 origin, float rotation)
         {
             if (Math.Abs(rotation) < 0.0001f)

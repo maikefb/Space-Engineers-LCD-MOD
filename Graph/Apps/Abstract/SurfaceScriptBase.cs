@@ -129,6 +129,34 @@ namespace Graph.Apps.Abstract
             frame.Dispose();
         }
 
+        protected void EmptyWithFilters()
+        {
+            using (var frame = Surface.DrawFrame())
+            {
+                var sprites = new List<MySprite>();
+                AddBackground(sprites);
+                DrawTitle(sprites);
+                DrawMessage(sprites, LocHelper.GetLoc("ScreenBlueprintsRew_NoBlueprints"),
+                    "Warning", Config.WarningColor, Config.Scale);
+                DrawFooter(sprites);
+                frame.AddRange(sprites);
+            }
+        }
+        
+        protected void Empty()
+        {
+            using (var frame = Surface.DrawFrame())
+            {
+                var sprites = new List<MySprite>();
+                AddBackground(sprites);
+                DrawTitle(sprites);
+                DrawMessage(sprites, LocHelper.Empty,
+                    "Warning", Config.WarningColor, Config.Scale);
+                DrawFooter(sprites);
+                frame.AddRange(sprites);
+            }
+        }
+
         public void RequestRedraw()
         {
             LayoutChanged();
@@ -334,6 +362,46 @@ namespace Graph.Apps.Abstract
             var nameRect = new RectangleF(contentLeft, bottomRowTop, contentWidth, bottomRowHeight);
             return new MyTuple<RectangleF, RectangleF, RectangleF>(iconRect, numberRect, nameRect);
         }
+        
+        protected virtual void DrawMessage(List<MySprite> sprites, string message, string icon, Color color, float scale = 1f)
+        {
+            float contentTop = CaretY;
+            float contentBottom = ViewBox.Bottom - FooterHeight;
+            float contentHeight = Math.Max(0f, contentBottom - contentTop);
+            if (contentHeight <= 0f)
+                return;
+
+            var center = new Vector2(ViewBox.Center.X, contentTop + contentHeight * 0.45f);
+            float iconSize = Math.Min(ViewBox.Width, contentHeight) * .4f * scale;
+
+            var iconSprite = new MySprite
+            {
+                Type = SpriteType.TEXTURE,
+                Data = icon,
+                Position = center,
+                Size = new Vector2(iconSize),
+                Color = color,
+                Alignment = TextAlignment.CENTER
+            };
+
+            var TextSprite = new MySprite
+            {
+                Type = SpriteType.TEXT,
+                Data = message,
+                Position = new Vector2(center.X, center.Y + (iconSize / 2)),
+                Color = color,
+                Alignment = TextAlignment.CENTER,
+                FontId = "White",
+                RotationOrScale = 1f * Scale
+            };
+
+            sprites.Add(iconSprite.Shadow(2 * Scale));
+            sprites.Add(iconSprite);
+
+            sprites.Add(TextSprite.Shadow(2 * Scale));
+            sprites.Add(TextSprite);
+        }
+
 
         protected virtual void DrawCellBackground(List<MySprite> frame, KeyValuePair<MyItemType, double> item,
             float xStart, float xEnd, float yStart, float cellHeight, float cellPadding)

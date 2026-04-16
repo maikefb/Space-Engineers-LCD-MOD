@@ -13,10 +13,6 @@ namespace Graph.Helpers
             get
             {
                 var s = MyTexts.Get(MyStringId.GetOrCompute("Damaged")).ToString();
-
-                if (string.IsNullOrEmpty(s))
-                    return s;
-
                 return char.ToUpper(s[0], CultureInfo.CurrentCulture) + s.Substring(1);
             }
         }

@@ -182,6 +182,19 @@ namespace Graph.Apps.Abstract
 
         public virtual void DrawItems()
         {
+            var items = ReadItems(Block as IMyTerminalBlock);
+
+            if (items.Count == 0)
+            {
+                if (Config.SelectedCategories.Any() || Config.SelectedBlocks.Any() || Config.SelectedItems.Any() ||
+                    Config.SelectedGroups.Any() || Config.SelectedDefinition.Any() || Config.ReferenceBlock != 0)
+                    EmptyWithFilters();
+                else
+                    Empty();
+                
+                return;
+            }
+            
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
@@ -189,28 +202,15 @@ namespace Graph.Apps.Abstract
                 AddBackground(sprites);
                 DrawTitle(sprites);
                 DrawFooter(sprites);
-
-                var items = ReadItems(Block as IMyTerminalBlock);
-
-                if (items.Count == 0)
+                
+                switch (Config.DisplayMode)
                 {
-                    var margin = ViewBox.Size.X * Margin;
-                    Vector2 position = ViewBox.Position;
-                    position.X += margin;
-                    position.Y = CaretY;
-                    sprites.Add(MakeText((IMyTextSurface)Surface, LocHelper.Empty, ViewBox.Center, Scale, TextAlignment.CENTER));
-                }
-                else
-                {
-                    switch (Config.DisplayMode)
-                    {
-                        case DisplayMode.Legacy:
-                            DrawList(sprites, items);
-                            break;
-                        case DisplayMode.Grid:
-                            DrawGrid(sprites, items);
-                            break;
-                    }
+                    case DisplayMode.Legacy:
+                        DrawList(sprites, items);
+                        break;
+                    case DisplayMode.Grid:
+                        DrawGrid(sprites, items);
+                        break;
                 }
 
                 frame.AddRange(sprites);

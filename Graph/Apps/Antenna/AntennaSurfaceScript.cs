@@ -63,6 +63,15 @@ namespace Graph.Apps.Antenna
             if (!_collectors.Any())
                 BuildCollectors();
             
+            BuildEntries((IMyCubeGrid)Block?.CubeGrid, _entries);
+
+            if (_entries.Count == 0)
+            {
+                Empty();
+                return;
+            }
+                
+            
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
@@ -70,24 +79,16 @@ namespace Graph.Apps.Antenna
                 DrawTitle(sprites);
                 DrawFooter(sprites);
 
-                BuildEntries((IMyCubeGrid)Block?.CubeGrid, _entries);
-
-                if (_entries.Count == 0)
+                switch (Config.DisplayMode)
                 {
-                    sprites.Add(MakeText((IMyTextSurface)Surface, LocHelper.Empty, ViewBox.Center, Scale, TextAlignment.CENTER));
+                    case DisplayMode.Grid:
+                        DrawGridLike(sprites, _entries, false, Config.DrawLines, Config.DrawLines, Config.DrawLines);
+                        break;
+                    default:
+                        DrawDefaultView(sprites, _entries);
+                        break;
                 }
-                else
-                {
-                    switch (Config.DisplayMode)
-                    {
-                        case DisplayMode.Grid:
-                            DrawGridLike(sprites, _entries, false, Config.DrawLines, Config.DrawLines, Config.DrawLines);
-                            break;
-                        default:
-                            DrawDefaultView(sprites, _entries);
-                            break;
-                    }
-                }
+                
 
                 frame.AddRange(sprites);
             }
