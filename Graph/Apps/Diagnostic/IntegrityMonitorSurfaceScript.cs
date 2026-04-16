@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Graph.Apps.Abstract;
 using Graph.Extensions;
 using Graph.Helpers;
@@ -20,7 +21,8 @@ namespace Graph.Apps.Diagnostic
     {
         const int MAP_BUILD_BATCH_SIZE = 256;
 
-        static readonly Dictionary<GridPairKey, CachedGridMapEntry> GridMapCache = new Dictionary<GridPairKey, CachedGridMapEntry>();
+        static readonly Dictionary<GridPairKey, CachedGridMapEntry> GridMapCache =
+            new Dictionary<GridPairKey, CachedGridMapEntry>();
 
         public const string ID = "PreviewCharts";
         public const string TITLE = "BroadcastStatus_IsPreviewGrid";
@@ -28,9 +30,29 @@ namespace Graph.Apps.Diagnostic
         protected override string DefaultTitle => _customTitle ?? TITLE;
 
         string _customTitle;
+        readonly HashSet<CellKind> _legendUsedKinds = new HashSet<CellKind>();
+        bool _legendHasMissing, _legendHasDamaged;
 
+        readonly Dictionary<CellKind, string> _legendCategoryLocKeys = new Dictionary<CellKind, string>
+        {
+            { CellKind.None, "DisplayName_Category_ArmorBlocks" },
+            { CellKind.Thruster, "ControlMenuItemLabel_Thrusts" },
+            { CellKind.Power, "RadialMenuGroupTitle_Power" },
+            { CellKind.Gyro, "DisplayName_BlockGroup_Gyroscopes" },
+            { CellKind.Weapons, "DisplayName_BlueprintClass_Weapons" },
+            { CellKind.Gravity, "DisplayName_TSS_Gravity" },
+            { CellKind.Production, "RadialMenuGroupTitle_Production" }
+        };
+
+        const string MISSING_BLOCK_LOCKEY = "MissingBlock";
+        const string DAMAGED_BLOCK_LOCKEY = "UnfinishedBlock";
+        List<MySprite> _frameBuffer = new List<MySprite>();
+        DepthMap2D? _depthCache;
+        View _view;
 
         IMyProjector _projector;
+
+        int tick = 0;
 
         public IntegrityMonitorSurfaceScript(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface,
             block, size)
@@ -40,6 +62,7 @@ namespace Graph.Apps.Diagnostic
         protected override void LayoutChanged()
         {
             base.LayoutChanged();
+            _frameBuffer.Clear();
             CachedVersion = new DateTime();
             _customTitle = LocHelper.GetLoc("BroadcastStatus_IsPreviewGrid");
         }
@@ -47,6 +70,10 @@ namespace Graph.Apps.Diagnostic
         public override void Run()
         {
             base.Run();
+            FooterHeight = 0f;
+            _legendUsedKinds.Clear();
+            _legendHasMissing = false;
+            _legendHasDamaged = false;
 
             if (Config == null)
                 return;
@@ -57,6 +84,48 @@ namespace Graph.Apps.Diagnostic
             IMyCubeGrid grid = Block?.CubeGrid as IMyCubeGrid;
             FindProjector(grid, ref _projector);
 
+            if ((_projector == null || !_projector.IsFunctional || _projector.Closed)
+                && Config.ReferenceBlock != 0 
+                && _depthCache != null)
+            {
+                if (tick % 3 == 0)
+                {
+                    using (var frame = Surface.DrawFrame())
+                    {
+                        var sprites = new List<MySprite>();
+                        AddBackground(sprites);
+                        if (!_frameBuffer.Any())
+                        {
+                            DrawDepthMap(_frameBuffer, (DepthMap2D)_depthCache, _view,
+                                MathHelper.ToRadians(Config.Rotation), Config.Scale);
+                            DrawFooter(_frameBuffer);
+                        }
+
+                        sprites.AddRange(_frameBuffer);
+
+                        DrawTitle(sprites);
+
+                        if (tick == 3)
+                            DrawMessage(sprites,
+                                string.Format(
+                                    LocHelper.GetLoc(_projector != null && !_projector.IsFunctional
+                                        ? "SignalConnectivity_State_NotOperational"
+                                        : "SignalConnectivity_State_NoLaserLink"),
+                                    LocHelper.GetLoc("DisplayName_Block_Projector")), "Warning",
+                                Config.ErrorColor.MulValue(2).MulSaturation(2),
+                                Config.Scale);
+
+                        frame.AddRange(sprites);
+                    }
+                }
+
+                tick++;
+                if (tick == 6)
+                    tick = 0;
+
+                return;
+            }
+
             _customTitle = _projector?.CustomName ?? LocHelper.GetLoc("BroadcastStatus_IsPreviewGrid");
 
             if (_projector != null && !_projector.Enabled)
@@ -66,14 +135,17 @@ namespace Graph.Apps.Diagnostic
                     var sprites = new List<MySprite>();
                     AddBackground(sprites);
                     DrawTitle(sprites);
-                    DrawProjectorOffline(sprites, _projector.CustomName, Config.Scale);
+                    DrawMessage(sprites,
+                        (_projector.CustomName ?? string.Empty) + " " + LocHelper.GetLoc("AssemblerState_Disabled"),
+                        "GridPower", Config.WarningColor, Config.Scale);
                     DrawFooter(sprites);
                     frame.AddRange(sprites);
                 }
 
                 return;
             }
-            
+
+
             if (_projector?.ProjectedGrid == null || _projector.Closed)
             {
                 using (var frame = Surface.DrawFrame())
@@ -93,7 +165,7 @@ namespace Graph.Apps.Diagnostic
             try
             {
                 _customTitle = _projector?.ProjectedGrid?.CustomName;
-                
+
                 var map3D = GetOrUpdate3DMap(_projector);
 
                 if (map3D.LastUpdate.Ticks == 0)
@@ -107,24 +179,29 @@ namespace Graph.Apps.Diagnostic
                         DrawFooter(sprites);
                         frame.AddRange(sprites);
                     }
+
                     return;
                 }
-                
+
                 if (map3D.LastUpdate == CachedVersion)
                     return;
-                
+
                 CachedVersion = map3D.LastUpdate;
-                
-                var view = (View)Config.DisplayInternal;
-                DepthMap2D depth = BuildDepthMap(map3D.Cells, map3D.DamagedCells, map3D.CellTypes, view);
+
+                _view = (View)Config.DisplayInternal;
+                var depth = BuildDepthMap(map3D.Cells, map3D.DamagedCells, map3D.MissingCells, map3D.CellTypes, _view);
+                _depthCache = depth;
+
+                _frameBuffer.Clear();
+                DrawDepthMap(_frameBuffer, depth, _view, MathHelper.ToRadians(Config.Rotation), Config.Scale);
+                DrawFooter(_frameBuffer);
 
                 using (var frame = Surface.DrawFrame())
                 {
                     var sprites = new List<MySprite>();
                     AddBackground(sprites);
+                    sprites.AddRange(_frameBuffer);
                     DrawTitle(sprites);
-                    DrawDepthMap(sprites, depth, view, MathHelper.ToRadians(Config.Rotation), Config.Scale);
-                    DrawFooter(sprites);
                     frame.AddRange(sprites);
                 }
             }
@@ -133,13 +210,15 @@ namespace Graph.Apps.Diagnostic
                 using (var frame = Surface.DrawFrame())
                 {
                     var sprites = new List<MySprite>();
-                    
+
                     AddBackground(sprites);
                     DrawTitle(sprites);
-                    DrawError(sprites, e);
+                    DrawMessage(sprites, LocHelper.GetLoc("ScreenDebugOfficial_ErrorLogCaption") + "\n" + e.Message,
+                        "Warning", Config.ErrorColor, Config.Scale);
                     DrawFooter(sprites);
                     frame.AddRange(sprites);
                 }
+
                 return;
             }
         }
@@ -174,7 +253,11 @@ namespace Graph.Apps.Diagnostic
             }
 
             if (!hasMore)
+            {
+                entry.Updater.Dispose();
                 entry.Updater = null;
+            }
+               
 
             return entry.Current;
         }
@@ -185,7 +268,8 @@ namespace Graph.Apps.Diagnostic
                 yield break;
 
             var cells = new List<Vector3I>();
-            var damagedCells = new List<Vector3I>();
+            var missingCells = new HashSet<Vector3I>();
+            var damagedCells = new HashSet<Vector3I>();
             var cellTypes = new Dictionary<Vector3I, CellKind>();
 
             Vector3I a = projector.ProjectedGrid.Min;
@@ -226,7 +310,13 @@ namespace Graph.Apps.Diagnostic
                             {
                                 var reference = projector.ProjectedGrid.GetCubeBlock(projectedPos);
                                 var real = projector.CubeGrid.GetCubeBlock(realPos);
+                                
+                                var targetIntegrity = reference.Integrity;
+                                var realIntegrity = real.Integrity;
 
+                                if (targetIntegrity > realIntegrity) 
+                                    damagedCells.Add(realPos);
+                                
                                 isBroken = reference.GetType() != real.GetType();
 
                                 if (reference.FatBlock != null)
@@ -235,7 +325,7 @@ namespace Graph.Apps.Diagnostic
 
                             cells.Add(realPos);
                             if (isBroken)
-                                damagedCells.Add(realPos);
+                                missingCells.Add(realPos);
                         }
 
                         processed++;
@@ -248,7 +338,7 @@ namespace Graph.Apps.Diagnostic
                 }
             }
 
-            entry.Current = new CachedGridMap(cells, damagedCells, cellTypes, DateTime.Now);
+            entry.Current = new CachedGridMap(cells, missingCells, damagedCells, cellTypes, DateTime.Now);
         }
 
         void DrawDepthMap(List<MySprite> sprites, DepthMap2D depthMap, View view, float rotation = 0f, float scale = 1f)
@@ -273,7 +363,9 @@ namespace Graph.Apps.Diagnostic
 
             float mapScale = Math.Max(0.05f, scale);
             var cellColors = new Color?[depthMap.Width, depthMap.Height];
-            int realCellCount = 0;
+            var usedKinds = new HashSet<CellKind>();
+            bool hasDamaged = false;
+            bool hasMissing = false;
 
             for (int x = 0; x < depthMap.Width; x++)
             {
@@ -285,11 +377,18 @@ namespace Graph.Apps.Diagnostic
 
                     float shade = MathHelper.Clamp(percent.Value / 100f, 0f, 1f);
                     float value = (255 - (60f + shade * 195f)) / 255;
+                    bool isDamaged = depthMap.Damaged[x, y];
+                    bool isMissing = depthMap.Missing[x, y];
 
-                    var color =
-                        (depthMap.Damaged[x, y] ? Color.Red : GetColorForType(depthMap.CellType[x, y])).MulValue(value);
+                    if(isMissing)
+                        hasMissing = true;
+                    else if (isDamaged)
+                        hasDamaged = true;
+                    else
+                        usedKinds.Add(depthMap.CellType[x, y]);
+
+                    var color = (isMissing ? Color.Red : isDamaged ? Color.OrangeRed : GetColorForType(depthMap.CellType[x, y])).MulValue(value);
                     cellColors[x, y] = color;
-                    realCellCount++;
                 }
             }
 
@@ -319,17 +418,114 @@ namespace Graph.Apps.Diagnostic
             float cellHeight = cellSize;
 
             var root = BuildRenderTree(cellColors, 0, 0, renderWidth, renderHeight);
-            int quadLeafCount = EmitRenderTree(sprites, root, mapX, mapY, cellWidth, cellHeight, renderHeight, mapCenter, renderRotation, renderScale);
+            EmitRenderTree(sprites, root, mapX, mapY, cellWidth, cellHeight, renderHeight, mapCenter, renderRotation,
+                renderScale);
+            _legendUsedKinds.Clear();
+            foreach (var kind in usedKinds)
+                _legendUsedKinds.Add(kind);
+            _legendHasMissing = hasMissing;
+            _legendHasDamaged = hasDamaged;
+        }
+
+        protected override void DrawFooter(List<MySprite> sprites)
+        {
+            if (!_legendHasMissing && _legendUsedKinds.Count == 0)
+                return;
+
+            float margin = ViewBox.Width * Margin;
+            float contentStart = ViewBox.X + margin;
+            float contentEnd = ViewBox.X + ViewBox.Width - margin;
+            float contentWidth = Math.Max(1f, contentEnd - contentStart);
+
+            float squareSize = 12f * Scale;
+            float rowHeight = 18f * Scale;
+            float colWidth = 150f * Scale;
+            float pad = 6f * Scale;
+
+            int totalEntries = (_legendHasMissing ? 1 : 0) +
+                               (_legendUsedKinds.Contains(CellKind.None) ? 1 : 0) +
+                               _colors.Count(pair => _legendUsedKinds.Contains(pair.Key));
+            int cols = Math.Max(1, (int)Math.Floor(contentWidth / Math.Max(1f, colWidth)));
+            int rows = (int)Math.Ceiling(totalEntries / (float)cols);
+            float legendHeight = rows * rowHeight + pad * 2f;
+
+            float x = contentStart + pad;
+            float y = ViewBox.Bottom - legendHeight + pad;
+            int idx = 0;
+
+            if (_legendUsedKinds.Contains(CellKind.None))
+                DrawLegendEntryAt(sprites, idx++, cols, x, y, colWidth, rowHeight, squareSize, Color.Gray,
+                    GetLegendCaption(CellKind.None));
+
+                        
+            if (_legendHasMissing)
+                DrawLegendEntryAt(sprites, idx++, cols, x, y, colWidth, rowHeight, squareSize, Color.Red,
+                    LocHelper.GetLoc(MISSING_BLOCK_LOCKEY));
+            
+            if (_legendHasDamaged)
+                DrawLegendEntryAt(sprites, idx++, cols, x, y, colWidth, rowHeight, squareSize, Color.OrangeRed,
+                    LocHelper.GetLoc(DAMAGED_BLOCK_LOCKEY));
+
+
+            foreach (var pair in _colors)
+            {
+                if (!_legendUsedKinds.Contains(pair.Key))
+                    continue;
+                DrawLegendEntryAt(sprites, idx++, cols, x, y, colWidth, rowHeight, squareSize, pair.Value,
+                    GetLegendCaption(pair.Key));
+            }
+        }
+
+        string GetLegendCaption(CellKind kind)
+        {
+            string key;
+            if (_legendCategoryLocKeys.TryGetValue(kind, out key))
+                return LocHelper.GetLoc(key);
+
+            return kind.ToString();
+        }
+
+        void DrawLegendEntryAt(List<MySprite> sprites, int idx, int cols, float startX, float startY, float colWidth,
+            float rowHeight, float squareSize, Color color, string caption)
+        {
+            int col = idx % cols;
+            int row = idx / cols;
+            float x = startX + col * colWidth;
+            float y = startY + row * rowHeight;
+            AddLegendRow(sprites, x, y, colWidth, squareSize, color, caption);
+        }
+
+        void AddLegendRow(List<MySprite> sprites, float x, float y, float colWidth, float squareSize, Color color,
+            string caption)
+        {
+            var solid = new Color(color.R, color.G, color.B, 255);
+            float textScale = 0.75f * Scale;
+            float labelX = x + squareSize + 6f * Scale;
+            float availableTextWidth = Math.Max(0f, colWidth - (labelX - x) - 4f * Scale);
+            var captionSb = new StringBuilder(caption ?? string.Empty);
+            TrimText(ref captionSb, availableTextWidth, textScale / Scale);
+            string trimmedCaption = captionSb.ToString();
+            float textHeight = GetSizeInPixel(trimmedCaption, "White", textScale, Surface).Y;
+
+            sprites.Add(new MySprite
+            {
+                Type = SpriteType.TEXTURE,
+                Data = "SquareSimple",
+                Position = new Vector2(x + squareSize * 0.5f, y + squareSize * 0.5f),
+                Size = new Vector2(squareSize, squareSize),
+                Color = solid,
+                Alignment = TextAlignment.CENTER
+            });
 
             sprites.Add(new MySprite
             {
                 Type = SpriteType.TEXT,
-                Data = $"Cells: {realCellCount}  Quads: {quadLeafCount}  Sprites: {sprites.Count + 1}",
-                Position = new Vector2(contentStart + 6f * Scale, contentTop + 6f * Scale),
+                Data = trimmedCaption,
+                Position = new Vector2(labelX, y + squareSize * 0.5f - textHeight * 0.5f),
                 Color = Surface.ScriptForegroundColor,
                 Alignment = TextAlignment.LEFT,
                 FontId = "White",
-                RotationOrScale = 0.8f * Scale
+                RotationOrScale = textScale
             });
         }
 
@@ -346,16 +542,7 @@ namespace Graph.Apps.Diagnostic
             float outerSize = Math.Min(ViewBox.Width, contentHeight) * 0.28f * wheelScale;
             float innerSize = outerSize * 0.6f;
 
-            double seconds = 0;
-            try
-            {
-                if (MyAPIGateway.Session != null)
-                    seconds = MyAPIGateway.Session.ElapsedPlayTime.TotalSeconds;
-            }
-            catch
-            {
-            }
-
+            double seconds = MyAPIGateway.Session.ElapsedPlayTime.TotalSeconds;
             float outerRotation = (float)(seconds * 2.4);
             float innerRotation = -outerRotation;
 
@@ -393,7 +580,7 @@ namespace Graph.Apps.Diagnostic
             });
         }
 
-        void DrawProjectorOffline(List<MySprite> sprites, string projectorName, float scale = 1f)
+        void DrawMessage(List<MySprite> sprites, string message, string icon, Color color, float scale = 1f)
         {
             float contentTop = CaretY;
             float contentBottom = ViewBox.Bottom - FooterHeight;
@@ -402,76 +589,34 @@ namespace Graph.Apps.Diagnostic
                 return;
 
             var center = new Vector2(ViewBox.Center.X, contentTop + contentHeight * 0.45f);
-            float iconScale = Math.Max(0.05f, scale);
-            float iconSize = Math.Min(ViewBox.Width, contentHeight) * 0.28f * iconScale;
-            string message = (projectorName ?? string.Empty) + " " + LocHelper.GetLoc("AssemblerState_Disabled");
+            float iconSize = Math.Min(ViewBox.Width, contentHeight) * .6f * scale;
 
-            sprites.Add(new MySprite
+            var iconSprite = new MySprite
             {
                 Type = SpriteType.TEXTURE,
-                Data = "GridPower",
+                Data = icon,
                 Position = center,
                 Size = new Vector2(iconSize),
-                Color = Config.WarningColor,
+                Color = color,
                 Alignment = TextAlignment.CENTER
-            });
+            };
 
-            sprites.Add(new MySprite
+            var TextSprite = new MySprite
             {
                 Type = SpriteType.TEXT,
                 Data = message,
-                Position = new Vector2(center.X, center.Y + iconSize * 0.9f),
-                Color = Surface.ScriptForegroundColor,
+                Position = new Vector2(center.X, center.Y + (iconSize / 2)),
+                Color = color,
                 Alignment = TextAlignment.CENTER,
                 FontId = "White",
-                RotationOrScale = Scale
-            });
-        }
+                RotationOrScale = 1.5f * Scale
+            };
 
-        void DrawError(List<MySprite> sprites, Exception exception)
-        {
-            float contentTop = CaretY;
-            float contentBottom = ViewBox.Bottom - FooterHeight;
-            float contentHeight = Math.Max(0f, contentBottom - contentTop);
-            if (contentHeight <= 0f)
-                return;
+            sprites.Add(iconSprite.Shadow(2 * Scale));
+            sprites.Add(iconSprite);
 
-            var center = new Vector2(ViewBox.Center.X, contentTop + contentHeight * 0.4f);
-            float iconSize = Math.Min(ViewBox.Width, contentHeight) * 0.2f;
-            var caption = LocHelper.GetLoc("ScreenDebugOfficial_ErrorLogCaption");
-            var message = exception?.Message ?? "Unknown error";
-
-            sprites.Add(new MySprite
-            {
-                Type = SpriteType.TEXTURE,
-                Data = "Warning",
-                Position = center,
-                Size = new Vector2(iconSize),
-                Color = Config.ErrorColor,
-                Alignment = TextAlignment.CENTER
-            });
-
-            sprites.Add(new MySprite
-            {
-                Type = SpriteType.TEXT,
-                Data = caption,
-                Position = new Vector2(center.X, center.Y + iconSize * 0.8f),
-                Color = Config.ErrorColor,
-                Alignment = TextAlignment.CENTER,
-                FontId = "White",
-                RotationOrScale = Scale
-            });
-
-            sprites.Add(new MySprite
-            {
-                Type = SpriteType.TEXT,
-                Data = message,
-                Position = new Vector2(center.X, center.Y + iconSize * 1.35f),
-                Color = Surface.ScriptForegroundColor,
-                Alignment = TextAlignment.CENTER,
-                FontId = "White",
-                RotationOrScale = Scale * 0.9f
-            });
+            sprites.Add(TextSprite.Shadow(2 * Scale));
+            sprites.Add(TextSprite);
         }
 
         static Vector2 RotateAround(Vector2 point, Vector2 origin, float rotation)
@@ -613,7 +758,8 @@ namespace Graph.Apps.Diagnostic
 
             int count = 0;
             for (int i = 0; i < node.Children.Length; i++)
-                count += EmitRenderTree(sprites, node.Children[i], mapX, mapY, cellWidth, cellHeight, totalHeight, mapCenter, rotation, scale);
+                count += EmitRenderTree(sprites, node.Children[i], mapX, mapY, cellWidth, cellHeight, totalHeight,
+                    mapCenter, rotation, scale);
 
             return count;
         }
@@ -721,13 +867,13 @@ namespace Graph.Apps.Diagnostic
         Color GetColorForType(CellKind topType)
         {
             Color color;
-            if (Colors.TryGetValue(topType, out color))
+            if (_colors.TryGetValue(topType, out color))
                 return color;
 
             return Color.Gray;
         }
 
-        Dictionary<CellKind, Color> Colors = new Dictionary<CellKind, Color>()
+        Dictionary<CellKind, Color> _colors = new Dictionary<CellKind, Color>()
         {
             { CellKind.Thruster, new Color(0, 0, 255, 127) },
             { CellKind.Power, new Color(0, 255, 0, 127) },
@@ -740,12 +886,12 @@ namespace Graph.Apps.Diagnostic
 
         private static DepthMap2D BuildDepthMap(
             IEnumerable<Vector3I> cells,
-            IEnumerable<Vector3I> damagedCells,
+            HashSet<Vector3I> damagedSet,
+            HashSet<Vector3I> missingSet,
             IReadOnlyDictionary<Vector3I, CellKind> cellKinds,
             View view)
         {
             var axes = GetAxes(view);
-            var damagedSet = new HashSet<Vector3I>(damagedCells);
 
             var points = cells
                 .Select(p =>
@@ -761,6 +907,7 @@ namespace Graph.Apps.Diagnostic
                         V = axes.V(p),
                         D = axes.D(p),
                         Damaged = damagedSet.Contains(p),
+                        Missing = missingSet.Contains(p),
                         Kind = kind
                     };
                 })
@@ -772,6 +919,7 @@ namespace Graph.Apps.Diagnostic
                 {
                     Percent = new float?[0, 0],
                     Damaged = new bool[0, 0],
+                    Missing = new bool[0, 0],
                     CellType = new CellKind[0, 0],
                     Width = 0,
                     Height = 0,
@@ -792,6 +940,7 @@ namespace Graph.Apps.Diagnostic
 
             float?[,] percent = new float?[width, height];
             bool[,] damaged = new bool[width, height];
+            bool[,] missing = new bool[width, height];
             CellKind[,] topKind = new CellKind[width, height];
 
             int[,] bestDepth = new int[width, height];
@@ -818,6 +967,9 @@ namespace Graph.Apps.Diagnostic
                 // Damaged scans the whole column
                 if (p.Damaged)
                     damaged[x, y] = true;
+                
+                if (p.Missing)
+                    missing[x, y] = true;
 
                 // Front-most cell overall for Percent
                 if (!filled[x, y] || p.D < bestDepth[x, y])
@@ -855,6 +1007,7 @@ namespace Graph.Apps.Diagnostic
             {
                 Percent = percent,
                 Damaged = damaged,
+                Missing = missing,
                 CellType = topKind,
                 Width = width,
                 Height = height,
@@ -944,6 +1097,7 @@ namespace Graph.Apps.Diagnostic
     {
         public float?[,] Percent;
         public bool[,] Damaged;
+        public bool[,] Missing;
         public CellKind[,] CellType;
         public int Width;
         public int Height;
@@ -1007,20 +1161,24 @@ namespace Graph.Apps.Diagnostic
     {
         public static readonly CachedGridMap Empty = new CachedGridMap(
             new List<Vector3I>(),
-            new List<Vector3I>(),
+            new HashSet<Vector3I>(),
+            new HashSet<Vector3I>(),
             new Dictionary<Vector3I, CellKind>(),
             new DateTime(0));
 
         public readonly List<Vector3I> Cells;
-        public readonly List<Vector3I> DamagedCells;
+        public readonly HashSet<Vector3I> MissingCells;
+        public readonly HashSet<Vector3I> DamagedCells;
         public readonly Dictionary<Vector3I, CellKind> CellTypes;
         public readonly DateTime LastUpdate;
 
         public CachedGridMap(List<Vector3I> cells,
-            List<Vector3I> damagedCells,
+            HashSet<Vector3I> missingCells,
+            HashSet<Vector3I> damagedCells,
             Dictionary<Vector3I, CellKind> cellTypes, DateTime now)
         {
             Cells = cells;
+            MissingCells = missingCells;
             DamagedCells = damagedCells;
             CellTypes = cellTypes;
             LastUpdate = now;

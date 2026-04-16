@@ -89,7 +89,7 @@ namespace Graph.System.Antenna
                 return GetLocCached("AssemblerState_Disabled");
 
             if (!laserAntenna.IsFunctional)
-                return GetLocCached("Module_Damaged");
+                return GetLocCached("Damaged");
 
             switch (laserAntenna.Status)
             {

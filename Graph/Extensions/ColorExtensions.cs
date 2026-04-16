@@ -28,6 +28,13 @@ namespace Graph.Extensions
             return Invert(color.Value);
         }
         
+        public static Color MulSaturation(this Color color, float value)
+        {
+            var hsv = color.ColorToHSV();
+            hsv.Y *= value;
+            return hsv.HSVtoColor();
+        }
+        
         public static Color MulValue(this Color color, float value)
         {
             var hsv = color.ColorToHSV();

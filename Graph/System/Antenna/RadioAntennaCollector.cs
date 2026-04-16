@@ -64,7 +64,7 @@ namespace Graph.System.Antenna
                 return GetLocCached("AssemblerState_Disabled");
 
             if (!radioAntenna.IsFunctional)
-                return GetLocCached("Module_Damaged");
+                return GetLocCached("Damaged");
 
             var sb = new StringBuilder();
             sb.AppendLine(string.IsNullOrWhiteSpace(radioAntenna.HudText)

@@ -443,6 +443,7 @@ namespace Graph.Apps.Abstract
             InvalidateTitleCache();
             Scale = GetAutoScaleUniform();
             UpdateViewBox();
+            _backgroundGrids.Clear();
         }
 
         protected string GetCachedTitleText(float availableWidth, float fontSize = 1.3f, bool localizeTitle = false)
