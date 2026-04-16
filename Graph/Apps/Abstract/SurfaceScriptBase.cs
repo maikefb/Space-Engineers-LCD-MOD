@@ -55,7 +55,21 @@ namespace Graph.Apps.Abstract
 
         protected const float TITLE_BAR_HEIGHT_BASE = 40f;
 
-        public virtual string Title => DefaultTitle;
+
+        protected string LocalizedTitleCache = string.Empty;
+        
+
+        public virtual string Title
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(LocalizedTitleCache))
+                    LocalizedTitleCache = MyTexts.GetString(DefaultTitle);
+
+                return LocalizedTitleCache;
+            }
+        }
+
         protected virtual string DefaultTitle => "|";
 
         protected float Scale = 1;
@@ -449,6 +463,7 @@ namespace Graph.Apps.Abstract
             _userScale = Config.Scale;
             _backgroundColor = BackgroundColor;
             _foregroundColor = ForegroundColor;
+            LocalizedTitleCache = string.Empty;
             TitleVisible = Config.TitleVisible;
             InvalidateTitleCache();
             Scale = GetAutoScaleUniform();

@@ -39,8 +39,6 @@ namespace Graph.Apps.Abstract
             }
         }
 
-        string _localizedTitleCache = string.Empty;
-
         protected readonly Dictionary<MyItemType, string> LocKeysCache = new Dictionary<MyItemType, string>();
 
         string[] _selectedCategories;
@@ -50,10 +48,10 @@ namespace Graph.Apps.Abstract
             get
             {
                 if (_selectedCategories != Config?.SelectedCategories)
-                    _localizedTitleCache = string.Empty;
+                    LocalizedTitleCache = string.Empty;
 
-                if (!string.IsNullOrEmpty(_localizedTitleCache))
-                    return _localizedTitleCache;
+                if (!string.IsNullOrEmpty(LocalizedTitleCache))
+                    return LocalizedTitleCache;
 
                 if (Config?.SelectedCategories != null)
                 {
@@ -65,14 +63,14 @@ namespace Graph.Apps.Abstract
                     if (sb.Length != 0)
                     {
                         sb.Length -= 2;
-                        _localizedTitleCache = sb.ToString();
+                        LocalizedTitleCache = sb.ToString();
                     }
                 }
 
-                if (string.IsNullOrEmpty(_localizedTitleCache))
-                    _localizedTitleCache = MyTexts.GetString(DefaultTitle);
+                if (string.IsNullOrEmpty(LocalizedTitleCache))
+                    LocalizedTitleCache = MyTexts.GetString(DefaultTitle);
 
-                return _localizedTitleCache;
+                return LocalizedTitleCache;
             }
         }
 
@@ -179,7 +177,7 @@ namespace Graph.Apps.Abstract
         {
             base.LayoutChanged();
             LocKeysCache.Clear();
-            _localizedTitleCache = string.Empty;
+            LocalizedTitleCache = string.Empty;
         }
 
         public virtual void DrawItems()
