@@ -205,7 +205,7 @@ namespace Graph.Apps.Abstract
                 {
                     switch (Config.DisplayMode)
                     {
-                        case DisplayMode.Default:
+                        case DisplayMode.Legacy:
                             DrawList(sprites, items);
                             break;
                         case DisplayMode.Grid:

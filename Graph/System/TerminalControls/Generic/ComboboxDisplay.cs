@@ -80,18 +80,19 @@ namespace Graph.System.TerminalControls.Generic
                 });
                 return;
             }
-
+            
             obj.Add(new MyTerminalControlComboBoxItem
             {
                 Key = 0,
-                Value = MyStringId.GetOrCompute("GamepadScheme_Default")
+                Value = MyStringId.GetOrCompute("LCD_Grid")
             });
-
+            
             obj.Add(new MyTerminalControlComboBoxItem
             {
                 Key = 1,
-                Value = MyStringId.GetOrCompute("LCD_Grid")
+                Value = MyStringId.GetOrCompute("StoryTitle_MinerStories12")
             });
+
         }
 
         void Setter(IMyTerminalBlock block, long l)
