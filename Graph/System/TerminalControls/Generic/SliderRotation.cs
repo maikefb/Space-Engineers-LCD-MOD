@@ -25,7 +25,6 @@ namespace Graph.System.TerminalControls.Generic
             slider.SetLimits(0, 359);
             slider.Writer = Writer;
             slider.Title = MyStringId.GetOrCompute("BlockPropertyTitle_ProjectionRotationY");
-
             TerminalControl = slider;
         }
 
@@ -40,7 +39,7 @@ namespace Graph.System.TerminalControls.Generic
             if (config == null)
                 return;
 
-            config.Rotation = value;
+            config.Rotation = (int)(value/5) * 5;
             ConfigManager.Sync(block);
         }
 

@@ -26,7 +26,7 @@ namespace Graph.Apps.Inventory
 
         public string[] AllowedTypes = { "Component" };
 
-        public override string Title => TITLE;
+        protected override string DefaultTitle => _customTitle ?? TITLE;
 
         string _customTitle;
 

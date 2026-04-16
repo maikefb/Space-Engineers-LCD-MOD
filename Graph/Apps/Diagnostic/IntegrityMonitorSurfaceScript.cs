@@ -25,7 +25,10 @@ namespace Graph.Apps.Diagnostic
         public const string ID = "PreviewCharts";
         public const string TITLE = "BroadcastStatus_IsPreviewGrid";
 
-        public virtual string Title => LocHelper.GetLoc(TITLE);
+        protected override string DefaultTitle => _customTitle ?? TITLE;
+
+        string _customTitle;
+
 
         IMyProjector _projector;
 
@@ -38,6 +41,7 @@ namespace Graph.Apps.Diagnostic
         {
             base.LayoutChanged();
             CachedVersion = new DateTime();
+            _customTitle = LocHelper.GetLoc("BroadcastStatus_IsPreviewGrid");
         }
 
         public override void Run()
@@ -53,6 +57,22 @@ namespace Graph.Apps.Diagnostic
             IMyCubeGrid grid = Block?.CubeGrid as IMyCubeGrid;
             FindProjector(grid, ref _projector);
 
+            _customTitle = _projector?.CustomName ?? LocHelper.GetLoc("BroadcastStatus_IsPreviewGrid");
+
+            if (_projector != null && !_projector.Enabled)
+            {
+                using (var frame = Surface.DrawFrame())
+                {
+                    var sprites = new List<MySprite>();
+                    DrawTitle(sprites);
+                    DrawProjectorOffline(sprites, _projector.CustomName, Config.Scale);
+                    DrawFooter(sprites);
+                    frame.AddRange(sprites);
+                }
+
+                return;
+            }
+            
             if (_projector?.ProjectedGrid == null || _projector.Closed)
             {
                 using (var frame = Surface.DrawFrame())
@@ -70,6 +90,8 @@ namespace Graph.Apps.Diagnostic
 
             try
             {
+                _customTitle = _projector?.ProjectedGrid?.CustomName;
+                
                 var map3D = GetOrUpdate3DMap(_projector);
 
                 if (map3D.LastUpdate.Ticks == 0)
@@ -78,7 +100,7 @@ namespace Graph.Apps.Diagnostic
                     {
                         var sprites = new List<MySprite>();
                         DrawTitle(sprites);
-                        DrawNotReady(sprites);
+                        DrawNotReady(sprites, Config.Scale);
                         DrawFooter(sprites);
                         frame.AddRange(sprites);
                     }
@@ -90,13 +112,14 @@ namespace Graph.Apps.Diagnostic
                 
                 CachedVersion = map3D.LastUpdate;
                 
-                DepthMap2D depth = BuildDepthMap(map3D.Cells, map3D.DamagedCells, map3D.CellTypes, (View)Config.DisplayInternal);
+                var view = (View)Config.DisplayInternal;
+                DepthMap2D depth = BuildDepthMap(map3D.Cells, map3D.DamagedCells, map3D.CellTypes, view);
 
                 using (var frame = Surface.DrawFrame())
                 {
                     var sprites = new List<MySprite>();
                     DrawTitle(sprites);
-                    DrawDepthMap(sprites, depth, MathHelper.ToRadians(Config.Rotation), Config.Scale);
+                    DrawDepthMap(sprites, depth, view, MathHelper.ToRadians(Config.Rotation), Config.Scale);
                     DrawFooter(sprites);
                     frame.AddRange(sprites);
                 }
@@ -222,7 +245,7 @@ namespace Graph.Apps.Diagnostic
             entry.Current = new CachedGridMap(cells, damagedCells, cellTypes, DateTime.Now);
         }
 
-        void DrawDepthMap(List<MySprite> sprites, DepthMap2D depthMap, float rotation = 0f, float scale = 1f)
+        void DrawDepthMap(List<MySprite> sprites, DepthMap2D depthMap, View view, float rotation = 0f, float scale = 1f)
         {
             if (depthMap.Width <= 0 || depthMap.Height <= 0)
             {
@@ -242,18 +265,9 @@ namespace Graph.Apps.Diagnostic
             if (contentWidth <= 0f || contentHeight <= 0f)
                 return;
 
-            float baseCellSize = Math.Min(contentWidth / depthMap.Width, contentHeight / depthMap.Height);
-            float baseMapWidth = depthMap.Width * baseCellSize;
-            float baseMapHeight = depthMap.Height * baseCellSize;
-
             float mapScale = Math.Max(0.05f, scale);
-            float mapWidth = baseMapWidth * mapScale;
-            float mapHeight = baseMapHeight * mapScale;
-            float mapX = contentStart + (contentWidth - mapWidth) * 0.5f;
-            float mapY = contentTop + (contentHeight - mapHeight) * 0.5f;
-            var mapCenter = new Vector2(mapX + mapWidth * 0.5f, mapY + mapHeight * 0.5f);
-            float cellWidth = mapWidth / depthMap.Width;
-            float cellHeight = mapHeight / depthMap.Height;
+            var cellColors = new Color?[depthMap.Width, depthMap.Height];
+            int realCellCount = 0;
 
             for (int x = 0; x < depthMap.Width; x++)
             {
@@ -268,25 +282,52 @@ namespace Graph.Apps.Diagnostic
 
                     var color =
                         (depthMap.Damaged[x, y] ? Color.Red : GetColorForType(depthMap.CellType[x, y])).MulValue(value);
-                    float drawX = mapX + x * cellWidth;
-                    float drawY = mapY + (depthMap.Height - 1 - y) * cellHeight;
-                    var cellCenter = new Vector2(drawX + cellWidth * 0.5f, drawY + cellHeight * 0.5f);
-
-                    sprites.Add(new MySprite
-                    {
-                        Type = SpriteType.TEXTURE,
-                        Data = "SquareSimple",
-                        Position = RotateAround(cellCenter, mapCenter, rotation),
-                        Size = new Vector2(cellWidth * 1.02f, cellHeight * 1.02f),
-                        Color = color,
-                        Alignment = TextAlignment.CENTER,
-                        RotationOrScale = rotation
-                    });
+                    cellColors[x, y] = color;
+                    realCellCount++;
                 }
             }
+
+            float adjustedRotation = IsPositiveView(view) ? -rotation : rotation;
+            float snappedRotation = SnapAngle(adjustedRotation, MathHelper.ToRadians(2f));
+            float renderRotation = snappedRotation;
+            float renderScale = 1.05f;
+            if (IsRightAngleMultiple(snappedRotation))
+            {
+                float squareRotation = snappedRotation;
+                cellColors = RotateColorGridNearestSquare(cellColors, squareRotation);
+                renderRotation = 0f;
+                renderScale = 1;
+            }
+
+            int renderWidth = cellColors.GetLength(0);
+            int renderHeight = cellColors.GetLength(1);
+            int squareFitSide = Math.Max(depthMap.Width, depthMap.Height);
+            squareFitSide = Math.Max(1, squareFitSide);
+            float cellSize = Math.Min(contentWidth / squareFitSide, contentHeight / squareFitSide) * mapScale;
+            float mapWidth = renderWidth * cellSize;
+            float mapHeight = renderHeight * cellSize;
+            float mapX = contentStart + (contentWidth - mapWidth) * 0.5f;
+            float mapY = contentTop + (contentHeight - mapHeight) * 0.5f;
+            var mapCenter = new Vector2(mapX + mapWidth * 0.5f, mapY + mapHeight * 0.5f);
+            float cellWidth = cellSize;
+            float cellHeight = cellSize;
+
+            var root = BuildRenderTree(cellColors, 0, 0, renderWidth, renderHeight);
+            int quadLeafCount = EmitRenderTree(sprites, root, mapX, mapY, cellWidth, cellHeight, renderHeight, mapCenter, renderRotation, renderScale);
+
+            sprites.Add(new MySprite
+            {
+                Type = SpriteType.TEXT,
+                Data = $"Cells: {realCellCount}  Quads: {quadLeafCount}  Sprites: {sprites.Count + 1}",
+                Position = new Vector2(contentStart + 6f * Scale, contentTop + 6f * Scale),
+                Color = Surface.ScriptForegroundColor,
+                Alignment = TextAlignment.LEFT,
+                FontId = "White",
+                RotationOrScale = 0.8f * Scale
+            });
         }
 
-        void DrawNotReady(List<MySprite> sprites)
+        void DrawNotReady(List<MySprite> sprites, float scale = 1f)
         {
             float contentTop = CaretY;
             float contentBottom = ViewBox.Bottom - FooterHeight;
@@ -295,7 +336,8 @@ namespace Graph.Apps.Diagnostic
                 return;
 
             var center = new Vector2(ViewBox.Center.X, contentTop + contentHeight * 0.45f);
-            float outerSize = Math.Min(ViewBox.Width, contentHeight) * 0.28f;
+            float wheelScale = Math.Max(0.05f, scale);
+            float outerSize = Math.Min(ViewBox.Width, contentHeight) * 0.28f * wheelScale;
             float innerSize = outerSize * 0.6f;
 
             double seconds = 0;
@@ -338,6 +380,41 @@ namespace Graph.Apps.Diagnostic
                 Type = SpriteType.TEXT,
                 Data = LocHelper.GetLoc("LoadingPleaseWait"),
                 Position = new Vector2(center.X, center.Y + outerSize * 0.9f),
+                Color = Surface.ScriptForegroundColor,
+                Alignment = TextAlignment.CENTER,
+                FontId = "White",
+                RotationOrScale = Scale
+            });
+        }
+
+        void DrawProjectorOffline(List<MySprite> sprites, string projectorName, float scale = 1f)
+        {
+            float contentTop = CaretY;
+            float contentBottom = ViewBox.Bottom - FooterHeight;
+            float contentHeight = Math.Max(0f, contentBottom - contentTop);
+            if (contentHeight <= 0f)
+                return;
+
+            var center = new Vector2(ViewBox.Center.X, contentTop + contentHeight * 0.45f);
+            float iconScale = Math.Max(0.05f, scale);
+            float iconSize = Math.Min(ViewBox.Width, contentHeight) * 0.28f * iconScale;
+            string message = (projectorName ?? string.Empty) + " " + LocHelper.GetLoc("AssemblerState_Disabled");
+
+            sprites.Add(new MySprite
+            {
+                Type = SpriteType.TEXTURE,
+                Data = "GridPower",
+                Position = center,
+                Size = new Vector2(iconSize),
+                Color = Config.WarningColor,
+                Alignment = TextAlignment.CENTER
+            });
+
+            sprites.Add(new MySprite
+            {
+                Type = SpriteType.TEXT,
+                Data = message,
+                Position = new Vector2(center.X, center.Y + iconSize * 0.9f),
                 Color = Surface.ScriptForegroundColor,
                 Alignment = TextAlignment.CENTER,
                 FontId = "White",
@@ -404,6 +481,207 @@ namespace Graph.Apps.Diagnostic
                 delta.X * cos - delta.Y * sin,
                 delta.X * sin + delta.Y * cos
             ) + origin;
+        }
+
+        static RenderQuadNode BuildRenderTree(Color?[,] colors, int x, int y, int width, int height)
+        {
+            if (width <= 0 || height <= 0)
+                return null;
+
+            Color? first = colors[x, y];
+            bool allSame = true;
+
+            for (int ix = x; ix < x + width && allSame; ix++)
+            {
+                for (int iy = y; iy < y + height; iy++)
+                {
+                    if (colors[ix, iy] != first)
+                    {
+                        allSame = false;
+                        break;
+                    }
+                }
+            }
+
+            if (allSame)
+            {
+                if (!first.HasValue)
+                    return null;
+
+                return new RenderQuadNode
+                {
+                    X = x,
+                    Y = y,
+                    Width = width,
+                    Height = height,
+                    Color = first,
+                    Children = null
+                };
+            }
+
+            if (width == 1 && height == 1)
+            {
+                if (!first.HasValue)
+                    return null;
+
+                return new RenderQuadNode
+                {
+                    X = x,
+                    Y = y,
+                    Width = 1,
+                    Height = 1,
+                    Color = first,
+                    Children = null
+                };
+            }
+
+            int leftWidth = width / 2;
+            int rightWidth = width - leftWidth;
+            int bottomHeight = height / 2;
+            int topHeight = height - bottomHeight;
+
+            var children = new List<RenderQuadNode>(4);
+            AddChild(children, BuildRenderTree(colors, x, y, leftWidth, bottomHeight));
+            AddChild(children, BuildRenderTree(colors, x + leftWidth, y, rightWidth, bottomHeight));
+            AddChild(children, BuildRenderTree(colors, x, y + bottomHeight, leftWidth, topHeight));
+            AddChild(children, BuildRenderTree(colors, x + leftWidth, y + bottomHeight, rightWidth, topHeight));
+
+            if (children.Count == 0)
+                return null;
+
+            if (children.Count == 1)
+                return children[0];
+
+            return new RenderQuadNode
+            {
+                X = x,
+                Y = y,
+                Width = width,
+                Height = height,
+                Children = children.ToArray(),
+                Color = null
+            };
+        }
+
+        static void AddChild(List<RenderQuadNode> children, RenderQuadNode node)
+        {
+            if (node != null)
+                children.Add(node);
+        }
+
+        static int EmitRenderTree(
+            List<MySprite> sprites,
+            RenderQuadNode node,
+            float mapX,
+            float mapY,
+            float cellWidth,
+            float cellHeight,
+            int totalHeight,
+            Vector2 mapCenter,
+            float rotation,
+            float scale = 1f)
+        {
+            if (node == null)
+                return 0;
+
+            if (node.IsLeaf)
+            {
+                float drawX = mapX + node.X * cellWidth;
+                float drawY = mapY + (totalHeight - (node.Y + node.Height)) * cellHeight;
+                float rectWidth = node.Width * cellWidth;
+                float rectHeight = node.Height * cellHeight;
+                var rectCenter = new Vector2(drawX + rectWidth * 0.5f, drawY + rectHeight * 0.5f);
+
+                sprites.Add(new MySprite
+                {
+                    Type = SpriteType.TEXTURE,
+                    Data = "SquareSimple",
+                    Position = RotateAround(rectCenter, mapCenter, rotation),
+                    Size = new Vector2(rectWidth * scale, rectHeight * scale),
+                    Color = node.Color,
+                    Alignment = TextAlignment.CENTER,
+                    RotationOrScale = rotation
+                });
+                return 1;
+            }
+
+            int count = 0;
+            for (int i = 0; i < node.Children.Length; i++)
+                count += EmitRenderTree(sprites, node.Children[i], mapX, mapY, cellWidth, cellHeight, totalHeight, mapCenter, rotation, scale);
+
+            return count;
+        }
+
+        static Color?[,] RotateColorGridNearestSquare(Color?[,] source, float rotation)
+        {
+            int width = source.GetLength(0);
+            int height = source.GetLength(1);
+            if (width <= 0 || height <= 0)
+                return new Color?[0, 0];
+
+            int side = Math.Max(width, height);
+            var square = new Color?[side, side];
+            int offX = (side - width) / 2;
+            int offY = (side - height) / 2;
+            for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
+                square[x + offX, y + offY] = source[x, y];
+
+            float sin = (float)Math.Sin(rotation);
+            float cos = (float)Math.Cos(rotation);
+            var rotated = new Color?[side, side];
+            float srcCx = (side - 1) * 0.5f;
+            float srcCy = (side - 1) * 0.5f;
+            float dstCx = srcCx;
+            float dstCy = srcCy;
+
+            for (int x = 0; x < side; x++)
+            {
+                for (int y = 0; y < side; y++)
+                {
+                    float dx = x - dstCx;
+                    float dy = y - dstCy;
+
+                    // Screen/grid space here is Y-down, so inverse sampling uses this sign convention.
+                    float srcXf = dx * cos - dy * sin + srcCx;
+                    float srcYf = dx * sin + dy * cos + srcCy;
+
+                    int sx = (int)Math.Round(srcXf);
+                    int sy = (int)Math.Round(srcYf);
+
+                    if (sx < 0 || sx >= side || sy < 0 || sy >= side)
+                        continue;
+
+                    rotated[x, y] = square[sx, sy];
+                }
+            }
+
+            return rotated;
+        }
+
+        static bool IsRightAngleMultiple(float rotation)
+        {
+            double quarterTurns = rotation / (Math.PI * 0.5);
+            return Math.Abs(quarterTurns - Math.Round(quarterTurns)) < 0.001;
+        }
+
+        static bool IsPositiveView(View view)
+        {
+            return view == View.Xpos || view == View.Ypos || view == View.Zpos;
+        }
+
+        static float SnapAngle(float rotation, float step)
+        {
+            if (step <= 0f)
+                return rotation;
+
+            return (float)(Math.Round(rotation / step) * step);
+        }
+
+
+        static Vector2 RotatePoint(Vector2 v, float sin, float cos)
+        {
+            return new Vector2(v.X * cos - v.Y * sin, v.X * sin + v.Y * cos);
         }
 
         private static CellKind GetCellKind(Type topType)
@@ -605,7 +883,7 @@ namespace Graph.Apps.Diagnostic
                 case View.Xpos: // looking from +X toward -X
                     return new ViewAxes
                     {
-                        U = p => p.Z,
+                        U = p => -p.Z,
                         V = p => p.Y,
                         D = p => -p.X
                     };
@@ -621,7 +899,7 @@ namespace Graph.Apps.Diagnostic
                 case View.Ypos: // looking from +Y toward -Y
                     return new ViewAxes
                     {
-                        U = p => p.X,
+                        U = p => -p.X,
                         V = p => p.Z,
                         D = p => -p.Y
                     };
@@ -637,7 +915,7 @@ namespace Graph.Apps.Diagnostic
                 case View.Zpos: // looking from +Z toward -Z
                     return new ViewAxes
                     {
-                        U = p => p.X,
+                        U = p => -p.X,
                         V = p => p.Y,
                         D = p => -p.Z
                     };
@@ -747,5 +1025,20 @@ namespace Graph.Apps.Diagnostic
     {
         public CachedGridMap Current = CachedGridMap.Empty;
         public IEnumerator<bool> Updater;
+    }
+
+    class RenderQuadNode
+    {
+        public int X;
+        public int Y;
+        public int Width;
+        public int Height;
+        public Color? Color;
+        public RenderQuadNode[] Children;
+
+        public bool IsLeaf
+        {
+            get { return Children == null || Children.Length == 0; }
+        }
     }
 }
