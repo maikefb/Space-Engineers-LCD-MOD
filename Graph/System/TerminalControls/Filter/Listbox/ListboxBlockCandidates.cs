@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Graph.Apps.Antenna;
 using Graph.Apps.Inventory;
+using Graph.Apps.Refinery;
 using Graph.Helpers;
 using Graph.System.Config;
 using Sandbox.ModAPI;
@@ -84,9 +85,9 @@ namespace Graph.System.TerminalControls.Filter.Listbox
         {
             var fat = block?.FatBlock;
 
-            if (fat == null ||  // Check if is a Terminal block
-                config.SelectedBlocks.Contains(fat.EntityId) || // Block isn't already selected
-                fat.GetUserRelationToOwner(referenceBlock.OwnerId) > MyRelationsBetweenPlayerAndBlock.FactionShare)  // Checking if it has access
+            if (fat == null ||  
+                config.SelectedBlocks.Contains(fat.EntityId) || 
+                fat.GetUserRelationToOwner(referenceBlock.OwnerId) > MyRelationsBetweenPlayerAndBlock.FactionShare)  
                 return false;
 
             switch (script)
@@ -94,10 +95,13 @@ namespace Graph.System.TerminalControls.Filter.Listbox
                 case InventoryLcdSurfaceScript.ID:
                 case ProjectorLcdSurfaceScript.ID:
                 case CargoFilledSurfaceScript.ID:
-                    return fat.HasInventory; // Check if block that have inventory
-                
+                    return fat.HasInventory; 
+
+                case RefineryQueueSurfaceScript.ID:
+                    return fat is IMyRefinery || fat is IMyAssembler; 
+
                 case AntennaSurfaceScript.ID:
-                    return fat is IMyLaserAntenna || fat is IMyRadioAntenna || fat is IMyBeacon; // check if block is a valid antenna
+                    return fat is IMyLaserAntenna || fat is IMyRadioAntenna || fat is IMyBeacon; 
 
                 default:
                     throw new Exception("Unhandled filter for script type: " + script);

@@ -1,5 +1,6 @@
 using Graph.Apps.Antenna;
 using Graph.Apps.Inventory;
+using Graph.Apps.Refinery;
 
 namespace Graph.System.TerminalControls.Filter
 {
@@ -7,6 +8,6 @@ namespace Graph.System.TerminalControls.Filter
     {
         protected override string[] VisibleForScripts => DefaultVisibility;
         protected string[] InventoryOnlyVisibility { get; } = { InventoryLcdSurfaceScript.ID };
-        protected string[] DefaultVisibility { get; } = { InventoryLcdSurfaceScript.ID, ProjectorLcdSurfaceScript.ID, CargoFilledSurfaceScript.ID, AntennaSurfaceScript.ID };
+        protected string[] DefaultVisibility { get; } = { InventoryLcdSurfaceScript.ID, RefineryQueueSurfaceScript.ID, ProjectorLcdSurfaceScript.ID, CargoFilledSurfaceScript.ID, AntennaSurfaceScript.ID };
     }
 }

@@ -1,6 +1,7 @@
 using Graph.Apps.Antenna;
 using Graph.Apps.Inventory;
 using Graph.Apps.Power;
+using Graph.Apps.Refinery;
 using Graph.System.Config;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
@@ -13,6 +14,7 @@ namespace Graph.System.TerminalControls.Generic
         protected override string[] VisibleForScripts { get; } =
         {
             InventoryLcdSurfaceScript.ID,
+            RefineryQueueSurfaceScript.ID,
             ProjectorLcdSurfaceScript.ID,
             RenewablePowerSurfaceScript.ID,
             GeneratorsSurfaceScript.ID,

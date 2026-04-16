@@ -5,6 +5,7 @@ using Graph.Helpers;
 using Graph.System.Config;
 using Sandbox.ModAPI;
 using VRage.Game;
+using VRage.Game.ModAPI;
 using VRage.Game.ModAPI.Ingame;
 using IMyCubeGrid = VRage.Game.ModAPI.IMyCubeGrid;
 using IMySlimBlock = VRage.Game.ModAPI.IMySlimBlock;
@@ -47,6 +48,9 @@ namespace Graph.System
 
         readonly Dictionary<MyItemType, double> _compCache = new Dictionary<MyItemType, double>();
 
+        readonly Dictionary<SearchQueryToken, Dictionary<MyItemType, double>> _refineryInputQueryCache  = new Dictionary<SearchQueryToken, Dictionary<MyItemType, double>>();
+        readonly Dictionary<SearchQueryToken, Dictionary<MyItemType, double>> _refineryOutputQueryCache = new Dictionary<SearchQueryToken, Dictionary<MyItemType, double>>();
+
         /// <summary>
         /// Logic attached to <see cref="grid"/>
         /// </summary>
@@ -73,6 +77,8 @@ namespace Graph.System
                 _compCache.Clear();
                 _invBlocks.Clear();
                 _queryCache.Clear();
+                _refineryInputQueryCache.Clear();
+                _refineryOutputQueryCache.Clear();
                 _lasers.Clear();
                 _radio.Clear();
                 _beacons.Clear();
@@ -247,6 +253,94 @@ namespace Graph.System
         {
             RefreshIfNeeded();
             return _beacons;
+        }
+
+        /// <summary>
+        /// Collects items from a single inventory slot of refineries, respecting block/group selection.
+        /// </summary>
+        /// <param name="inventoryIndex">0 = input (ores), 1 = output (ingots)</param>
+        /// <param name="config">Screen config used to filter selected blocks/groups.</param>
+        /// <param name="referenceBlock">LCD block used for ownership/grid-group checks.</param>
+        /// <returns>Item type/amount dictionary for the requested slot; empty if no refineries found.</returns>
+        public Dictionary<MyItemType, double> GetRefineryItems(int inventoryIndex, ScreenConfig config, IMyTerminalBlock referenceBlock)
+        {
+            if (inventoryIndex != 0 && inventoryIndex != 1)
+                return new Dictionary<MyItemType, double>();
+
+            try
+            {
+                SearchQueryToken token      = SearchQueryToken.GetToken(config);
+                var              queryCache = inventoryIndex == 0 ? _refineryInputQueryCache : _refineryOutputQueryCache;
+
+                Dictionary<MyItemType, double> cache;
+                if (queryCache.TryGetValue(token, out cache))
+                    return cache;
+
+                cache = new Dictionary<MyItemType, double>();
+
+                // Build refinery block list, respecting SelectedBlocks / SelectedGroups
+                List<IMyTerminalBlock> blocks;
+                if (config.SelectedBlocks.Length == 0 && config.SelectedGroups.Length == 0)
+                {
+                    var all = GetInventories();
+                    blocks = new List<IMyTerminalBlock>(all.Count);
+                    for (int i = 0; i < all.Count; i++)
+                        if (all[i] is IMyRefinery)
+                            blocks.Add(all[i]);
+                }
+                else
+                {
+                    blocks = new List<IMyTerminalBlock>();
+                    blocks.AddRange(config.SelectedBlocks
+                        .Select(id => MyAPIGateway.Entities.GetEntityById(id) as IMyTerminalBlock)
+                        .Where(b => (b is IMyRefinery || b is IMyAssembler) &&
+                                    b.CubeGrid.IsInSameLogicalGroupAs(referenceBlock.CubeGrid)));
+
+                    if (config.SelectedGroups.Length > 0)
+                    {
+                        var groupBlocks = new List<IMyTerminalBlock>();
+                        foreach (var groupName in config.SelectedGroups)
+                        {
+                            groupBlocks.Clear();
+                            GridTerminalSystem.GetBlockGroupWithName(groupName)?
+                                .GetBlocks(groupBlocks, b => (b is IMyRefinery || b is IMyAssembler) &&
+                                                             b.GetUserRelationToOwner(referenceBlock.OwnerId)
+                                                             <= MyRelationsBetweenPlayerAndBlock.FactionShare &&
+                                                             !blocks.Contains(b));
+                            blocks.AddRange(groupBlocks);
+                        }
+                    }
+                }
+
+                var items = new List<IngameItem>();
+                for (int b = 0; b < blocks.Count; b++)
+                {
+                    var tb = blocks[b];
+                    if (inventoryIndex >= tb.InventoryCount) continue;
+                    var inv = tb.GetInventory(inventoryIndex);
+                    if (inv == null) continue;
+                    items.Clear();
+                    inv.GetItems(items);
+                    for (int k = 0; k < items.Count; k++)
+                    {
+                        var    it     = items[k];
+                        double amount = (double)it.Amount;
+                        if (amount <= 0) continue;
+                        MyItemType type = it.Type;
+                        double acc;
+                        if (cache.TryGetValue(type, out acc)) cache[type] = acc + amount;
+                        else                                   cache[type] = amount;
+                    }
+                }
+
+                queryCache[token] = cache;
+                return cache;
+            }
+            catch (Exception e)
+            {
+                ErrorHandlerHelper.LogError(e, this);
+                return new Dictionary<MyItemType, double>();
+            }
         }
     }
 }

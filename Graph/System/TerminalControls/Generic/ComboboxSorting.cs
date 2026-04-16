@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Graph.Apps.Inventory;
+using Graph.Apps.Refinery;
 using Graph.System.Config;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
@@ -10,7 +11,7 @@ namespace Graph.System.TerminalControls.Generic
 {
     public sealed class ComboboxSorting : TerminalControlsWrapper
     {
-        protected override string[] VisibleForScripts { get; } = { InventoryLcdSurfaceScript.ID };
+        protected override string[] VisibleForScripts { get; } = { InventoryLcdSurfaceScript.ID, RefineryQueueSurfaceScript.ID };
 
         public override IMyTerminalControl TerminalControl { get; }
 

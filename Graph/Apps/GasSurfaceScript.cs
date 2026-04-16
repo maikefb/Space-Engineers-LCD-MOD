@@ -11,15 +11,19 @@ using VRage.Game;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
 using VRage.Game.ObjectBuilders.Definitions;
+using VRage.Utils;
 using VRageMath;
 using IMyTerminalBlock = Sandbox.ModAPI.IMyTerminalBlock;
 using MyItemType = VRage.Game.ModAPI.Ingame.MyItemType;
 
 namespace Graph.Apps
 {
-    [MyTextSurfaceScript("GasGraph", "Gas Graph")]
+    [MyTextSurfaceScript(ID, TITLE)]
     public class GasSurfaceScript : SurfaceScriptBase
     {
+        public const string ID    = "GasGraph";
+        public const string TITLE = "RadialMenuGroupTitle_GasLogistics";
+
         static readonly Vector2 InfoPos = new Vector2(16f, 56f);
 
         bool _first = true;
@@ -28,14 +32,17 @@ namespace Graph.Apps
 
         string _nameH2;
         string _nameO2;
-        
+        string _labelCurrent;
+        string _labelMax;
+        string _labelIn;
+        string _labelOut;
+
         public GasSurfaceScript(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
             SetLocalizedTitleFromGame();
         }
-        
-        protected override string DefaultTitle => _localizedTitle;
-        string _localizedTitle;
+
+        protected override string DefaultTitle => TITLE;
 
         public override void Run()
         {
@@ -130,7 +137,11 @@ namespace Graph.Apps
                     lineGap: lineGap,
                     afterBar: afterBar,
                     fg: fg,
-                    bg: bg
+                    bg: bg,
+                    labelCurrent: _labelCurrent,
+                    labelMax: _labelMax,
+                    labelIn: _labelIn,
+                    labelOut: _labelOut
                 );
 
                 var p2 = new Vector2(contentLeft, contentTop + slotHeight + gapBetween);
@@ -150,7 +161,11 @@ namespace Graph.Apps
                     lineGap: lineGap,
                     afterBar: afterBar,
                     fg: fg,
-                    bg: bg
+                    bg: bg,
+                    labelCurrent: _labelCurrent,
+                    labelMax: _labelMax,
+                    labelIn: _labelIn,
+                    labelOut: _labelOut
                 );
 
 
@@ -174,7 +189,11 @@ namespace Graph.Apps
             float lineGap,
             float afterBar,
             Color fg,
-            Color bg)
+            Color bg,
+            string labelCurrent,
+            string labelMax,
+            string labelIn,
+            string labelOut)
         {
             var p = pTopLeft;
 
@@ -186,17 +205,29 @@ namespace Graph.Apps
             sprites.AddRange(bar.GetSprites(Fill(cap, amt)));
 
             p += new Vector2(0, afterBar);
-            sprites.Add(Text("Atual/Total: " + FormatingHelper.LitersToString(amt) + " / " + FormatingHelper.LitersToString(cap), p, 0.9f * textScale));
+            sprites.Add(Text(
+                labelCurrent + " " + FormatingHelper.LitersToString(amt) +
+                " / " +
+                labelMax + " " + FormatingHelper.LitersToString(cap),
+                p, 0.9f * textScale));
 
             p += new Vector2(0, lineGap);
-            sprites.Add(Text("Entrada: " + FormatingHelper.LittersPerSecondToString(inRate) + "   Saída: " + FormatingHelper.LittersPerSecondToString(outRate), p, 0.9f * textScale));
+            sprites.Add(Text(
+                labelIn + " " + FormatingHelper.LittersPerSecondToString(inRate) +
+                "   " +
+                labelOut + " " + FormatingHelper.LittersPerSecondToString(outRate),
+                p, 0.9f * textScale));
         }
 
         void SetLocalizedTitleFromGame()
         {
             _nameH2 = GetGasDisplayName("Hydrogen");
             _nameO2 = GetGasDisplayName("Oxygen");
-            _localizedTitle = _nameH2 + " / " + _nameO2;
+
+            _labelCurrent = MyTexts.GetString("BlockPropertyProperties_CurrentOutput");
+            _labelMax     = MyTexts.GetString("BlockPropertiesText_MaxOutput");
+            _labelIn      = MyTexts.GetString("BlockPropertyProperties_CurrentInput");
+            _labelOut     = MyTexts.GetString("BlockPropertiesText_MaxOutput");
         }
 
         string GetGasDisplayName(string subtype)

@@ -78,7 +78,7 @@ namespace Graph.Apps.Abstract
         protected const int LINE_HEIGHT = 30;
         protected const int MINIMUM_COL_WIDTH = 220;
         protected const int SCROLLER_WIDTH = 8;
-        const int SCROLL_DELAY = 12; 
+        protected const int SCROLL_DELAY = 12; 
         long _clock;
         protected string PreviousType = "";
 
