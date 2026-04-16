@@ -22,12 +22,17 @@ using IMyTextSurfaceProvider = Sandbox.ModAPI.Ingame.IMyTextSurfaceProvider;
 
 namespace Graph.Apps.Abstract
 {
-    public abstract class SurfaceScriptBase : MyTextSurfaceScriptBase
+    public abstract class SurfaceScriptBase : MyTSSCommon
     {
         static readonly Dictionary<string, Vector2> FontSizeCache = new Dictionary<string, Vector2>();
         static readonly StringBuilder StringBuilderBuffer = new StringBuilder();
 
         public static List<SurfaceScriptBase> Instances = new List<SurfaceScriptBase>();
+        
+        readonly List<MySprite> _backgroundGrids = new List<MySprite>();
+        Color _backgroundColor;
+        Color _foregroundColor;
+        
 
         public IMyFaction Faction { get; protected set; }
         protected string Icon { get; set; }
@@ -163,6 +168,8 @@ namespace Graph.Apps.Abstract
 
         public override void Run()
         {
+            base.Run();
+            
             if (Config == null)
             {
                 GetSettings((IMyTextSurface)Surface, (IMyCubeBlock)Block);
@@ -171,13 +178,14 @@ namespace Graph.Apps.Abstract
 
             if (Math.Abs(_userPadding - Surface.TextPadding) > .01f ||
                 Math.Abs(_userScale - Config.Scale) > .001f ||
+                BackgroundColor != _backgroundColor || 
+                ForegroundColor != _foregroundColor || 
                 TitleVisible != Config.TitleVisible)
                 LayoutChanged();
 
             if (GridLogic == null)
                 LcdModSessionComponent.Components.TryGetValue(Block.CubeGrid.EntityId, out GridLogic);
 
-            base.Run();
         }
 
         void GetSettings(IMyTextSurface surface, IMyCubeBlock block)
@@ -439,6 +447,8 @@ namespace Graph.Apps.Abstract
         {
             _userPadding = Surface.TextPadding;
             _userScale = Config.Scale;
+            _backgroundColor = BackgroundColor;
+            _foregroundColor = ForegroundColor;
             TitleVisible = Config.TitleVisible;
             InvalidateTitleCache();
             Scale = GetAutoScaleUniform();
@@ -481,26 +491,15 @@ namespace Graph.Apps.Abstract
             _cachedTitleLocalized = false;
         }
 
-        readonly List<MySprite> _backgroundGrids = new List<MySprite>();
-        
+
         protected void AddBackground(List<MySprite> frame, Color? color = null)
         {
             if (!_backgroundGrids.Any())
             {
-                MySprite defaultBackground = MyTextSurfaceHelper.DEFAULT_BACKGROUND;
-                defaultBackground.Color = new Color(color ?? BackgroundColor, 0.66f);
-
-                Vector2? pos = defaultBackground.Position;
-                if (pos.HasValue) 
-                    defaultBackground.Position = pos.Value + (TextureSize / 2f);
-
-                _backgroundGrids.Add(defaultBackground);
-
-                pos = defaultBackground.Position;
-                if (pos.HasValue) 
-                    defaultBackground.Position = pos.Value + MyTextSurfaceHelper.BACKGROUND_SHIFT;
-
-                _backgroundGrids.Add(defaultBackground);
+                color = new Color(color ?? BackgroundColor, 0.66f);
+                var frameTemp = Surface.DrawFrame();
+                AddBackground(frameTemp, color);
+                frameTemp.AddToList(_backgroundGrids);
             }
 
             frame.AddRange(_backgroundGrids);
