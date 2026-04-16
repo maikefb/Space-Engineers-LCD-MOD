@@ -45,6 +45,7 @@ namespace Graph.Apps
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
+                AddBackground(sprites);
                 DrawTitle(sprites);
 
                 var maxThrust = new double[6];

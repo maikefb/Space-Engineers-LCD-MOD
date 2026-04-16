@@ -119,6 +119,7 @@ namespace Graph.Apps.Abstract
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
+                AddBackground(sprites);
                 DrawTitle(sprites);
                 DrawFooter(sprites);
 

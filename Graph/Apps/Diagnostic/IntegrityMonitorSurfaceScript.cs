@@ -64,6 +64,7 @@ namespace Graph.Apps.Diagnostic
                 using (var frame = Surface.DrawFrame())
                 {
                     var sprites = new List<MySprite>();
+                    AddBackground(sprites);
                     DrawTitle(sprites);
                     DrawProjectorOffline(sprites, _projector.CustomName, Config.Scale);
                     DrawFooter(sprites);
@@ -78,6 +79,7 @@ namespace Graph.Apps.Diagnostic
                 using (var frame = Surface.DrawFrame())
                 {
                     var sprites = new List<MySprite>();
+                    AddBackground(sprites);
                     DrawTitle(sprites);
                     sprites.Add(MakeText((IMyTextSurface)Surface, LocHelper.Empty, ViewBox.Center, Scale,
                         TextAlignment.CENTER));
@@ -99,6 +101,7 @@ namespace Graph.Apps.Diagnostic
                     using (var frame = Surface.DrawFrame())
                     {
                         var sprites = new List<MySprite>();
+                        AddBackground(sprites);
                         DrawTitle(sprites);
                         DrawNotReady(sprites, Config.Scale);
                         DrawFooter(sprites);
@@ -118,6 +121,7 @@ namespace Graph.Apps.Diagnostic
                 using (var frame = Surface.DrawFrame())
                 {
                     var sprites = new List<MySprite>();
+                    AddBackground(sprites);
                     DrawTitle(sprites);
                     DrawDepthMap(sprites, depth, view, MathHelper.ToRadians(Config.Rotation), Config.Scale);
                     DrawFooter(sprites);
@@ -129,6 +133,8 @@ namespace Graph.Apps.Diagnostic
                 using (var frame = Surface.DrawFrame())
                 {
                     var sprites = new List<MySprite>();
+                    
+                    AddBackground(sprites);
                     DrawTitle(sprites);
                     DrawError(sprites, e);
                     DrawFooter(sprites);

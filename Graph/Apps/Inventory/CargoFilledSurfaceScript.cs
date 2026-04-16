@@ -52,6 +52,7 @@ namespace Graph.Apps.Inventory
                 var sprites = new List<MySprite>();
                 _barPanelCursor = 0;
 
+                AddBackground(sprites);
                 DrawTitle(sprites);
 
                 var details = new List<Entry>(128);

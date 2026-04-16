@@ -32,7 +32,6 @@ namespace Graph.Apps
         public GasSurfaceScript(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
         {
             SetLocalizedTitleFromGame();
-            Surface.DrawFrame().Add(new MySprite(SpriteType.TEXTURE, "AH_BoreSight"));
         }
         
         protected override string DefaultTitle => _localizedTitle;
@@ -50,6 +49,7 @@ namespace Graph.Apps
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
+                AddBackground(sprites);
                 DrawTitle(sprites);
 
                 string mode, token;

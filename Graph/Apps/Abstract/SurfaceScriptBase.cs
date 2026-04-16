@@ -32,6 +32,8 @@ namespace Graph.Apps.Abstract
         public IMyFaction Faction { get; protected set; }
         protected string Icon { get; set; }
 
+        public Vector2 TextureSize => Surface.TextureSize;
+        
         protected virtual SortMethod SortMethod => Config.SortMethod;
 
         /// <summary>
@@ -476,6 +478,31 @@ namespace Graph.Apps.Abstract
             _cachedTitleAvailableWidth = -1f;
             _cachedTitleFontSize = -1f;
             _cachedTitleLocalized = false;
+        }
+
+        readonly List<MySprite> _backgroundGrids = new List<MySprite>();
+        
+        protected void AddBackground(List<MySprite> frame, Color? color = null)
+        {
+            if (!_backgroundGrids.Any())
+            {
+                MySprite defaultBackground = MyTextSurfaceHelper.DEFAULT_BACKGROUND;
+                defaultBackground.Color = new Color(color ?? BackgroundColor, 0.66f);
+
+                Vector2? pos = defaultBackground.Position;
+                if (pos.HasValue) 
+                    defaultBackground.Position = pos.Value + (TextureSize / 2f);
+
+                _backgroundGrids.Add(defaultBackground);
+
+                pos = defaultBackground.Position;
+                if (pos.HasValue) 
+                    defaultBackground.Position = pos.Value + MyTextSurfaceHelper.BACKGROUND_SHIFT;
+
+                _backgroundGrids.Add(defaultBackground);
+            }
+
+            frame.AddRange(_backgroundGrids);
         }
 
         protected static void AddHeaderSprite(List<MySprite> frame, MySprite sprite)

@@ -188,6 +188,7 @@ namespace Graph.Apps.Abstract
             {
                 var sprites = new List<MySprite>();
 
+                AddBackground(sprites);
                 DrawTitle(sprites);
                 DrawFooter(sprites);
 
