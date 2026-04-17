@@ -10,7 +10,7 @@ namespace Graph.System.TerminalControls.Generic
 {
     public class CheckboxHideEmpty : TerminalControlsWrapper
     {
-        protected override string[] VisibleForScripts { get; } = { InventoryLcdSurfaceScript.ID, RefineryQueueSurfaceScript.ID, RenewablePowerSurfaceScript.ID, GeneratorsSurfaceScript.ID };
+        protected override string[] VisibleForScripts { get; } = { InventoryLcdSurfaceScript.ID, RefineryQueueSurfaceScript.ID, RenewablePowerSurfaceScript.ID, GeneratorsSurfaceScript.ID, BatterySurfaceScript.ID };
         public override IMyTerminalControl TerminalControl { get; }
 
         public CheckboxHideEmpty()

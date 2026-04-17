@@ -4,6 +4,7 @@ using System.Linq;
 using Graph.Helpers;
 using Graph.System.Config;
 using Sandbox.ModAPI;
+using SpaceEngineers.Game.ModAPI;
 using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.Game.ModAPI.Ingame;
@@ -28,6 +29,7 @@ namespace Graph.System
         List<IMyLaserAntenna> _lasers = new List<IMyLaserAntenna>();
         List<IMyRadioAntenna> _radio = new List<IMyRadioAntenna>();
         List<IMyBeacon> _beacons = new List<IMyBeacon>();
+        List<IMyBatteryBlock> _batteries = new List<IMyBatteryBlock>();
 
         IMyGridTerminalSystem GridTerminalSystem => MyAPIGateway.TerminalActionsHelper.GetTerminalSystemForGrid(Grid);
 
@@ -82,6 +84,7 @@ namespace Graph.System
                 _lasers.Clear();
                 _radio.Clear();
                 _beacons.Clear();
+                _batteries.Clear();
             }
             catch (Exception e)
             {
@@ -230,7 +233,11 @@ namespace Graph.System
                 var lase = block as IMyLaserAntenna;
                 if(lase != null)
                     _lasers.Add(lase);
-                
+
+                var battery = block as IMyBatteryBlock;
+                if(battery != null)
+                    _batteries.Add(battery);
+
                 return block.HasInventory && block.InventoryCount != 0 ;
             }).Select(a => a).ToList();
 
@@ -253,6 +260,12 @@ namespace Graph.System
         {
             RefreshIfNeeded();
             return _beacons;
+        }
+
+        public List<IMyBatteryBlock> GetBatteries()
+        {
+            RefreshIfNeeded();
+            return _batteries;
         }
 
         /// <summary>

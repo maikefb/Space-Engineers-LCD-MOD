@@ -21,6 +21,7 @@ namespace Graph.System.TerminalControls.Generic
             ProjectorLcdSurfaceScript.ID,
             RenewablePowerSurfaceScript.ID,
             GeneratorsSurfaceScript.ID,
+            BatterySurfaceScript.ID,
             CargoFilledSurfaceScript.ID,
             AntennaSurfaceScript.ID,
             IntegrityMonitorSurfaceScript.ID
