@@ -49,8 +49,7 @@ namespace Graph.System
 
             MyAPIGateway.Session.Factions.FactionCreated += FactionUpdated;
             MyAPIGateway.Session.Factions.FactionEdited += FactionUpdated;
-            MyAPIGateway.Session.Factions.FactionStateChanged +=
-                FactionStateChanged;
+            MyAPIGateway.Session.Factions.FactionStateChanged += FactionStateChanged;
         }
 
         void FactionStateChanged(MyFactionStateChange change, long faction1, long faction2, long player, long client)
@@ -253,6 +252,10 @@ namespace Graph.System
 
                         settings.CopyFrom(packet.Config);
                         ConfigManager.Save(block, settings);
+
+                        foreach (var app in ConfigManager.GetAppsForBlock(block)) 
+                            app.RequestRedraw();
+
                         break;
                     }
                     default:

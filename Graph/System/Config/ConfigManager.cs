@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Graph.Apps.Abstract;
 using Graph.Helpers;
@@ -80,8 +81,7 @@ namespace Graph.System.Config
 
         public static void Sync(IMyEntity storageEntity, ScreenProviderConfig providerConfig)
         {
-            var app = GetAppForBlock(storageEntity as IMyTerminalBlock);
-            if (app != null)
+            foreach (var app in GetAppsForBlock(storageEntity as IMyTerminalBlock)) 
                 app.RequestRedraw();
 
             if (MyAPIGateway.Session != null && MyAPIGateway.Session.IsServer)
@@ -160,11 +160,11 @@ namespace Graph.System.Config
 
         public static ScreenProviderConfig CreateSettings(IMyCubeBlock block) => new ScreenProviderConfig(block is IMyTextPanel ? 1 : ((IMyTextSurfaceProvider)block).SurfaceCount, block as IMyTerminalBlock);
 
-        public static SurfaceScriptBase GetAppForBlock(IMyTerminalBlock block) =>
-            SurfaceScriptBase.Instances.FirstOrDefault(a => a.Block.Equals(block));
-
+        public static IEnumerable<SurfaceScriptBase> GetAppsForBlock(IMyTerminalBlock block) =>
+            SurfaceScriptBase.Instances.Where(a => a.Block.Equals(block));
+        
         public static ScreenProviderConfig GetConfigForBlock(IMyTerminalBlock block) =>
-            GetAppForBlock(block)?.ProviderConfig;
+            GetAppsForBlock(block).FirstOrDefault()?.ProviderConfig;
 
         public static ScreenConfig GetConfigForScreen(IMyTerminalBlock block, int index)
         {
