@@ -25,9 +25,9 @@ namespace Graph.Apps.Power
         protected override string DefaultTitle => TITLE;
 
         // Minimum slot dimensions (unscaled) — Scale controls how many fit per row/column
-        const float BATTERY_SLOT_W = 60f;
-        const float BATTERY_SLOT_H = 100f;
-        const float POWER_TEXT_H   = 22f;
+        const float BATTERY_SLOT_W = 100f;
+        const float BATTERY_SLOT_H = 120f;
+        const float POWER_TEXT_H   = 16f;
         const float SCROLLER_W     = 8f;
         const int   SCROLL_TICK    = 12;
 
