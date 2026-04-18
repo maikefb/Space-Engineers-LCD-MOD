@@ -16,11 +16,12 @@ namespace Graph.System.Config
         
         public ScreenConfig() 
         {
+            //Required by Protobuf
         }
 
         public ScreenConfig(int i, IMyTerminalBlock parent)
         {
-            ScreenIndex = 1;
+            ScreenIndex = i;
             HeaderColor = FactionHelper.GetIconColor(parent);
         }
 
@@ -37,7 +38,6 @@ namespace Graph.System.Config
         [ProtoMember(5)] public string[] SelectedDefinition { get; set; } = Array.Empty<string>();
 
         [ProtoMember(6)] public string[] SelectedCategories { get; set; } = Array.Empty<string>();
-
 
         [ProtoMember(7)] public float InternalScale { get; set; } = 1;
 
@@ -98,6 +98,7 @@ namespace Graph.System.Config
             HeaderColor = newValue.HeaderColor;
             SelectedBlocks = newValue.SelectedBlocks;
             SelectedGroups = newValue.SelectedGroups;
+            TitleVisible = newValue.TitleVisible;
             SelectedDefinition = newValue.SelectedDefinition;
             SelectedCategories = newValue.SelectedCategories;
             InternalScale = newValue.InternalScale;
