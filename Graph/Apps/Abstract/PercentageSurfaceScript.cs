@@ -2,69 +2,49 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using Graph.Apps.Abstract;
 using Graph.Extensions;
-using Graph.Helpers;
 using Graph.Panels;
 using Graph.System;
-using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.ModAPI;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI;
-using VRage.Game.ModAPI.Ingame;
 using VRageMath;
-using IMyCubeBlock = VRage.Game.ModAPI.IMyCubeBlock;
-using IMyCubeGrid = VRage.Game.ModAPI.IMyCubeGrid;
-using IMySlimBlock = VRage.Game.ModAPI.IMySlimBlock;
 
-namespace Graph.Apps.Inventory
+namespace Graph.Apps.Abstract
 {
-    [MyTextSurfaceScript(ID, TITLE)]
-    public class CargoFilledSurfaceScript : SurfaceScriptBase
+    public abstract class PercentageSurfaceScript<TEntry> : SurfaceScriptBase
     {
-        public const string ID = "ContainerCharts";
-        public const string TITLE = "DisplayName_CargoFilledEntityComponent";
+        protected const int SCROLLER_WIDTH = 8;
+        protected const int LINE_HEIGHT = 40;
+        protected const int MINIMUM_COL_WIDTH = 220;
+        protected const int SCROLL_DELAY = 12;
 
-        public CargoFilledSurfaceScript(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
-        {
-
-        }
-
-        protected override string DefaultTitle => TITLE;
-
-        Color _scriptForegroundColor;
         readonly List<BarPanel> _barPanels = new List<BarPanel>(8);
         int _barPanelCursor;
-        
+        Color _scriptForegroundColor;
+
+        protected PercentageSurfaceScript(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
+        {
+        }
+
         public override void Run()
         {
             base.Run();
             if (Config == null) return;
 
-            if(_scriptForegroundColor != Surface.ScriptForegroundColor)
+            if (_scriptForegroundColor != Surface.ScriptForegroundColor)
                 LayoutChanged();
-            
+
             Scale = GetAutoScaleUniform();
             UpdateViewBox();
 
-            var details = new List<Entry>(128);
-            GetContainers((IMyCubeGrid)Block?.CubeGrid, details);
-
-            details.Sort((a, b) =>
-            {
-                var fa = a.Cap > 0 ? a.Used / a.Cap : 0;
-                var fb = b.Cap > 0 ? b.Used / b.Cap : 0;
-                var cmp = fb.CompareTo(fa);
-                if (cmp != 0) return cmp;
-                return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
-            });
-
-            if (details.Count == 0)
+            var entries = BuildEntries();
+            if (entries.Count == 0)
             {
                 Empty();
                 return;
             }
-            
+
             using (var frame = Surface.DrawFrame())
             {
                 var sprites = new List<MySprite>();
@@ -76,13 +56,12 @@ namespace Graph.Apps.Inventory
                 switch (Config.DisplayMode)
                 {
                     case DisplayMode.Grid:
-                        DrawGrid(sprites, details);
+                        DrawGrid(sprites, entries);
                         break;
                     default:
-                        DrawList(sprites, details);
+                        DrawList(sprites, entries);
                         break;
                 }
-                
 
                 frame.AddRange(sprites);
             }
@@ -95,14 +74,57 @@ namespace Graph.Apps.Inventory
             base.LayoutChanged();
         }
 
-        protected void DrawRow(List<MySprite> frame, Entry item, bool showScrollBar)
+        List<TEntry> BuildEntries()
+        {
+            var entries = new List<TEntry>();
+            ReadEntries(entries);
+            SortEntries(entries);
+            return entries;
+        }
+
+        protected abstract void ReadEntries(List<TEntry> entries);
+
+        protected virtual void SortEntries(List<TEntry> entries)
+        {
+        }
+
+        protected abstract string GetEntryName(TEntry entry);
+
+        protected abstract float GetEntryPercentage(TEntry entry);
+
+        protected virtual Color? GetEntryUsageColor(float pct)
+        {
+            return null;
+        }
+
+        protected virtual string GetListPercentageText(float pct)
+        {
+            return pct.ToString("P", CultureInfo.CurrentUICulture);
+        }
+
+        protected virtual string GetGridPercentageText(float pct)
+        {
+            return pct.ToString("P0", CultureInfo.CurrentUICulture);
+        }
+
+        protected virtual Color GetEntryBarFillColor()
+        {
+            return Config.HeaderColor;
+        }
+
+        protected virtual Color GetEntryBarBackgroundColor()
+        {
+            return BackgroundColor.DeriveAscentColor();
+        }
+
+        void DrawRow(List<MySprite> frame, TEntry entry, bool showScrollBar)
         {
             var margin = ViewBox.Size.X * Margin;
             Vector2 position = ViewBox.Position;
             position.X += margin;
             position.Y = CaretY;
 
-            var pct = MathHelper.Clamp(item.Used / item.Cap, 0, 1);
+            var pct = MathHelper.Clamp(GetEntryPercentage(entry), 0f, 1f);
 
             if (Config.DrawLines)
             {
@@ -132,26 +154,26 @@ namespace Graph.Apps.Inventory
             var barPanel = GetNextBarPanel(
                 new Vector2(clip.Location.X, clip.Location.Y + 1 * Scale) + barMargin / 2f,
                 size,
-                Config.HeaderColor,
-                BackgroundColor.DeriveAscentColor());
-            frame.AddRange(barPanel.GetSprites((float)pct, GetContainerUsageColor((float)pct)));
+                GetEntryBarFillColor(),
+                GetEntryBarBackgroundColor());
+            frame.AddRange(barPanel.GetSprites(pct, GetEntryUsageColor(pct)));
 
             frame.Add(MySprite.CreateClipRect(clip));
 
             position.X += 16 * Scale;
             position.Y += 4 * Scale;
-            
-            var text = new MySprite()
+
+            var text = new MySprite
             {
                 Type = SpriteType.TEXT,
-                Data = item.Name,
+                Data = GetEntryName(entry),
                 Position = position,
                 RotationOrScale = Scale,
                 Color = Surface.ScriptForegroundColor,
                 Alignment = TextAlignment.LEFT,
                 FontId = "White"
             };
-            
+
             frame.Add(text);
 
             frame.Add(MySprite.CreateClearClipRect());
@@ -163,7 +185,7 @@ namespace Graph.Apps.Inventory
             var percentage = new MySprite
             {
                 Type = SpriteType.TEXT,
-                Data = pct.ToString("P"),
+                Data = GetListPercentageText(pct),
                 Position = position,
                 RotationOrScale = Scale,
                 Color = Surface.ScriptForegroundColor,
@@ -172,11 +194,10 @@ namespace Graph.Apps.Inventory
             };
 
             frame.Add(percentage);
-
             CaretY += LINE_HEIGHT * Scale;
         }
 
-        void DrawList(List<MySprite> sprites, List<Entry> entries)
+        void DrawList(List<MySprite> sprites, List<TEntry> entries)
         {
             var rowHeight = LINE_HEIGHT * Scale;
             var viewportAvailableHeight = ViewBox.Height - (CaretY - ViewBox.Y) - FooterHeight;
@@ -210,7 +231,7 @@ namespace Graph.Apps.Inventory
             }
         }
 
-        void DrawGrid(List<MySprite> sprites, List<Entry> entries)
+        void DrawGrid(List<MySprite> sprites, List<TEntry> entries)
         {
             var rowHeight = 2f * LINE_HEIGHT * Scale;
             var viewportAvailableHeight = ViewBox.Height - (CaretY - ViewBox.Y) - FooterHeight;
@@ -295,10 +316,10 @@ namespace Graph.Apps.Inventory
             }
         }
 
-        void DrawGridCell(List<MySprite> frame, Entry item, float xStart, float xEnd, float yStart, float rowHeight)
+        void DrawGridCell(List<MySprite> frame, TEntry entry, float xStart, float xEnd, float yStart, float rowHeight)
         {
             var cellPadding = (LINE_HEIGHT * Scale) / 3f;
-            var pct = MathHelper.Clamp(item.Cap > 0 ? item.Used / item.Cap : 0, 0, 1);
+            var pct = MathHelper.Clamp(GetEntryPercentage(entry), 0f, 1f);
             var cellView = GetCellViewBox(xStart, xEnd, yStart, rowHeight, cellPadding);
 
             if (!Config.DrawLines)
@@ -320,7 +341,7 @@ namespace Graph.Apps.Inventory
             var nameRect = new RectangleF(cellView.X, cellView.Y, cellView.Width, nameHeight);
             var bottomRect = new RectangleF(cellView.X, nameRect.Bottom, cellView.Width, Math.Max(0f, cellView.Bottom - nameRect.Bottom));
 
-            var name = new StringBuilder(item.Name ?? string.Empty);
+            var name = new StringBuilder(GetEntryName(entry) ?? string.Empty);
             TrimText(ref name, nameRect.Width);
 
             var namePos = new Vector2(nameRect.X + 2f * Scale, nameRect.Y + 2f * Scale);
@@ -348,9 +369,9 @@ namespace Graph.Apps.Inventory
                     Math.Max(1f, barRect.Height - 2f * barInnerPaddingY)),
                 Config.HeaderColor.DeriveAscentColor(),
                 BackgroundColor.DeriveAscentColor());
-            frame.AddRange(barPanel.GetSprites((float)pct, GetContainerUsageColor((float)pct)));
+            frame.AddRange(barPanel.GetSprites(pct, GetEntryUsageColor(pct)));
 
-            var pctText = ((float)pct).ToString("P0", CultureInfo.CurrentUICulture);
+            var pctText = GetGridPercentageText(pct);
             var pctPos = new Vector2(textRect.Right - (2f * Scale), textRect.Y + 2f * Scale);
             frame.Add(new MySprite
             {
@@ -364,7 +385,7 @@ namespace Graph.Apps.Inventory
             });
         }
 
-        int GetMaxColsFromSurface()
+        protected int GetMaxColsFromSurface()
         {
             var max = ViewBox.Width - ViewBox.X;
             var perCol = MINIMUM_COL_WIDTH * Scale;
@@ -374,23 +395,9 @@ namespace Graph.Apps.Inventory
         BarPanel GetNextBarPanel(Vector2 posTopLeft, Vector2 size, Color fillColor, Color bgColor)
         {
             if (_barPanelCursor >= _barPanels.Count)
-                _barPanels.Add(BuildBarPanel(posTopLeft, size, fillColor, bgColor));
+                _barPanels.Add(new BarPanel(posTopLeft, size, fillColor, bgColor));
 
             return _barPanels[_barPanelCursor++];
-        }
-
-        static BarPanel BuildBarPanel(Vector2 posTopLeft, Vector2 size, Color fillColor, Color bgColor)
-        {
-            return new BarPanel(posTopLeft, size, fillColor, bgColor);
-        }
-
-        Color? GetContainerUsageColor(float pct)
-        {
-            if (pct >= .99f)
-                return Config.ErrorColor;
-            if (pct > .90f)
-                return Config.WarningColor;
-            return null;
         }
 
         void DrawScrollBar(List<MySprite> frame, float scale, float initialY, float viewportHeight,
@@ -446,120 +453,6 @@ namespace Graph.Apps.Inventory
                 Color = color,
                 Alignment = TextAlignment.CENTER
             });
-        }
-
-        const int SCROLLER_WIDTH = 8;
-        const int LINE_HEIGHT = 40;
-        const int MINIMUM_COL_WIDTH = 220;
-        const int SCROLL_DELAY = 12;
-
-        void GetContainers(IMyCubeGrid rootGrid, List<Entry> details)
-        {
-            AggregateAllContainersInLogicalGroup(rootGrid, details);
-        }
-
-        void AggregateAllContainersInLogicalGroup(IMyCubeGrid rootGrid, List<Entry> details)
-        {
-            if (rootGrid == null) return;
-
-            var grids = new List<IMyCubeGrid>();
-            try
-            {
-                MyAPIGateway.GridGroups.GetGroup(rootGrid, GridLinkTypeEnum.Logical, grids);
-            }
-            catch
-            {
-            }
-
-            var hasRoot = false;
-            for (var i = 0; i < grids.Count; i++)
-                if (grids[i] == rootGrid)
-                {
-                    hasRoot = true;
-                    break;
-                }
-
-            if (!hasRoot) grids.Insert(0, rootGrid);
-
-            var slims = new List<IMySlimBlock>();
-            for (var gi = 0; gi < grids.Count; gi++)
-            {
-                var g = grids[gi];
-                if (g == null) continue;
-
-                slims.Clear();
-                g.GetBlocks(slims);
-
-                for (var i = 0; i < slims.Count; i++)
-                {
-                    var fat = slims[i].FatBlock as IMyTerminalBlock;
-                    if (fat == null) continue;
-
-                    var typeIdStr = "";
-                    try
-                    {
-                        typeIdStr = fat.BlockDefinition.TypeIdString ?? fat.BlockDefinition.TypeId.ToString();
-                    }
-                    catch
-                    {
-                    }
-
-                    if (typeIdStr.IndexOf("CargoContainer", StringComparison.OrdinalIgnoreCase) < 0)
-                        continue;
-
-                    if (!fat.HasInventory) continue;
-
-                    double localUsed = 0, localCap = 0;
-                    var invCount = 0;
-                    try
-                    {
-                        invCount = fat.InventoryCount;
-                    }
-                    catch
-                    {
-                    }
-
-                    for (var k = 0; k < invCount; k++)
-                    {
-                        var inv = fat.GetInventory(k);
-                        if (inv == null) continue;
-                        try
-                        {
-                            localUsed += (double)inv.CurrentVolume;
-                            localCap += (double)inv.MaxVolume;
-                        }
-                        catch
-                        {
-                        }
-                    }
-
-                    if (localCap > 0)
-                    {
-                        string name;
-                        try
-                        {
-                            name = fat.CustomName;
-                            if (string.IsNullOrEmpty(name)) name = fat.DisplayNameText;
-                            if (string.IsNullOrEmpty(name)) name = fat.BlockDefinition.SubtypeName;
-                            if (string.IsNullOrEmpty(name)) name = "Container";
-                        }
-                        catch
-                        {
-                            name = "Container";
-                        }
-
-                        details.Add(new Entry { Name = name, Used = localUsed, Cap = localCap });
-                    }
-                }
-            }
-        }
-
-
-        public class Entry
-        {
-            public double Cap;
-            public string Name;
-            public double Used;
         }
     }
 }

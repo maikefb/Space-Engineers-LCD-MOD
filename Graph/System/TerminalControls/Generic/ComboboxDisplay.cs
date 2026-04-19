@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Graph.Apps.Antenna;
 using Graph.Apps.Diagnostic;
 using Graph.Apps.Inventory;
+using Graph.Apps.Percentage;
 using Graph.Apps.Power;
 using Graph.Apps.Refinery;
 using Graph.System.Config;

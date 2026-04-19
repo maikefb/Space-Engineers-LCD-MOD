@@ -3,6 +3,7 @@ using Graph.Apps;
 using Graph.Apps.Antenna;
 using Graph.Apps.Diagnostic;
 using Graph.Apps.Inventory;
+using Graph.Apps.Percentage;
 using Graph.Apps.Power;
 using Graph.Apps.Refinery;
 using Sandbox.Game.EntityComponents;

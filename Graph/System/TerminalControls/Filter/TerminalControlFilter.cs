@@ -1,5 +1,6 @@
 using Graph.Apps.Antenna;
 using Graph.Apps.Inventory;
+using Graph.Apps.Percentage;
 using Graph.Apps.Refinery;
 
 namespace Graph.System.TerminalControls.Filter

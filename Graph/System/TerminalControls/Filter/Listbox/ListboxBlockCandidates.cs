@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Graph.Apps.Antenna;
 using Graph.Apps.Inventory;
+using Graph.Apps.Percentage;
 using Graph.Apps.Refinery;
 using Graph.Helpers;
 using Graph.System.Config;
