@@ -1,0 +1,41 @@
+using System.Collections.Generic;
+using System.Linq;
+using Graph.Apps.Antenna;
+using Graph.Helpers;
+using Graph.System.Config;
+using Sandbox.ModAPI;
+using VRageMath;
+
+namespace Graph.System.Antenna
+{
+    internal abstract class AntennaCollector
+    {
+        protected readonly Color ForegroundColor;
+        protected readonly Color WarningColor;
+        protected readonly ScreenConfig ScreenConfig;
+        readonly Dictionary<string, string> _locCache = new Dictionary<string, string>();
+        
+        public abstract void Collect(GridLogic grid, List<AntennaEntry> entries);
+
+        protected AntennaCollector(AntennaSurfaceScript antennaSurfaceScript)
+        {
+            ForegroundColor = antennaSurfaceScript.ForegroundColor;
+            WarningColor = antennaSurfaceScript.Config.WarningColor;
+            ScreenConfig = antennaSurfaceScript.Config;
+        }
+        
+        protected string GetLocCached(string key)
+        {
+            string value;
+            if (_locCache.TryGetValue(key, out value))
+                return value;
+
+            value = LocHelper.GetLoc(key);
+            _locCache[key] = value;
+            return value;
+        }
+        
+        
+        protected bool IsValid(IMyTerminalBlock block) => block != null && !block.Closed && (!ScreenConfig.SelectedBlocks.Any() || ScreenConfig.SelectedBlocks.Contains(block.EntityId));
+    }
+}
