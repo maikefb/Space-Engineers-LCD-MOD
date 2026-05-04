@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <LCDTextures>
+        <LCDTextureDefinition> <!-- Custom Warning Sprite -->
+            <Id Type="LCDTextureDefinition" Subtype="Warning"/>
+            <SpritePath>Textures/Sprites/Warning.dds</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+
+        <LCDTextureDefinition> <!-- Custom Beacon Sprite -->
+            <Id Type="LCDTextureDefinition" Subtype="BeaconBroadcast"/>
+            <SpritePath>Textures/Sprites/BeaconBroadcast.dds</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+
+        <LCDTextureDefinition> <!-- Custom Antenna Disabled Sprite -->
+            <Id Type="LCDTextureDefinition" Subtype="RadioAntennaDisabled"/>
+            <SpritePath>Textures/Sprites/SignalModeOff.dds</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+
+        <LCDTextureDefinition> <!-- Custom Jump Drive Sprite -->
+            <Id Type="LCDTextureDefinition" Subtype="JumpDrive"/>
+            <SpritePath>Textures/Sprites/JumpDrive.dds</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+
+        <LCDTextureDefinition> <!-- Custom Jump Drive Core Sprite -->
+            <Id Type="LCDTextureDefinition" Subtype="JumpDriveCore"/>
+            <SpritePath>Textures/Sprites/JumpDriveCore.dds</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+
+        <LCDTextureDefinition> <!-- Custom Battery Sprite -->
+            <Id Type="LCDTextureDefinition" Subtype="Battery"/>
+            <SpritePath>Textures/Sprites/Battery.dds</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+
+        <LCDTextureDefinition> <!-- Custom Battery Wide Sprite -->
+            <Id Type="LCDTextureDefinition" Subtype="BatteryWide"/>
+            <SpritePath>Textures/Sprites/BatteryWide.dds</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+        
+        <LCDTextureDefinition> <!-- Custom Flag Sprite -->
+            <Id Type="LCDTextureDefinition" Subtype="Flag"/>
+            <SpritePath>Textures/Sprites/flag.dds</SpritePath>
+            <Selectable>false</Selectable>
+        </LCDTextureDefinition>
+    </LCDTextures>
+</Definitions>
